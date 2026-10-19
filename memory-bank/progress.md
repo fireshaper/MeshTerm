@@ -132,6 +132,17 @@ State at the end of Phase 9: `typecheck`, `lint` (TS + CSS), `format:check`, `te
 
 Notes for Phase 10: the Docker image must keep the layout `apps/server/dist`, `apps/server/drizzle`, `apps/web/dist`, `themes/` (the server auto-detects them), plus production `node_modules` for the server (better-sqlite3 needs build tools in the build stage).
 
+## Repository (2026-10-19, after Phase 9)
+
+- The user created https://github.com/fireshaper/MeshTerm. Phases 0–9 were committed as one commit (`6cb902e`), plus `.gitattributes` pinning LF (`3f884fe`, because `core.autocrlf=true` would otherwise give CRLF checkouts that fail Prettier). Pushed to `origin/main`.
+- Effect on Phase 10: the CI workflow's "passes in Actions" test (10.3) is no longer deferred, and the compose image can be `ghcr.io/fireshaper/meshterm`.
+
+## Phase 10: Packaging (2026-10-19)
+
+- **10.1:** Multi-stage `Dockerfile` (build → runtime on node:26-alpine). Verified locally: the build succeeds; the image is **163 MB uncompressed / ~66 MB compressed**; with a FakeNode container it is `healthy` after 5 s; `id -u` = 1000; `/data/meshterm.db` is on the mounted volume; `docker stop` → exit 0. Reaching < 200 MB meant bundling every JS dependency into `dist/main.js` and shipping only a trimmed `better-sqlite3`. An unwritable `/data` now fails with a fix-it message.
+- **10.2:** `docker-compose.yml`, `README.md` (trusted-networks warning at the top), `compose.test.yml` (FakeNode service via the `fake-node` Dockerfile target). The FakeNode CLI gained `serve`/`inject` and a control API (shared with the e2e harness). Verified on host port 18080: the UI shows **Connected**; a message injected with the CLI is still in channel 0 (API and UI) after `docker compose restart meshterm`.
+- **10.3:** `.github/workflows/ci.yml` (checks, e2e, docker). Every step passes locally (297 unit, 10 integration, 32 Playwright tests, both builds). **Pending:** the in-Actions test (a clean run, and a deliberately failing unit test turning the run red) needs commits pushed to GitHub.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

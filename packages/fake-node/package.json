@@ -9,8 +9,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "serve": "tsx src/cli.ts",
-    "dev": "tsx src/cli.ts"
+    "serve": "tsx src/cli.ts serve",
+    "dev": "tsx src/cli.ts serve",
+    "cli": "tsx src/cli.ts"
   },
   "dependencies": {
     "@meshterm/protocol": "workspace:*",

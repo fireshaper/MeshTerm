@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/coverage
+**/test-results
+**/playwright-report
+**/blob-report
+**/.vite
+**/*.tsbuildinfo
+.git
+.github
+.env
+.env.*
+!.env.example
+data

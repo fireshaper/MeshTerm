@@ -1,5 +1,11 @@
 import { defineConfig } from "tsup";
 
+/**
+ * Not bundled: better-sqlite3 is a native addon (shipped beside the bundle in the
+ * Docker image); ws's optional native speedups are loaded in try/catch only.
+ */
+const EXTERNAL = ["better-sqlite3", "bufferutil", "utf-8-validate"];
+
 export default defineConfig({
   entry: { main: "src/main.ts" },
   format: ["esm"],
@@ -8,7 +14,13 @@ export default defineConfig({
   outDir: "dist",
   clean: true,
   sourcemap: true,
-  // Workspace packages export TypeScript source, so they must be bundled in.
-  // Everything else in package.json dependencies stays external (better-sqlite3 is native).
-  noExternal: [/^@meshterm\//],
+  // Everything else is bundled (workspace packages are TypeScript source, and this
+  // keeps the runtime image to node + one native module), then tree-shaken.
+  // (noExternal wins over external in tsup, so the pattern must skip EXTERNAL itself.)
+  noExternal: [new RegExp(`^(?!(${EXTERNAL.join("|")})(/|$))`)],
+  external: EXTERNAL,
+  // Some bundled dependencies are CommonJS and call require() for Node builtins.
+  banner: {
+    js: 'import { createRequire as __mtCreateRequire } from "node:module"; const require = __mtCreateRequire(import.meta.url);',
+  },
 });

@@ -1,0 +1,16 @@
+# MeshTerm: one container, one volume. See README.md before exposing it.
+#
+# ./data must be writable by uid 1000 (the container user). Create it first:
+#   mkdir -p data && sudo chown 1000:1000 data
+services:
+  meshterm:
+    image: ghcr.io/fireshaper/meshterm:latest
+    restart: unless-stopped
+    ports: ["8080:8080"]
+    volumes: ["./data:/data"]
+    environment:
+      - TZ=America/New_York
+      # The Meshtastic node to connect to (Wi-Fi/Ethernet node or meshtasticd).
+      - MESHTERM_NODE_HOST=192.168.1.50
+      - MESHTERM_NODE_PORT=4403
+      # MESHTERM_AUTH is planned (milestone M5); there is no login yet.

@@ -14,7 +14,13 @@ async function main(): Promise<void> {
     throw err;
   }
 
-  const app = await buildApp(config);
+  let app: Awaited<ReturnType<typeof buildApp>>;
+  try {
+    app = await buildApp(config);
+  } catch (err) {
+    console.error(`MeshTerm failed to start: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
   let closing = false;
   const shutdown = (signal: NodeJS.Signals) => {
     if (closing) return;

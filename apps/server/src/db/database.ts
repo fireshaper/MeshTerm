@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { accessSync, constants, existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
@@ -51,6 +51,16 @@ export function openDatabase(path: string): DatabaseHandle {
 
 /** Opens `<dataDir>/meshterm.db`, creating the directory if it is missing. */
 export function openDataDirDatabase(dataDir: string): DatabaseHandle {
+  mkdirSync(dataDir, { recursive: true });
+  try {
+    accessSync(dataDir, constants.W_OK);
+  } catch {
+    // The usual cause: a bind-mounted ./data that Docker created as root.
+    throw new Error(
+      `Data directory ${dataDir} is not writable by this process (uid ${String(process.getuid?.() ?? "?")}). ` +
+        "If it is a bind mount, create it first and give it to uid 1000: mkdir -p data && sudo chown 1000:1000 data",
+    );
+  }
   return openDatabase(join(dataDir, DB_FILENAME));
 }
 

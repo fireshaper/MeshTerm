@@ -1,0 +1,36 @@
+# MeshTerm against FakeNode (a simulated Meshtastic node), built from this repo.
+# Try MeshTerm without a radio, or test the container end to end.
+#
+#   docker compose -f compose.test.yml up --build
+#   open http://localhost:8080  (set MESHTERM_PORT to use another host port)
+#
+# Make FakeNode "hear" a message on channel 0:
+#   docker compose -f compose.test.yml exec fakenode pnpm cli inject --text "hello mesh"
+# (also --channel N, --to <nodeNum> for a DM, --from <nodeNum>)
+#
+# Use another scenario: mount a JSON file and pass --scenario, e.g.
+#   volumes: ["./my-mesh.json:/scenarios/my-mesh.json:ro"]
+#   command: ["serve", "--host", "0.0.0.0", "--control-host", "0.0.0.0", "--scenario", "/scenarios/my-mesh.json"]
+# Built-in scenarios: default (4 nodes, 2 channels) and busy (8 nodes, 1 channel).
+name: meshterm-test
+
+services:
+  fakenode:
+    build:
+      context: .
+      target: fake-node
+    # Defaults: serve the "default" scenario on 4403, control API on 4404 (inside the network only).
+
+  meshterm:
+    build:
+      context: .
+      target: runtime
+    depends_on: [fakenode]
+    environment:
+      MESHTERM_NODE_HOST: fakenode
+      MESHTERM_NODE_PORT: "4403"
+    ports: ["${MESHTERM_PORT:-8080}:8080"]
+    volumes: ["meshterm-data:/data"]
+
+volumes:
+  meshterm-data: {}

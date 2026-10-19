@@ -32,26 +32,40 @@ Record assumptions in [DECISIONS.md](DECISIONS.md) instead of stalling on ambigu
 Run from the repo root. When you add new commands, list them here.
 
 ```sh
-pnpm install                         # install
+# Setup and checks (CI runs: typecheck, lint, format:check, test:unit, test:int, test:e2e, docker build)
+pnpm install                         # install (Node >= 24, pnpm 10)
 pnpm typecheck                       # tsc --noEmit for the root configs and every package
 pnpm lint                            # ESLint (type-aware) + Stylelint
 pnpm lint:ts                         # ESLint only
-pnpm lint:css                        # Stylelint only (hex/rgb/hsl banned outside themes/)
+pnpm lint:css                        # Stylelint only (literal colors banned outside themes/)
 pnpm format                          # Prettier write
 pnpm format:check                    # Prettier check
+
+# Tests
 pnpm test                            # all Vitest projects (unit + integration)
 pnpm test:unit                       # skip *.int.test.ts
 pnpm test:int                        # only *.int.test.ts
 pnpm test -t "<test name>"           # one test by name (no `--`: pnpm forwards it literally)
 pnpm --filter @meshterm/server test  # one package's tests
-pnpm --filter @meshterm/server db:generate --name <name>  # new SQL migration from src/db/schema.ts
-pnpm --filter @meshterm/server dev   # run the server with tsx watch (needs MESHTERM_NODE_HOST)
-pnpm --filter @meshterm/server build # bundle to apps/server/dist/main.js (tsup)
-pnpm --filter @meshterm/server start # run the bundle
+pnpm test:e2e                        # build the SPA, then Playwright (desktop 1280 px + mobile 390 px)
+pnpm --filter @meshterm/web exec playwright install chromium   # once per machine
+
+# Run locally
 pnpm dev                             # server + web dev servers (copy .env.example to .env first)
 pnpm dev:fake                        # same, plus a FakeNode on 127.0.0.1:4403
-pnpm --filter @meshterm/web build    # build the SPA to apps/web/dist
-pnpm test:e2e                        # build the SPA, then Playwright (desktop 1280 px + mobile 390 px)
+pnpm --filter @meshterm/fake-node cli inject --text "hi"       # make a running FakeNode hear a message
+pnpm --filter @meshterm/server db:generate --name <name>       # new SQL migration from src/db/schema.ts
+
+# Build
+pnpm --filter @meshterm/web build    # SPA → apps/web/dist
+pnpm --filter @meshterm/server build # server bundle → apps/server/dist/main.js (tsup)
+pnpm --filter @meshterm/server start # run the bundle
+
+# Docker
+docker build -t meshterm .                                    # runtime image (default target)
+docker compose -f compose.test.yml up --build                 # MeshTerm + FakeNode from source (MESHTERM_PORT=…)
+docker compose -f compose.test.yml exec fakenode pnpm cli inject --text "hi"
+docker compose up -d                                          # production (docker-compose.yml)
 ```
 
 **Workspace imports:** packages depend on each other with `workspace:*` (e.g. `"@meshterm/shared": "workspace:*"`). Each package's `exports` points at `src/index.ts`, so there is no build step between packages.
