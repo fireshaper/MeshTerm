@@ -36,20 +36,22 @@ jobs:
   e2e:
     name: Playwright
     runs-on: ubuntu-latest
+    # The official image (Node 24, browsers and fonts preinstalled) is also where the
+    # Linux visual baselines are made (scripts/visual-baselines-linux.sh), so pixels match.
+    # Keep its tag in step with @playwright/test.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
       - uses: pnpm/action-setup@v6
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
-      - name: Install Chromium
-        run: pnpm --filter @meshterm/web exec playwright install --with-deps chromium
-      - name: Playwright tests (builds the SPA first)
+      - name: Playwright tests incl. visual baselines (builds server and SPA first)
         run: pnpm test:e2e
+      - name: Base-app gate, three runs in a row
+        run: pnpm test:gate
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v7

@@ -42,7 +42,8 @@ describe("<NodeTable />", () => {
     );
     expect(rowFor(RIDGE)?.querySelector('[data-mt="node-snr"]')).toHaveTextContent("7.25 dB");
     expect(rowFor(RIDGE)?.querySelector('[data-mt="node-hops"]')).toHaveTextContent("0");
-    // No DM link to yourself.
+    // No SNR for yourself (firmware reports 0), and no DM link.
+    expect(rows()[0]?.querySelector('[data-mt="node-snr"]')).toHaveTextContent("—");
     expect(within(rows()[0] ?? document.body).queryByRole("link")).toBeNull();
   });
 

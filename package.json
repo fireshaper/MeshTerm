@@ -19,7 +19,11 @@
     "test": "vitest run",
     "test:unit": "vitest run --exclude \"**/*.int.test.ts\"",
     "test:int": "vitest run .int.test.ts --passWithNoTests",
-    "test:e2e": "pnpm --filter @meshterm/web test:e2e"
+    "test:e2e": "pnpm --filter @meshterm/web test:e2e",
+    "test:gate": "pnpm --filter @meshterm/web test:gate",
+    "test:visual": "pnpm --filter @meshterm/web test:visual",
+    "test:visual:update": "pnpm --filter @meshterm/web test:visual:update",
+    "test:visual:linux": "bash scripts/visual-baselines-linux.sh"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

@@ -137,11 +137,22 @@ Notes for Phase 10: the Docker image must keep the layout `apps/server/dist`, `a
 - The user created https://github.com/fireshaper/MeshTerm. Phases 0–9 were committed as one commit (`6cb902e`), plus `.gitattributes` pinning LF (`3f884fe`, because `core.autocrlf=true` would otherwise give CRLF checkouts that fail Prettier). Pushed to `origin/main`.
 - Effect on Phase 10: the CI workflow's "passes in Actions" test (10.3) is no longer deferred, and the compose image can be `ghcr.io/fireshaper/meshterm`.
 
-## Phase 10: Packaging (2026-10-19)
+## Phase 10: Packaging (done 2026-10-19)
 
 - **10.1:** Multi-stage `Dockerfile` (build → runtime on node:26-alpine). Verified locally: the build succeeds; the image is **163 MB uncompressed / ~66 MB compressed**; with a FakeNode container it is `healthy` after 5 s; `id -u` = 1000; `/data/meshterm.db` is on the mounted volume; `docker stop` → exit 0. Reaching < 200 MB meant bundling every JS dependency into `dist/main.js` and shipping only a trimmed `better-sqlite3`. An unwritable `/data` now fails with a fix-it message.
 - **10.2:** `docker-compose.yml`, `README.md` (trusted-networks warning at the top), `compose.test.yml` (FakeNode service via the `fake-node` Dockerfile target). The FakeNode CLI gained `serve`/`inject` and a control API (shared with the e2e harness). Verified on host port 18080: the UI shows **Connected**; a message injected with the CLI is still in channel 0 (API and UI) after `docker compose restart meshterm`.
-- **10.3:** `.github/workflows/ci.yml` (checks, e2e, docker). Every step passes locally (297 unit, 10 integration, 32 Playwright tests, both builds). **Pending:** the in-Actions test (a clean run, and a deliberately failing unit test turning the run red) needs commits pushed to GitHub.
+- **10.3:** `.github/workflows/ci.yml` (checks, e2e, docker). In Actions: `main` at `082f903` was **green** in all three jobs (run 39297585292). A temporary branch `ci/red-check` with one deliberately failing unit test turned the run **red at the "Unit tests" step**, with the other jobs green (run 39297989818). The branch was then deleted.
+
+State at the end of Phase 10: everything is green locally and in GitHub Actions. Phase 10 code is committed and pushed (`082f903`); this progress note is not committed yet.
+
+Notes for Phase 11: the gate test can use `compose.test.yml` (or `e2e/serve.ts`) plus the FakeNode control API. Publishing images to GHCR (multi-arch) is not set up yet; the CI docker job only builds amd64.
+
+## Phase 11: Base-app gate (2026-10-19)
+
+- **11.1:** `e2e/gate.spec.ts`: two browser contexts on channel 0. A sends and both see `acked`; a mesh message shows in both; `reboot(5000)` takes both pills to `reconnecting` → `connected` without a reload; B sends after recovery; then a **real restart of the server process** (the built bundle) and a reload of both pages, after which all three messages are still shown. The transmit audit shows exactly 2 text transmits, 0 other. Passed **3/3** locally with `pnpm test:gate`. CI now runs it three times in a row.
+- **11.2:** Visual baselines for channel view, node list and DM view at 1280 and 390 px (Default theme), win32 and linux (the latter generated in the Playwright image, and stable on a rerun). The baselines exposed a bug, now fixed: own-node SNR showed "0 dB". better-sqlite3 now uses its prebuilds everywhere (no compiler; Dockerfile simplified, image still 163 MB). Docs closed out: `architecture.md`, `DECISIONS.md`, `CLAUDE.md` (status, commands, visual-baseline workflow).
+
+State: `typecheck`, `lint`, `format:check`, `test` (307), `test:e2e` (39 Playwright incl. gate and visuals) and `test:gate` (3/3) are green locally.
 
 ## Open items
 

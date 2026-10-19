@@ -2,8 +2,6 @@
 
 # ── Build: install everything, build the SPA and the server bundle ─────────────
 FROM node:26-alpine AS build
-# better-sqlite3's install compiles from source when no prebuilt binary matches.
-RUN apk add --no-cache python3 make g++
 # Node 25+ no longer ships corepack; pin pnpm to package.json's packageManager.
 RUN npm install -g pnpm@10.33.1
 WORKDIR /app
@@ -19,13 +17,14 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 # The server bundle contains every JavaScript dependency; only better-sqlite3 (native)
-# ships beside it, trimmed to this architecture's musl prebuild (N-API, any Node version).
+# ships beside it, trimmed to this architecture's musl prebuild (N-API, any Node version;
+# its compile step is skipped, see pnpm-workspace.yaml).
 RUN pnpm --filter @meshterm/web build \
  && pnpm --filter @meshterm/server build \
  && mkdir -p /out/node_modules \
  && cp -rL apps/server/node_modules/better-sqlite3 /out/node_modules/better-sqlite3 \
  && cd /out/node_modules/better-sqlite3 \
- && rm -rf deps src docs build/Release/obj* build/Release/.deps build/deps \
+ && rm -rf deps src docs build \
  && find prebuilds -type f ! -name "linuxmusl-$(node -p process.arch).node" -delete \
  && node -e "const D=require('/out/node_modules/better-sqlite3'); new D(':memory:').close()"
 

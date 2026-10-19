@@ -9,7 +9,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:e2e": "vite build && playwright test -c e2e/playwright.config.ts"
+    "test:e2e": "pnpm --filter @meshterm/server build && vite build && playwright test -c e2e/playwright.config.ts",
+    "test:gate": "pnpm --filter @meshterm/server build && vite build && playwright test -c e2e/playwright.config.ts --project gate --repeat-each 3",
+    "test:visual": "pnpm --filter @meshterm/server build && vite build && playwright test -c e2e/playwright.config.ts --project visual-desktop --project visual-mobile",
+    "test:visual:update": "pnpm --filter @meshterm/server build && vite build && playwright test -c e2e/playwright.config.ts --project visual-desktop --project visual-mobile --update-snapshots"
   },
   "dependencies": {
     "@meshterm/shared": "workspace:*",

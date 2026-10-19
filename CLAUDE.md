@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-In progress: see [memory-bank/progress.md](memory-bank/progress.md). Planning docs:
+**Base app complete** (Phases 0–11 of the implementation plan; M1 scope). History and agreed changes: [memory-bank/progress.md](memory-bank/progress.md). Next work (map, telemetry, themes, auth, …) is listed under "Out of scope" in the implementation plan and will be planned separately. Planning docs:
 
 - [memory-bank/app-design-document.md](memory-bank/app-design-document.md) covers product scope, architecture, data model, theming rules and milestones (M1–M5).
 - [memory-bank/tech-stack.md](memory-bank/tech-stack.md) covers library choices and tooling. It is newer than the design doc. Where they conflict, follow tech-stack.md. Exception: `engines.node` is **>=24** (local dev runs Node 24). The Docker image still uses `node:26-alpine`.
@@ -49,6 +49,10 @@ pnpm test -t "<test name>"           # one test by name (no `--`: pnpm forwards 
 pnpm --filter @meshterm/server test  # one package's tests
 pnpm test:e2e                        # build the SPA, then Playwright (desktop 1280 px + mobile 390 px)
 pnpm --filter @meshterm/web exec playwright install chromium   # once per machine
+pnpm test:gate                       # base-app gate spec, three runs in a row
+pnpm test:visual                     # visual baselines (channel, nodes, DM × 1280/390 px)
+pnpm test:visual:update              # rewrite this platform's baselines after an intended UI change
+pnpm test:visual:linux               # rewrite the Linux (CI) baselines in the Playwright Docker image
 
 # Run locally
 pnpm dev                             # server + web dev servers (copy .env.example to .env first)
@@ -76,7 +80,7 @@ Tests are `*.test.ts` (unit) or `*.int.test.ts` (integration), colocated under `
 
 A self-hosted web client for Meshtastic nodes reachable over IP. It ships as one Docker container with one `/data` volume (db, themes, backups). The server keeps an always-on connection to one or more nodes, stores everything in SQLite, and serves a browser UI. Any number of browser tabs share the same live state, and every visual detail comes from drop-in CSS themes.
 
-## Planned layout
+## Layout
 
 pnpm monorepo: `apps/server` (Fastify), `apps/web` (React 19 + Vite SPA served by Fastify), `packages/shared` (Zod schemas, DTOs and WS event types shared by both), `packages/protocol` (protobuf codec + stream framer; the only package that imports `@meshtastic/protobufs`), `packages/fake-node` (test double).
 
@@ -112,5 +116,5 @@ The built-in themes are Default (the reference for every token), Cyberpunk and R
 ## Testing rules
 
 - CI runs against `FakeNode`, a TCP server that speaks the real framing and replays recorded `FromRadio` frames. `meshtasticd` in simulator mode is optional for integration tests.
-- Playwright visual regression covers every main screen × every built-in theme.
+- Playwright visual regression covers every main screen × every built-in theme (base app: channel, node list, DM × 390/1280 px, Default theme). Baselines are per platform. **After an intended UI change, update both**: `pnpm test:visual:update` (your OS) and `pnpm test:visual:linux` (CI), and look at the new PNGs before committing.
 - **Never transmit on the mesh** during startup, tests or migrations, apart from the config handshake and heartbeats.

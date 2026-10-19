@@ -97,7 +97,8 @@ const NodeRow = memo(function NodeRow({ node, isSelf, now }: NodeRowProps) {
               addSuffix: true,
             })}
       </td>
-      <td data-mt="node-snr">{node.snr === null ? "—" : `${node.snr} dB`}</td>
+      {/* Firmware reports 0 for the local node; signal to yourself means nothing. */}
+      <td data-mt="node-snr">{isSelf || node.snr === null ? "—" : `${node.snr} dB`}</td>
       <td data-mt="node-hops">{node.hopsAway === null ? "—" : node.hopsAway}</td>
     </tr>
   );

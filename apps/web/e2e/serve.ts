@@ -8,7 +8,11 @@ import { fileURLToPath } from "node:url";
 import { FakeNode, startControlServer } from "@meshterm/fake-node";
 import { buildApp } from "@meshterm/server";
 import { parseConfig } from "@meshterm/shared";
-import { CONTROL_PORT, E2E_PORT } from "./ports.js";
+import { CONTROL_PORT as DEFAULT_CONTROL_PORT, E2E_PORT as DEFAULT_PORT } from "./ports.js";
+
+// Ports come from the environment so playwright.config.ts can run more than one instance.
+const E2E_PORT = Number(process.env.E2E_PORT ?? DEFAULT_PORT);
+const CONTROL_PORT = Number(process.env.E2E_CONTROL_PORT ?? DEFAULT_CONTROL_PORT);
 
 const node = new FakeNode();
 await node.start();
