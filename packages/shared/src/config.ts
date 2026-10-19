@@ -1,0 +1,79 @@
+import { z } from "zod";
+
+const port = z.coerce.number().int().min(1).max(65535);
+const durationMs = z.coerce.number().int().positive();
+
+/** Environment variables read by the server. Names are the public contract; see README. */
+export const EnvSchema = z
+  .object({
+    MESHTERM_NODE_HOST: z.string().trim().min(1),
+    MESHTERM_NODE_PORT: port.default(4403),
+    MESHTERM_HTTP_PORT: port.default(8080),
+    MESHTERM_DATA_DIR: z.string().trim().min(1).default("/data"),
+    /** Built SPA (apps/web/dist). Unset: found next to the server; missing: SPA not served. */
+    MESHTERM_WEB_DIR: z.string().trim().min(1).optional(),
+    /** Built-in themes (repo-root themes/). Unset: found next to the server. */
+    MESHTERM_THEMES_DIR: z.string().trim().min(1).optional(),
+    MESHTERM_LOG_LEVEL: z
+      .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+      .default("info"),
+    MESHTERM_CONNECT_TIMEOUT_MS: durationMs.default(10_000),
+    MESHTERM_TCP_KEEPALIVE_MS: durationMs.default(15_000),
+    MESHTERM_CONFIG_TIMEOUT_MS: durationMs.default(30_000),
+    MESHTERM_HEARTBEAT_INTERVAL_MS: durationMs.default(60_000),
+    MESHTERM_ACK_TIMEOUT_MS: durationMs.default(120_000),
+    MESHTERM_BACKOFF_MIN_MS: durationMs.default(2_000),
+    MESHTERM_BACKOFF_MAX_MS: durationMs.default(60_000),
+  })
+  .refine((env) => env.MESHTERM_BACKOFF_MAX_MS >= env.MESHTERM_BACKOFF_MIN_MS, {
+    path: ["MESHTERM_BACKOFF_MAX_MS"],
+    message: "must be greater than or equal to MESHTERM_BACKOFF_MIN_MS",
+  });
+
+export const ConfigSchema = EnvSchema.transform((env) => ({
+  nodeHost: env.MESHTERM_NODE_HOST,
+  nodePort: env.MESHTERM_NODE_PORT,
+  httpPort: env.MESHTERM_HTTP_PORT,
+  dataDir: env.MESHTERM_DATA_DIR,
+  webDir: env.MESHTERM_WEB_DIR ?? null,
+  themesDir: env.MESHTERM_THEMES_DIR ?? null,
+  logLevel: env.MESHTERM_LOG_LEVEL,
+  connectTimeoutMs: env.MESHTERM_CONNECT_TIMEOUT_MS,
+  tcpKeepAliveMs: env.MESHTERM_TCP_KEEPALIVE_MS,
+  configTimeoutMs: env.MESHTERM_CONFIG_TIMEOUT_MS,
+  heartbeatIntervalMs: env.MESHTERM_HEARTBEAT_INTERVAL_MS,
+  ackTimeoutMs: env.MESHTERM_ACK_TIMEOUT_MS,
+  backoffMinMs: env.MESHTERM_BACKOFF_MIN_MS,
+  backoffMaxMs: env.MESHTERM_BACKOFF_MAX_MS,
+}));
+
+export type Config = z.output<typeof ConfigSchema>;
+
+export interface ConfigIssue {
+  field: string;
+  message: string;
+}
+
+export class ConfigError extends Error {
+  readonly issues: readonly ConfigIssue[];
+
+  constructor(issues: readonly ConfigIssue[]) {
+    super(
+      `Invalid configuration:\n${issues.map((i) => `  - ${i.field}: ${i.message}`).join("\n")}`,
+    );
+    this.name = "ConfigError";
+    this.issues = issues;
+  }
+}
+
+/** Parses an env-like object into a typed config. Throws `ConfigError` naming every invalid field. */
+export function parseConfig(env: Readonly<Record<string, string | undefined>>): Config {
+  const result = ConfigSchema.safeParse(env);
+  if (result.success) return result.data;
+  throw new ConfigError(
+    result.error.issues.map((issue) => ({
+      field: issue.path.map(String).join(".") || "(root)",
+      message: issue.message,
+    })),
+  );
+}

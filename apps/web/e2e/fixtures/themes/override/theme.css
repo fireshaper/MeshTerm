@@ -1,0 +1,6 @@
+/* Test-only theme: overrides one token inside @layer theme, with no importance flag. */
+@layer theme {
+  :root {
+    --mt-surface-bg: #123456;
+  }
+}

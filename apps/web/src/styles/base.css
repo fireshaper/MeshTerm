@@ -1,0 +1,23 @@
+@layer base {
+  html {
+    background: var(--mt-surface-bg);
+    color: var(--mt-text);
+    font-family: var(--mt-font-body);
+    font-size: var(--mt-font-size-md);
+    line-height: var(--mt-line-height);
+  }
+
+  body {
+    min-height: 100dvh;
+    background: var(--mt-surface-bg);
+  }
+
+  a {
+    color: var(--mt-accent);
+  }
+
+  :focus-visible {
+    outline: var(--mt-border-width) solid var(--mt-accent);
+    outline-offset: var(--mt-space-1);
+  }
+}

@@ -1,0 +1,177 @@
+/*
+ * App shell layout. Selectors are the public data-mt hooks, so themes can target
+ * the same elements. Below 768 px: header, content, bottom tab bar. From 768 px:
+ * header across the top, sidebar on the left.
+ */
+@layer base {
+  [data-mt="app-shell"] {
+    display: grid;
+    grid-template:
+      "header" var(--mt-header-height)
+      "main" 1fr
+      "tab-bar" var(--mt-tab-bar-height)
+      / minmax(0, 1fr);
+    height: 100dvh;
+  }
+
+  [data-mt="header"] {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mt-space-2);
+    padding-inline: var(--mt-space-3);
+    background: var(--mt-surface-raised);
+    border-bottom: var(--mt-border-width) solid var(--mt-border-color);
+  }
+
+  [data-mt="brand"] {
+    font-weight: var(--mt-font-weight-bold);
+    font-size: var(--mt-font-size-lg);
+  }
+
+  [data-mt="status-pill"] {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mt-space-1);
+    padding: var(--mt-space-1) var(--mt-space-2);
+    border-radius: var(--mt-radius-lg);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    font-size: var(--mt-font-size-sm);
+    color: var(--mt-text-muted);
+  }
+
+  [data-mt="status-dot"] {
+    inline-size: var(--mt-space-2);
+    block-size: var(--mt-space-2);
+    border-radius: 50%;
+    background: currentcolor;
+  }
+
+  [data-mt="main"] {
+    grid-area: main;
+    min-inline-size: 0;
+    overflow: auto;
+    padding: var(--mt-space-3);
+  }
+
+  [data-mt="sidebar"],
+  [data-mt="tab-bar"] {
+    display: flex;
+    background: var(--mt-surface-raised);
+  }
+
+  [data-mt="sidebar"] {
+    display: none;
+    grid-area: sidebar;
+    flex-direction: column;
+    gap: var(--mt-space-1);
+    padding: var(--mt-space-2);
+    border-right: var(--mt-border-width) solid var(--mt-border-color);
+  }
+
+  [data-mt="tab-bar"] {
+    grid-area: tab-bar;
+    justify-content: space-around;
+    border-top: var(--mt-border-width) solid var(--mt-border-color);
+  }
+
+  [data-mt="nav-item"] {
+    display: flex;
+    align-items: center;
+    gap: var(--mt-space-2);
+    padding: var(--mt-space-2) var(--mt-space-3);
+    border-radius: var(--mt-radius-md);
+    color: var(--mt-text-muted);
+    text-decoration: none;
+    transition: background-color var(--mt-duration-fast) var(--mt-easing);
+  }
+
+  [data-mt="nav-item"][data-mt-state="active"] {
+    color: var(--mt-accent);
+    background: var(--mt-surface-sunken);
+  }
+
+  [data-mt="tab-bar"] [data-mt="nav-item"] {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="icon"] {
+    inline-size: 1.25em;
+    block-size: 1.25em;
+  }
+
+  [data-mt="page-title"] {
+    font-size: var(--mt-font-size-lg);
+  }
+
+  @media (width >= 768px) {
+    [data-mt="app-shell"] {
+      grid-template:
+        "header header" var(--mt-header-height)
+        "sidebar main" 1fr
+        / var(--mt-sidebar-width) minmax(0, 1fr);
+    }
+
+    [data-mt="sidebar"] {
+      display: flex;
+    }
+
+    [data-mt="tab-bar"] {
+      display: none;
+    }
+  }
+}
+
+@layer base {
+  [data-mt="status-area"] {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mt-space-2);
+  }
+
+  [data-mt="status-pill"][data-mt-state="connected"] {
+    color: var(--mt-status-ok);
+  }
+
+  [data-mt="status-pill"][data-mt-state="connecting"],
+  [data-mt="status-pill"][data-mt-state="configuring"],
+  [data-mt="status-pill"][data-mt-state="reconnecting"] {
+    color: var(--mt-status-warn);
+  }
+
+  [data-mt="status-pill"][data-mt-state="disconnected"],
+  [data-mt="socket-indicator"] {
+    color: var(--mt-status-error);
+  }
+
+  [data-mt="socket-indicator"] {
+    font-size: var(--mt-font-size-sm);
+  }
+}
+
+@layer base {
+  [data-mt="channel-tabs"] {
+    display: flex;
+    gap: var(--mt-space-1);
+    overflow-x: auto;
+    border-bottom: var(--mt-border-width) solid var(--mt-border-color);
+  }
+
+  [data-mt="channel-tab"] {
+    padding: var(--mt-space-2) var(--mt-space-3);
+    color: var(--mt-text-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    border-bottom: var(--mt-border-width) solid transparent;
+  }
+
+  [data-mt="channel-tab"][data-mt-state="active"] {
+    color: var(--mt-accent);
+    border-bottom-color: var(--mt-accent);
+  }
+}

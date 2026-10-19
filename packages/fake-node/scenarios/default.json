@@ -1,0 +1,101 @@
+{
+  "name": "default",
+  "description": "Our node plus three neighbors; primary LongFast channel and one secondary.",
+  "myInfo": {
+    "myNodeNum": 2712847316,
+    "rebootCount": 3,
+    "minAppVersion": 30200,
+    "pioEnv": "heltec-v3",
+    "nodedbCount": 4
+  },
+  "metadata": {
+    "firmwareVersion": "2.7.15.fake",
+    "deviceStateVersion": 24,
+    "canShutdown": true,
+    "hasWifi": true,
+    "hasBluetooth": true,
+    "role": "CLIENT",
+    "hwModel": "HELTEC_V3",
+    "hasPKC": true
+  },
+  "nodes": [
+    {
+      "num": 2712847316,
+      "user": {
+        "id": "!a1b2c3d4",
+        "longName": "MeshTerm Base",
+        "shortName": "MTB",
+        "hwModel": "HELTEC_V3",
+        "role": "CLIENT"
+      },
+      "lastHeardAgoS": 0,
+      "deviceMetrics": { "batteryLevel": 101, "voltage": 4.2, "channelUtilization": 3.1 }
+    },
+    {
+      "num": 195939070,
+      "user": {
+        "id": "!0badcafe",
+        "longName": "Ridge Repeater",
+        "shortName": "RDG",
+        "hwModel": "RAK4631",
+        "role": "ROUTER"
+      },
+      "snr": 7.25,
+      "hopsAway": 0,
+      "lastHeardAgoS": 45
+    },
+    {
+      "num": 439041101,
+      "user": {
+        "id": "!1a2b3c4d",
+        "longName": "Trail Walker",
+        "shortName": "TRL",
+        "hwModel": "T_ECHO",
+        "role": "CLIENT"
+      },
+      "snr": -4.5,
+      "hopsAway": 1,
+      "lastHeardAgoS": 600
+    },
+    {
+      "num": 1584361601,
+      "user": {
+        "id": "!5e6f7081",
+        "longName": "Garage Station",
+        "shortName": "GAR",
+        "hwModel": "STATION_G2",
+        "role": "CLIENT_MUTE"
+      },
+      "snr": 2,
+      "hopsAway": 2,
+      "lastHeardAgoS": 7200
+    }
+  ],
+  "channels": [
+    { "index": 0, "role": "PRIMARY", "settings": { "psk": "AQ==", "name": "" } },
+    {
+      "index": 1,
+      "role": "SECONDARY",
+      "settings": { "psk": "bWVzaHRlcm0tZmFrZS1ub2RlLXNlY29uZGFyeS1wc2s=", "name": "Friends" }
+    }
+  ],
+  "config": [
+    { "device": { "role": "CLIENT", "nodeInfoBroadcastSecs": 10800 } },
+    { "position": { "positionBroadcastSecs": 900 } },
+    { "power": {} },
+    { "network": { "wifiEnabled": true, "wifiSsid": "fake-lan" } },
+    { "display": { "screenOnSecs": 60 } },
+    {
+      "lora": {
+        "usePreset": true,
+        "modemPreset": "LONG_FAST",
+        "region": "US",
+        "hopLimit": 3,
+        "txEnabled": true
+      }
+    },
+    { "bluetooth": { "enabled": false } },
+    { "security": {} }
+  ],
+  "moduleConfig": [{ "mqtt": {} }, { "telemetry": { "deviceUpdateInterval": 1800 } }]
+}

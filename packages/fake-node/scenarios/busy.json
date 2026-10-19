@@ -1,0 +1,137 @@
+{
+  "name": "busy",
+  "description": "Our node plus seven neighbors on the primary channel only.",
+  "myInfo": {
+    "myNodeNum": 2712847316,
+    "rebootCount": 0,
+    "minAppVersion": 30200,
+    "pioEnv": "heltec-v3",
+    "nodedbCount": 8
+  },
+  "metadata": {
+    "firmwareVersion": "2.7.15.fake",
+    "deviceStateVersion": 24,
+    "canShutdown": true,
+    "hasWifi": true,
+    "role": "CLIENT",
+    "hwModel": "HELTEC_V3",
+    "hasPKC": true
+  },
+  "nodes": [
+    {
+      "num": 2712847316,
+      "user": {
+        "id": "!a1b2c3d4",
+        "longName": "MeshTerm Base",
+        "shortName": "MTB",
+        "hwModel": "HELTEC_V3",
+        "role": "CLIENT"
+      },
+      "lastHeardAgoS": 0
+    },
+    {
+      "num": 195939070,
+      "user": {
+        "id": "!0badcafe",
+        "longName": "Ridge Repeater",
+        "shortName": "RDG",
+        "hwModel": "RAK4631",
+        "role": "ROUTER"
+      },
+      "snr": 7.25,
+      "hopsAway": 0,
+      "lastHeardAgoS": 30
+    },
+    {
+      "num": 439041101,
+      "user": {
+        "id": "!1a2b3c4d",
+        "longName": "Trail Walker",
+        "shortName": "TRL",
+        "hwModel": "T_ECHO",
+        "role": "CLIENT"
+      },
+      "snr": -4.5,
+      "hopsAway": 1,
+      "lastHeardAgoS": 300
+    },
+    {
+      "num": 1584361601,
+      "user": {
+        "id": "!5e6f7081",
+        "longName": "Garage Station",
+        "shortName": "GAR",
+        "hwModel": "STATION_G2",
+        "role": "CLIENT_MUTE"
+      },
+      "snr": 2,
+      "hopsAway": 2,
+      "lastHeardAgoS": 900
+    },
+    {
+      "num": 573785173,
+      "user": {
+        "id": "!22334455",
+        "longName": "Hilltop Solar",
+        "shortName": "HIL",
+        "hwModel": "RAK4631",
+        "role": "ROUTER"
+      },
+      "snr": 9.5,
+      "hopsAway": 0,
+      "lastHeardAgoS": 120
+    },
+    {
+      "num": 860116326,
+      "user": {
+        "id": "!33445566",
+        "longName": "Kayak",
+        "shortName": "KYK",
+        "hwModel": "TBEAM",
+        "role": "CLIENT"
+      },
+      "snr": -11,
+      "hopsAway": 3,
+      "lastHeardAgoS": 3600
+    },
+    {
+      "num": 1146447479,
+      "user": {
+        "id": "!44556677",
+        "longName": "Kitchen",
+        "shortName": "KIT",
+        "hwModel": "HELTEC_V3",
+        "role": "CLIENT"
+      },
+      "snr": 11,
+      "hopsAway": 0,
+      "lastHeardAgoS": 10
+    },
+    {
+      "num": 1432778632,
+      "user": {
+        "id": "!55667788",
+        "longName": "Bike",
+        "shortName": "BIK",
+        "hwModel": "T_ECHO",
+        "role": "CLIENT"
+      },
+      "hopsAway": 1,
+      "lastHeardAgoS": 86400
+    }
+  ],
+  "channels": [{ "index": 0, "role": "PRIMARY", "settings": { "psk": "AQ==", "name": "" } }],
+  "config": [
+    { "device": { "role": "CLIENT" } },
+    {
+      "lora": {
+        "usePreset": true,
+        "modemPreset": "LONG_FAST",
+        "region": "US",
+        "hopLimit": 3,
+        "txEnabled": true
+      }
+    }
+  ],
+  "moduleConfig": []
+}

@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1792421029905,
+      "tag": "0000_base_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1792421157641,
+      "tag": "0001_message_dedupe",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792422937455,
+      "tag": "0002_connection_my_node_num",
+      "breakpoints": true
+    }
+  ]
+}

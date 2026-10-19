@@ -1,0 +1,328 @@
+# MeshTerm — Architecture
+
+How the code is laid out as built. Update this file after every phase.
+
+## Packages
+
+pnpm workspace (default isolated linker). Packages depend on each other with `workspace:*`, and each package's `exports` points at `src/index.ts`.
+
+| Package               | Path                 | Responsibility                                                                                                                                           |
+| --------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@meshterm/shared`    | `packages/shared`    | Zod schemas and inferred types shared by server and web: runtime config, domain types, WS protocol.                                                      |
+| `@meshterm/protocol`  | `packages/protocol`  | Protobuf codec + stream framer. The only package that imports `@meshtastic/protobufs`/`@bufbuild/protobuf`; re-exports them.                             |
+| `@meshterm/fake-node` | `packages/fake-node` | Test double: TCP server speaking real Meshtastic framing, scenarios, transmit audit.                                                                     |
+| `@meshterm/server`    | `apps/server`        | Fastify server: REST, WebSocket, send endpoint, health; NodeConnection, SQLite, event pipeline (Phases 3–7). Entry `src/main.ts`, bundle `dist/main.js`. |
+| `@meshterm/web`       | `apps/web`           | React 19 + Vite SPA: app shell, routes, tokens and base CSS (Phase 8). Live data comes in Phase 9.                                                       |
+
+Root tooling files: `tsconfig.base.json` (strict settings), `tsconfig.json` (root config files), `vitest.config.ts` (projects = `apps/*`, `packages/*`), `eslint.config.js`, `stylelint.config.js`, `.prettierrc.json`.
+
+### `packages/shared/src`
+
+| File        | Responsibility                                                                                                                                                                                                                                                       |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`  | Barrel export.                                                                                                                                                                                                                                                       |
+| `config.ts` | `ConfigSchema` + `parseConfig(env)`: `MESHTERM_*` env vars (node host/port, HTTP port, data dir, log level, connect timeout, TCP keepalive, config timeout, heartbeat, ACK timeout, backoff min/max) → typed `Config`; throws `ConfigError` listing every bad field. |
+| `domain.ts` | `ConnectionState`, `Connection`, `MeshNode`, `Channel` (no PSK), `Message`, `MessageStatus`, `Direction`.                                                                                                                                                            |
+| `ws.ts`     | `ClientMessage` (`subscribe`) and `ServerMessage` discriminated union (`snapshot`, `connection.state`, `node.upsert`, `message.new`, `message.status`, `error`).                                                                                                     |
+| `static.ts` | `@fastify/static` for `/themes/` (no-cache) and the SPA (`assets/` immutable, rest no-cache). `isReservedPath` (`/api`, `/ws`, `/healthz`, `/themes/`).                                                                                                              |
+
+### `packages/protocol`
+
+Dependencies: `@meshtastic/protobufs` (`jsr:2.8.1`), `@bufbuild/protobuf` 2.16.0.
+
+| File             | Responsibility                                                                                                                                                                                                 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/codec.ts`   | `encode/decodeFromRadio`, `encode/decodeToRadio`; `FromRadioVariant`, `ToRadioInit` types.                                                                                                                     |
+| `src/framing.ts` | `encodeFrame(payload)` (`0x94 0xC3 len_hi len_lo`, max 512) and `StreamFramer.push(chunk) → payload[]` (partial frames, several per chunk, garbage skipping, resync on len > 512, zero-length frames dropped). |
+| `src/index.ts`   | Barrel; also re-exports `create`/`toBinary`/`fromBinary`/`fromJson`/`toJson` and the `Mesh`, `Portnums`, `Config`, `ModuleConfig`, `Channel`, `Admin`, `Telemetry` namespaces.                                 |
+
+### `packages/fake-node`
+
+Dependencies: `@meshterm/protocol`, `@meshterm/shared`, `zod`.
+
+| File                 | Responsibility                                                                                                                                                                                                                                                                                        |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/scenario.ts`    | `Scenario` type, `parseScenario(json)` (Zod + proto-JSON `fromJson`), `loadScenario(name or path)`. Built-ins are imported as JSON modules (`with { type: "json" }`), so they load under Node, tsx and Vite; custom paths are read from disk.                                                         |
+| `scenarios/*.json`   | Built-in meshes: `default` (own node `0xa1b2c3d4` + 3 neighbors, channels 0 and 1, 8 config sections, 2 module configs) and `busy` (own + 7, channel 0 only).                                                                                                                                         |
+| `src/cli.ts`         | Standalone FakeNode for dev (`pnpm --filter @meshterm/fake-node dev`, `--port`/`--host`/`--scenario`); used by `pnpm dev:fake`.                                                                                                                                                                       |
+| `src/fake-node.ts`   | `FakeNode`: `start()`/`stop()`, `port`, `clientCount`, `inbound` log + `clearInbound()`, handshake reply in firmware order, `injectText`, `injectNodeInfo`, `setAckMode(mode, delayMs)`, `sendFromRadio(variant)`, `dropClients()`, `reboot(downMs)`. Answers each inbound packet with `queueStatus`. |
+| `src/audit.ts`       | `classifyToRadio` → `handshake` / `heartbeat` / `transmit` / `other`; `auditInbound(log)` → counts + transmit entries.                                                                                                                                                                                |
+| `src/test-client.ts` | `RawClient` (raw socket: `send`, `write`, `waitFor`, `received`) and `until(predicate)` for tests.                                                                                                                                                                                                    |
+
+## Server modules
+
+### `apps/server/src`
+
+| File          | Responsibility                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clock.ts`    | `Clock` (`now`, `setTimer(ms, fn) → cancel`), `systemClock`, `Random` type, and `FakeClock` (manual `advance(ms)`, `pendingDelays()`) for tests.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `logger.ts`   | `Logger` interface (Pino-compatible subset), `silentLogger`, `MemoryLogger` for tests.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `app.ts`      | `buildApp(config, deps)` → Fastify app (not listening): Zod type provider, Pino JSON logs, `@fastify/websocket`, `@fastify/rate-limit` (opt-in per route), JSON error/404 handlers. Opens/migrates/seeds the DB, builds the hub + persistence, one `NodeConnection` per enabled connection (started on `onReady`), registers routes. `app.meshterm` = `{config, db, hub, connections, clock, random}`. `close()` closes WS sockets, cancels ACK timers, stops connections, closes the DB. `AppDeps`: `database`, `createTransport`, `clock`, `random`, `logger`, `webDir`, `themesDir`. Not-found handler: SPA fallback (GET, not reserved, no dot in the last segment) else JSON 404. |
+| `main.ts`     | Process entry: `parseConfig(process.env)` (exit 1 on `ConfigError`), `buildApp`, listen on `0.0.0.0:MESHTERM_HTTP_PORT`, `app.close()` on SIGTERM/SIGINT.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `paths.ts`    | `resolveWebDir` / `resolveThemesDir`: config value or `../../web/dist` / `../../../themes` relative to the module (same from `src/` and `dist/`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `index.ts`    | Library surface (`buildApp` and types) for the web e2e harness.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `test-app.ts` | `startTestApp({env, deps, node, waitConnected})`: full app against a FakeNode with an in-memory DB and short timings.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+
+### `apps/server/src/connection`
+
+| File                 | Responsibility                                                                                                                                                                                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `state-machine.ts`   | `ALLOWED_TRANSITIONS`, `ConnectionStateMachine` (one `change` event `{previous, state, reason}` per transition), `IllegalTransitionError`.                                                                                                                                                                                                 |
+| `backoff.ts`         | `backoffDelay(failures, {minMs, maxMs, jitter}, random)`; `DEFAULT_JITTER` = 0.2.                                                                                                                                                                                                                                                          |
+| `node-connection.ts` | `NodeConnection({connection, createTransport, timing, clock?, random?})`: `start()`, `stop()`, `state`, `model` (`myNodeNum`, `myInfo`, `metadata`, `nodes`, `channels`). Events: `state`, `fromRadio`, `retry`. Runs connect → `want_config_id` → configuring → match → connected (+ heartbeat). Any failure → reconnecting with backoff. |
+| `test-helpers.ts`    | `TEST_CONNECTION`, `recordConnection(conn)` for tests.                                                                                                                                                                                                                                                                                     |
+
+### `apps/server/src/db`
+
+Dependencies: `better-sqlite3` 13.0.3 (native; built at install, allowed via `onlyBuiltDependencies` in `pnpm-workspace.yaml`), `drizzle-orm` 0.45.4, dev `drizzle-kit` 0.31.11. Config: `apps/server/drizzle.config.ts`.
+
+| File              | Responsibility                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schema.ts`       | Drizzle tables (see Database schema).                                                                                                                                                                                                                                                                                                                                                                    |
+| `database.ts`     | `openDatabase(path or ":memory:")`, `openDataDirDatabase(dataDir)` (mkdir + `meshterm.db`), `migrateDatabase(db)`, `Db` type, `MIGRATIONS_DIR`.                                                                                                                                                                                                                                                          |
+| `seed.ts`         | `seedConnectionFromEnv(db, {host, port}, now)` → `created`/`updated`/`unchanged`/`skipped`.                                                                                                                                                                                                                                                                                                              |
+| `init.ts`         | `initDatabase(config)`: open + migrate + seed; what server start calls.                                                                                                                                                                                                                                                                                                                                  |
+| `repositories.ts` | `listConnections`, `getConnection`, `getMyNodeNum`, `setMyNodeNum`, `getNode`, `upsertNode`, `listNodes`, `upsertChannel`, `listChannels`, `insertMessage` (→ `inserted`/`duplicate`), `updateMessageStatus`, `getMessage`, `findOutboundByPacketId`, `listChannelMessages`, `listDmMessages` (newest first, `{before: {rxTime, id}, limit ≤ 200}`), `nextCursor`. They return the shared Phase 1 types. |
+| `test-db.ts`      | `openTestDatabase()`: migrated `:memory:` DB with the fixture connection (id 1).                                                                                                                                                                                                                                                                                                                         |
+
+### `apps/server/src/events`
+
+Flow: `NodeConnection` → `wireConnection` (decoder) → hub `radio.*` events → `attachPersistence` (SQLite) → hub public events (later: WS fan-out).
+
+| File             | Responsibility                                                                                                                                                                                                                                                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hub.ts`         | `EventHub<Events>`: `subscribe(type, fn) → unsubscribe`, `subscribeAll(fn)`, `publish(type, payload)`. Synchronous; a throwing subscriber is logged and the others still run.                                                                                                                                    |
+| `events.ts`      | `RadioEvents` (internal: `radio.myInfo`, `radio.node` {`NodeUpdate`}, `radio.channel`, `radio.text`, `radio.routing`), `PublicEvents` (`connection.state`, `node.upsert`, `message.new`, `message.status` with WS payload shapes, plus `channel.upsert`), `HubEvents`, `Hub`.                                    |
+| `decoder.ts`     | Pure `decodeFromRadio(fromRadio, {connectionId, now, newId}) → {events, ignored}` (my_info, node_info, channel without PSK, TEXT_MESSAGE_APP, NODEINFO_APP, ROUTING_APP; everything else is `ignored` with a reason). `nodeHeard(fromRadio, ctx)`: a `radio.node` last-heard/SNR/hops update for **any** packet. |
+| `persistence.ts` | `attachPersistence(hub, db, logger)`: writes each `radio.*` event and publishes the public event from what was stored (no `message.new` for duplicates; `acked` is final). `mergeNode` rules: absent fields kept, `lastHeard` never goes back, `snr`/`hopsAway` only from updates at least as recent.            |
+| `pipeline.ts`    | `wireConnection(conn, hub, {logger, now, newId})`: state → `connection.state`; each `FromRadio` → `nodeHeard` + decoder events; ignored frames logged at debug.                                                                                                                                                  |
+| `recorded.ts`    | `recordFrames()`: captures real frames from a FakeNode session (handshake, channel text, DM, node info, ACK, NAK, telemetry) for decoder tests.                                                                                                                                                                  |
+
+### `apps/server/src/routes`
+
+| File            | Responsibility                                                                                                 |
+| --------------- | -------------------------------------------------------------------------------------------------------------- |
+| `health.ts`     | `GET /healthz` → 200 `{status: "ok", connections: [{id, name, state}]}`.                                       |
+| `api.ts`        | `GET /api/connections`, `/api/connections/:id/nodes`, `/channels`, `/messages` (see HTTP API). `encodeCursor`. |
+| `send.ts`       | `POST /api/connections/:id/messages` with `SEND_RATE_LIMIT` (10/min per IP).                                   |
+| `ws.ts`         | `GET /ws` → `WsGateway.attach`.                                                                                |
+| `http-error.ts` | `HttpError(statusCode, code, message)`, rendered as `{error: code, message}`.                                  |
+
+### `apps/server/src/messaging`
+
+| File        | Responsibility                                                                                                                                                                                                                                                                                      |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sender.ts` | `MessageSender.send(connectionId, text, {channel} \| {to})`: 404/409 checks, random non-zero packet id (retries on clash), insert `queued` + `message.new`, `NodeConnection.send` → `sent` (or `failed` if the write throws), ACK timeout → `failed`. ACK/NAK come from the persistence subscriber. |
+
+### `apps/server/src/ws`
+
+| File             | Responsibility                                                                                                                                                                                                                                                                                      |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gateway.ts`     | `WsGateway`: per-socket subscriptions; `subscribe` → `snapshot`; forwards public hub events (`connection.state`, `node.upsert`, `message.new`, `message.status`) to sockets subscribed to that connection. Error frames: `bad_json`, `bad_message`, `unknown_connection`. Dead sockets are dropped. |
+| `snapshot.ts`    | `buildSnapshot(db, connectionId, state)` from SQLite: nodes, channels, last 50 messages per non-disabled channel and per DM peer (oldest first).                                                                                                                                                    |
+| `test-client.ts` | `WsTestClient` (`ws` package): validates every frame with `ServerMessage`; `next`, `waitFor`, `terminate`.                                                                                                                                                                                          |
+
+### `apps/server/src/transport`
+
+| File                | Responsibility                                                                                                                           |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `transport.ts`      | `Transport` interface (typed `EventEmitter`: `open`, `fromRadio`, `close {reason: "peer-closed"                                          | "error", error}`, `error`; `isOpen`, `connect`, `disconnect`, `send(ToRadioInit)`), `TransportFactory`. The contract is documented on the interface. |
+| `tcp-transport.ts`  | `TcpTransport({host, port, connectTimeoutMs, keepAliveMs})`: `net.Socket` + `StreamFramer`; no-delay, TCP keepalive, connect timeout.    |
+| `heartbeat.ts`      | `Heartbeat(transport, intervalMs, clock?)`: `start()`/`stop()`; sends `heartbeat` only while open and stops itself on `close`.           |
+| `mock-transport.ts` | `MockPeer` + `MockTransport`: in-memory link through the real codec, for unit tests.                                                     |
+| `contract.ts`       | `describeTransportContract(name, setup)`: reusable Vitest suite every transport must pass (run against mock and against TCP + FakeNode). |
+
+## Web modules
+
+`apps/web`: React 19, Vite 8, TanStack Router (code-based routes), lucide-react icons. Vitest + jsdom + Testing Library for units; Playwright (`e2e/`) for the built app.
+
+| Path              | Responsibility                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.html`      | Inline `@layer reset, base, theme, overrides;` as the first thing in `<head>` (the one layer-order declaration), then `<link href="/themes/default/theme.css" data-mt="theme-link">`.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `src/main.tsx`    | Mounts `<App />`, imports `styles/index.css`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `src/App.tsx`     | `<App router? queryClient? live?>`: `QueryClientProvider` + `<LiveConnection/>` (unless `live={false}`) + `RouterProvider`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `src/router.tsx`  | Routes: `/` → redirect `/channels/0`; `/channels/$index`; `/nodes`; `/dm/$nodeNum` (decimal node number); not-found. `createAppRouter(history?)`, `createTestRouter(path)`.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `src/shell/`      | `AppShell` (header + brand + `StatusPill`, `MainNav` twice: `sidebar` and `tab-bar`, `main` with `<Outlet/>`), `MainNav`, `StatusPill` (node state from the store + separate socket indicator).                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `src/pages/`      | `ChannelPage` (tabs + conversation), `NodesPage` (node table), `DmPage` (+ `parseNodeNum`; conversation with `{peer}`), `NotFoundPage`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `src/data/`       | `store.ts` (Zustand: `socketStatus`, `connectionId`, `nodeState`, `myNodeNum`), `live-socket.ts` (`LiveSocket`: subscribe on every open, validate frames with `ServerMessage`, drop and log invalid ones, reconnect 0.5 s → 10 s), `LiveConnection.tsx` (picks the first enabled connection, runs the socket, feeds `applyServerMessage`), `keys.ts` (query keys, `Conversation`, `ConversationData`), `apply.ts` (snapshot and delta reducers onto a `QueryClient`), `queries.ts` (`createQueryClient`, `useConnections/useNodes/useChannels/useConversation`, `loadOlder`), `api.ts` (REST client, `ApiError`). |
+| `src/components/` | `ChannelTabs` (+ `channelLabel`), `ConversationView` (list + composer), `MessageList` (TanStack Virtual, sticks to bottom, loads older at the top), `MessageItem` (+ `STATUS_LABELS`, `senderName`), `Composer` (byte counter, Enter/Shift+Enter, 409/429 errors), `NodeTable` (memoized keyed rows, `compareNodes`), `useNow`.                                                                                                                                                                                                                                                                                   |
+| `src/styles/`     | `index.css` imports `reset.css` (`@layer reset`), `tokens.css` and `base.css` (`@layer base`), `shell.css` (layout via `[data-mt=…]` selectors in `@layer base`).                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `src/test/`       | `setup.ts` (jest-dom; under jsdom: `ResizeObserver` and `scrollTo` stubs + `layout.ts` sizes for the message list), `data-mt.ts` (`expectDataMt`, `byDataMt`), `render-app.tsx` (`renderApp(path, seed)`: whole app, no socket, seeded cache), `scenario.ts` (FakeNode scenario → shared `Channel`/`MeshNode`), `theming-lint.test.ts`.                                                                                                                                                                                                                                                                           |
+| `e2e/`            | `playwright.config.ts` (projects `desktop` 1280 px and `mobile` 390 px; light scheme; **1 worker**, since the specs share one FakeNode), `serve.ts` (FakeNode + `buildApp` serving `dist/` and `themes/` on :4174, short backoff; **test-only control API on :4175**: reboot, inject-text, ack-mode, clear-inbound, inbound audit), `control.ts` (client for it), `ports.ts`, specs `theme`, `shell`, `live`, `conversation`, `dm`, `fixtures/themes/override/`.                                                                                                                                                  |
+| `vite.config.ts`  | Dev server :5173; proxies `/api`, `/ws`, `/healthz`, `/themes` to `127.0.0.1:${MESHTERM_HTTP_PORT}` from the root `.env` (default 8080).                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+
+Root `eslint/theming-rules.js`: `no-restricted-syntax` entries banning literal colors, px strings and numeric lengths in JSX `style={}` (applied to `apps/web/src/**/*.tsx`).
+
+### Themes and tokens
+
+`themes/<id>/theme.json` (`id`, `name`, `author`, `version`, `colorScheme`) + `theme.css` (everything inside `@layer theme`, light values on `:root`, dark under `prefers-color-scheme: dark`). Built-in: `themes/default/`. Served at `/themes/<id>/…`.
+
+Base tokens (`apps/web/src/styles/tokens.css`, `@layer base`; colors fall back to CSS system colors, the Default theme sets real values):
+
+| Group           | Tokens                                                                                                           |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Surface         | `--mt-surface-bg`, `--mt-surface-raised`, `--mt-surface-sunken`, `--mt-border-color`                             |
+| Text            | `--mt-text`, `--mt-text-muted`, `--mt-text-inverse`                                                              |
+| Accent / status | `--mt-accent`, `--mt-accent-text`, `--mt-status-ok`, `--mt-status-warn`, `--mt-status-error`, `--mt-status-info` |
+| Bubbles         | `--mt-bubble-in-bg`, `--mt-bubble-in-text`, `--mt-bubble-out-bg`, `--mt-bubble-out-text`                         |
+| Typography      | `--mt-font-body`, `--mt-font-mono`, `--mt-font-size-sm/md/lg`, `--mt-font-weight-bold`, `--mt-line-height`       |
+| Shape           | `--mt-radius-sm/md/lg`, `--mt-border-width`                                                                      |
+| Spacing         | `--mt-space-1` … `--mt-space-4`                                                                                  |
+| Layout          | `--mt-header-height`, `--mt-tab-bar-height`, `--mt-sidebar-width`                                                |
+| Motion          | `--mt-duration-fast`, `--mt-duration-normal` (0 under `prefers-reduced-motion`), `--mt-easing`                   |
+
+## Database schema
+
+SQLite at `<MESHTERM_DATA_DIR>/meshterm.db` (WAL, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout=5000`). Drizzle schema: `apps/server/src/db/schema.ts`. Migrations: `apps/server/drizzle/` (generated by `db:generate`, applied on every start by `initDatabase`). All timestamps are epoch **milliseconds**. Node numbers and packet ids are uint32 stored as INTEGER. Booleans are INTEGER 0/1.
+
+Migrations: `0000_base_schema`, `0001_message_dedupe`, `0002_connection_my_node_num`.
+
+### `connections`
+
+| Column        | Type                         | Notes                                                                                    |
+| ------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `id`          | INTEGER PK AUTOINCREMENT     |                                                                                          |
+| `name`        | TEXT NOT NULL                |                                                                                          |
+| `host`        | TEXT NOT NULL                |                                                                                          |
+| `port`        | INTEGER NOT NULL             |                                                                                          |
+| `transport`   | TEXT NOT NULL DEFAULT 'tcp'  | `tcp`                                                                                    |
+| `enabled`     | INTEGER NOT NULL DEFAULT 1   | boolean                                                                                  |
+| `source`      | TEXT NOT NULL DEFAULT 'user' | `env` = seeded from `MESHTERM_NODE_HOST/PORT` and kept in sync; `user` = added in the UI |
+| `created_at`  | INTEGER NOT NULL             |                                                                                          |
+| `my_node_num` | INTEGER                      | our node's number from the last handshake; NULL before the first                         |
+
+### `nodes` — PK (`connection_id`, `num`)
+
+| Column          | Type                       | Notes                                             |
+| --------------- | -------------------------- | ------------------------------------------------- |
+| `connection_id` | INTEGER NOT NULL           | FK → `connections.id` ON DELETE CASCADE           |
+| `num`           | INTEGER NOT NULL           | node number; the `!hex` id is derived, not stored |
+| `long_name`     | TEXT NOT NULL DEFAULT ''   |                                                   |
+| `short_name`    | TEXT NOT NULL DEFAULT ''   |                                                   |
+| `hw_model`      | TEXT                       | `HardwareModel` enum name                         |
+| `role`          | TEXT                       | `Config.DeviceConfig.Role` enum name              |
+| `last_heard`    | INTEGER                    |                                                   |
+| `snr`           | REAL                       |                                                   |
+| `hops_away`     | INTEGER                    |                                                   |
+| `is_favorite`   | INTEGER NOT NULL DEFAULT 0 | boolean                                           |
+
+### `channels` — PK (`connection_id`, `channel_index`)
+
+| Column          | Type                     | Notes                                   |
+| --------------- | ------------------------ | --------------------------------------- |
+| `connection_id` | INTEGER NOT NULL         | FK → `connections.id` ON DELETE CASCADE |
+| `channel_index` | INTEGER NOT NULL         | 0–7                                     |
+| `name`          | TEXT NOT NULL DEFAULT '' |                                         |
+| `role`          | TEXT NOT NULL            | `DISABLED` / `PRIMARY` / `SECONDARY`    |
+
+**No PSK column.** Keys are never stored (a test checks every table).
+
+### `messages`
+
+| Column          | Type             | Notes                                                                       |
+| --------------- | ---------------- | --------------------------------------------------------------------------- |
+| `id`            | TEXT PK          | UUID                                                                        |
+| `connection_id` | INTEGER NOT NULL | FK → `connections.id` ON DELETE CASCADE                                     |
+| `packet_id`     | INTEGER NOT NULL | sender's packet id (inbound) or our random non-zero uint32 (outbound)       |
+| `from_num`      | INTEGER NOT NULL |                                                                             |
+| `to_num`        | INTEGER NOT NULL | `0xFFFFFFFF` = broadcast                                                    |
+| `peer`          | INTEGER          | `to_num` for outgoing DMs, `from_num` for incoming DMs, NULL for broadcasts |
+| `channel_index` | INTEGER NOT NULL |                                                                             |
+| `text`          | TEXT NOT NULL    |                                                                             |
+| `rx_time`       | INTEGER NOT NULL |                                                                             |
+| `direction`     | TEXT NOT NULL    | `in` / `out`                                                                |
+| `status`        | TEXT             | `queued`/`sent`/`acked`/`failed`; NULL for inbound                          |
+| `rx_snr`        | REAL             |                                                                             |
+| `rx_rssi`       | INTEGER          |                                                                             |
+
+Indexes: `messages_channel_idx` (`connection_id`, `channel_index`, `rx_time`), `messages_peer_idx` (`connection_id`, `peer`, `rx_time`), **unique** `messages_dedupe_idx` (`connection_id`, `from_num`, `packet_id`).
+
+### `settings`
+
+| Column       | Type                                          | Notes |
+| ------------ | --------------------------------------------- | ----- |
+| `key`        | TEXT PK                                       |       |
+| `value`      | TEXT NOT NULL                                 | JSON  |
+| `updated_at` | INTEGER NOT NULL DEFAULT `unixepoch() * 1000` |       |
+
+Not built yet (later milestones): `positions`, `telemetry`, `traceroutes`, `packet_log`.
+
+## HTTP API
+
+All errors are JSON `{error, message}` (`bad_request` 400, `not_found` 404, `not_connected` 409, `rate_limited` 429, `internal_error` 500).
+
+| Method + path                                                        | Notes                                                                                                                                                              |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /healthz`                                                       | Always 200 while the process is up.                                                                                                                                |
+| `GET /api/connections`                                               | `Connection` + `state` (null if disabled) + `myNodeNum`.                                                                                                           |
+| `GET /api/connections/:id/nodes`                                     | `MeshNode[]`, most recently heard first.                                                                                                                           |
+| `GET /api/connections/:id/channels`                                  | `Channel[]` (no PSK).                                                                                                                                              |
+| `GET /api/connections/:id/messages?channel=N\|peer=N&before=&limit=` | Exactly one of `channel`/`peer`. `limit` 1–200 (default 50). Newest first. Returns `{messages, nextCursor}`; `nextCursor` (`<rxTime>_<id>`) goes back as `before`. |
+| `POST /api/connections/:id/messages`                                 | Body `{text, channel}` or `{text, to}`. Text 1–200 UTF-8 bytes, not blank. 201 `{message}`. 409 unless connected. 10/min per IP.                                   |
+| `GET /ws`                                                            | WebSocket; see below.                                                                                                                                              |
+
+## WebSocket protocol
+
+Schemas are defined in `packages/shared/src/ws.ts`; the server side is `apps/server/src/ws/`. One `snapshot` per `subscribe`, then live events for that connection only. Outgoing message lifecycle seen by clients: `message.new` (status `queued`) → `message.status` `sent` → `acked` or `failed`.
+
+Client → server:
+
+| `type`      | Fields         |
+| ----------- | -------------- |
+| `subscribe` | `connectionId` |
+
+Server → client:
+
+| `type`             | Fields                                                                                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `snapshot`         | `connectionId`, `state`, `myNodeNum` (nullable), `nodes[]`, `channels[]`, `channelMessages[]` (`{ channelIndex, messages[] }`), `dmMessages[]` (`{ peer, messages[] }`) |
+| `connection.state` | `connectionId`, `state`, `previous` (nullable), `reason` (nullable)                                                                                                     |
+| `node.upsert`      | `node`                                                                                                                                                                  |
+| `message.new`      | `message`                                                                                                                                                               |
+| `message.status`   | `connectionId`, `messageId`, `status`                                                                                                                                   |
+| `error`            | `code`, `message`                                                                                                                                                       |
+
+## `data-mt` hooks
+
+Public theming API: renaming one is a breaking change. Convention: each component's root element gets `data-mt="<component>"` (kebab-case); `data-mt-state` for runtime state, `data-mt-variant` for static variants. Component tests assert them with `expectDataMt`.
+
+| `data-mt`                                                                                                                 | Element                                     | `data-mt-state`                                                                          | `data-mt-variant`       |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------- |
+| `theme-link`                                                                                                              | `<link>` to the active theme CSS            |                                                                                          |                         |
+| `app-shell`                                                                                                               | Root grid                                   |                                                                                          |                         |
+| `header`                                                                                                                  | Top bar                                     |                                                                                          |                         |
+| `brand`                                                                                                                   | App name in the header                      |                                                                                          |                         |
+| `status-pill`                                                                                                             | Node connection status                      | `connected` / `configuring` / `connecting` / `reconnecting` / `disconnected` / `unknown` |                         |
+| `status-area`                                                                                                             | Wraps the pill and socket indicator         |                                                                                          |                         |
+| `socket-indicator`                                                                                                        | Shown while the browser's WS is down        | `connecting` / `closed`                                                                  |                         |
+| `status-dot`, `status-label`                                                                                              | Parts of the status pill                    |                                                                                          |                         |
+| `sidebar`                                                                                                                 | Navigation, ≥ 768 px                        |                                                                                          |                         |
+| `tab-bar`                                                                                                                 | Navigation, < 768 px                        |                                                                                          |                         |
+| `nav-item`                                                                                                                | Link in either navigation                   | `active` / `inactive`                                                                    |                         |
+| `nav-label`                                                                                                               | Text of a nav item                          |                                                                                          |                         |
+| `icon`                                                                                                                    | Inline SVG icon (`currentColor`)            |                                                                                          |                         |
+| `main`                                                                                                                    | Content area                                |                                                                                          |                         |
+| `page-title`                                                                                                              | Page heading                                |                                                                                          |                         |
+| `channel-view`                                                                                                            | Channel page                                |                                                                                          | `channel-<index>`       |
+| `node-list`                                                                                                               | Nodes page                                  |                                                                                          |                         |
+| `dm-view`                                                                                                                 | DM page                                     | `ready` / `invalid`                                                                      |                         |
+| `not-found`                                                                                                               | Unknown route                               |                                                                                          |                         |
+| `channel-tabs`                                                                                                            | Channel tab strip (`nav`)                   |                                                                                          |                         |
+| `channel-tab`                                                                                                             | One channel tab (link)                      | `active` / `inactive`                                                                    | `primary` / `secondary` |
+| `conversation`                                                                                                            | List + composer of one conversation         |                                                                                          | `channel` / `dm`        |
+| `conversation-waiting`                                                                                                    | Shown before a connection is known          |                                                                                          |                         |
+| `message-list`                                                                                                            | Scrolling, virtualized list (`role="log"`)  | `loading` / `empty` / `ready`                                                            |                         |
+| `message-list-canvas`, `message-row`                                                                                      | Virtualizer canvas and row wrapper          |                                                                                          |                         |
+| `message-list-empty`, `history-start`                                                                                     | Empty state; "start of conversation" marker |                                                                                          |                         |
+| `message`                                                                                                                 | One message bubble                          | `received` (inbound) / `queued` / `sent` / `acked` / `failed`                            | `in` / `out`            |
+| `message-meta`, `message-sender`, `message-time`, `message-text`                                                          | Parts of a message                          |                                                                                          |                         |
+| `message-status`                                                                                                          | Outbound status text                        | same as the message                                                                      |                         |
+| `composer`                                                                                                                | Send form                                   | `ready` / `disabled` / `sending` / `error`                                               |                         |
+| `composer-input`, `send-button`                                                                                           | Textarea and button                         |                                                                                          |                         |
+| `byte-counter`                                                                                                            | `bytes/200`                                 | `ok` / `over`                                                                            |                         |
+| `composer-error`, `composer-hint`                                                                                         | Send error; why sending is off              |                                                                                          |                         |
+| `node-table-wrap`, `node-table`, `node-count`                                                                             | Node list table, scroll wrapper, caption    |                                                                                          |                         |
+| `node-row`                                                                                                                | One node                                    | `self` / `other`                                                                         |                         |
+| `node-name`, `node-short-name`, `node-id`, `node-hardware`, `node-last-heard`, `node-snr`, `node-hops`, `node-self-badge` | Node cells                                  |                                                                                          |                         |
+| `node-list-waiting`                                                                                                       | Before nodes load                           |                                                                                          |                         |
+| `dm-peer-id`                                                                                                              | Peer's `!hex` id under the DM title         |                                                                                          |                         |

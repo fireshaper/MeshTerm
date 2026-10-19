@@ -1,0 +1,45 @@
+{
+  "name": "@meshterm/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p e2e/tsconfig.json",
+    "test": "vitest run",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:e2e": "vite build && playwright test -c e2e/playwright.config.ts"
+  },
+  "dependencies": {
+    "@meshterm/shared": "workspace:*",
+    "@tanstack/react-query": "5.104.4",
+    "@tanstack/react-router": "1.170.45",
+    "@tanstack/react-virtual": "3.14.21",
+    "date-fns": "4.4.0",
+    "lucide-react": "1.59.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zustand": "5.0.15"
+  },
+  "devDependencies": {
+    "@meshterm/fake-node": "workspace:*",
+    "@meshterm/protocol": "workspace:*",
+    "@meshterm/server": "workspace:*",
+    "@playwright/test": "1.64.1",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/ws": "8.18.2",
+    "@vitejs/plugin-react": "6.1.2",
+    "eslint": "9.39.5",
+    "jsdom": "29.1.1",
+    "tsx": "4.23.15",
+    "typescript-eslint": "8.71.2",
+    "vite": "8.3.4",
+    "ws": "8.22.0"
+  }
+}

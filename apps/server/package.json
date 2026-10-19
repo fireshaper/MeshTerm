@@ -1,0 +1,38 @@
+{
+  "name": "@meshterm/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "dev": "tsx watch --env-file-if-exists=../../.env src/main.ts",
+    "build": "tsup",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@fastify/rate-limit": "11.2.1",
+    "@fastify/static": "10.1.6",
+    "@fastify/websocket": "11.3.4",
+    "@meshterm/protocol": "workspace:*",
+    "@meshterm/shared": "workspace:*",
+    "better-sqlite3": "13.0.3",
+    "drizzle-orm": "0.45.4",
+    "fastify": "5.12.7",
+    "fastify-type-provider-zod": "7.0.0",
+    "ws": "8.22.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@meshterm/fake-node": "workspace:*",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/ws": "8.18.2",
+    "drizzle-kit": "0.31.11",
+    "tsup": "8.5.1",
+    "tsx": "4.23.15"
+  }
+}

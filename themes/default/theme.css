@@ -1,0 +1,55 @@
+/*
+ * Default theme: neutral light and dark. The reference value for every --mt-* token;
+ * other themes override what they need inside @layer theme, never with !important.
+ */
+@layer theme {
+  :root {
+    color-scheme: light dark;
+
+    --mt-surface-bg: #fff;
+    --mt-surface-raised: #f6f7f9;
+    --mt-surface-sunken: #eceef2;
+    --mt-border-color: #d5d9e0;
+
+    --mt-text: #1b1f27;
+    --mt-text-muted: #5d6675;
+    --mt-text-inverse: #fff;
+
+    --mt-accent: #2563eb;
+    --mt-accent-text: #fff;
+    --mt-status-ok: #15803d;
+    --mt-status-warn: #b45309;
+    --mt-status-error: #b91c1c;
+    --mt-status-info: #2563eb;
+
+    --mt-bubble-in-bg: #eceef2;
+    --mt-bubble-in-text: #1b1f27;
+    --mt-bubble-out-bg: #2563eb;
+    --mt-bubble-out-text: #fff;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --mt-surface-bg: #12151b;
+      --mt-surface-raised: #1b1f27;
+      --mt-surface-sunken: #0c0e12;
+      --mt-border-color: #2e3440;
+
+      --mt-text: #e6e9ef;
+      --mt-text-muted: #9aa3b2;
+      --mt-text-inverse: #12151b;
+
+      --mt-accent: #60a5fa;
+      --mt-accent-text: #0c0e12;
+      --mt-status-ok: #4ade80;
+      --mt-status-warn: #fbbf24;
+      --mt-status-error: #f87171;
+      --mt-status-info: #60a5fa;
+
+      --mt-bubble-in-bg: #252a34;
+      --mt-bubble-in-text: #e6e9ef;
+      --mt-bubble-out-bg: #2563eb;
+      --mt-bubble-out-text: #fff;
+    }
+  }
+}

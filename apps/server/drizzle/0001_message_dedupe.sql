@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `messages_dedupe_idx` ON `messages` (`connection_id`,`from_num`,`packet_id`);

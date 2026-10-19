@@ -1,0 +1,23 @@
+{
+  "name": "@meshterm/fake-node",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "serve": "tsx src/cli.ts",
+    "dev": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@meshterm/protocol": "workspace:*",
+    "@meshterm/shared": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15"
+  }
+}

@@ -1,0 +1,10 @@
+/*
+ * Global CSS. The layer order (reset, base, theme, overrides) is declared once,
+ * inline at the top of index.html's <head>, so it is in place before any
+ * stylesheet loads — including the theme's <link>, which can load first.
+ */
+@import url("./reset.css");
+@import url("./tokens.css");
+@import url("./base.css");
+@import url("./shell.css");
+@import url("./conversation.css");

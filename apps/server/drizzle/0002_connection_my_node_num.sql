@@ -1,0 +1,1 @@
+ALTER TABLE `connections` ADD `my_node_num` integer;

@@ -1,0 +1,66 @@
+import type { Channel, Connection, MeshNode, Message } from "./domain.js";
+
+/** Valid sample values for tests in any package. */
+export const fixtures = {
+  connection: {
+    id: 1,
+    name: "Home node",
+    host: "192.168.1.50",
+    port: 4403,
+    transport: "tcp",
+    enabled: true,
+  } satisfies Connection,
+
+  node: {
+    connectionId: 1,
+    num: 0xa1b2c3d4,
+    id: "!a1b2c3d4",
+    longName: "Base Station",
+    shortName: "BASE",
+    hwModel: "HELTEC_V3",
+    role: "CLIENT",
+    lastHeard: 1_760_000_000_000,
+    snr: 6.25,
+    hopsAway: 0,
+    isFavorite: false,
+  } satisfies MeshNode,
+
+  channel: {
+    connectionId: 1,
+    index: 0,
+    name: "LongFast",
+    role: "PRIMARY",
+  } satisfies Channel,
+
+  inboundMessage: {
+    id: "7d444840-9dc0-41d3-8c7b-1f2a0b3c4d5e",
+    connectionId: 1,
+    packetId: 123_456_789,
+    fromNum: 0x0badcafe,
+    toNum: 0xa1b2c3d4,
+    peer: 0x0badcafe,
+    channelIndex: 0,
+    text: "hello from the mesh",
+    rxTime: 1_760_000_000_000,
+    direction: "in",
+    status: null,
+    rxSnr: -3.5,
+    rxRssi: -97,
+  } satisfies Message,
+
+  outboundMessage: {
+    id: "0e6c2f1a-3b4d-4e5f-8a9b-0c1d2e3f4a5b",
+    connectionId: 1,
+    packetId: 42,
+    fromNum: 0xa1b2c3d4,
+    toNum: 0xffff_ffff,
+    peer: null,
+    channelIndex: 0,
+    text: "hello mesh",
+    rxTime: 1_760_000_001_000,
+    direction: "out",
+    status: "sent",
+    rxSnr: null,
+    rxRssi: null,
+  } satisfies Message,
+};

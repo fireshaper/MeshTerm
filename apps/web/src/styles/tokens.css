@@ -1,0 +1,72 @@
+/*
+ * Base-app design tokens. Every component style uses only these.
+ * Colors fall back to CSS system colors so the app is usable with no theme;
+ * themes (themes/<id>/theme.css, in @layer theme) set the real values.
+ * The Default theme is the reference for every token: see THEMING.md (later).
+ */
+@layer base {
+  :root {
+    /* Surface */
+    --mt-surface-bg: Canvas;
+    --mt-surface-raised: Canvas;
+    --mt-surface-sunken: Canvas;
+    --mt-border-color: GrayText;
+
+    /* Text */
+    --mt-text: CanvasText;
+    --mt-text-muted: GrayText;
+    --mt-text-inverse: Canvas;
+
+    /* Accent and status */
+    --mt-accent: AccentColor;
+    --mt-accent-text: AccentColorText;
+    --mt-status-ok: AccentColor;
+    --mt-status-warn: Mark;
+    --mt-status-error: LinkText;
+    --mt-status-info: AccentColor;
+
+    /* Message bubbles */
+    --mt-bubble-in-bg: Field;
+    --mt-bubble-in-text: FieldText;
+    --mt-bubble-out-bg: AccentColor;
+    --mt-bubble-out-text: AccentColorText;
+
+    /* Typography */
+    --mt-font-body: system-ui, sans-serif;
+    --mt-font-mono: ui-monospace, monospace;
+    --mt-font-size-sm: 0.875rem;
+    --mt-font-size-md: 1rem;
+    --mt-font-size-lg: 1.25rem;
+    --mt-font-weight-bold: 600;
+    --mt-line-height: 1.5;
+
+    /* Shape */
+    --mt-radius-sm: 0.25rem;
+    --mt-radius-md: 0.5rem;
+    --mt-radius-lg: 1rem;
+    --mt-border-width: 1px;
+
+    /* Spacing */
+    --mt-space-1: 0.25rem;
+    --mt-space-2: 0.5rem;
+    --mt-space-3: 1rem;
+    --mt-space-4: 1.5rem;
+
+    /* Layout */
+    --mt-header-height: 3rem;
+    --mt-tab-bar-height: 3.5rem;
+    --mt-sidebar-width: 14rem;
+
+    /* Motion */
+    --mt-duration-fast: 120ms;
+    --mt-duration-normal: 200ms;
+    --mt-easing: cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --mt-duration-fast: 0ms;
+      --mt-duration-normal: 0ms;
+    }
+  }
+}

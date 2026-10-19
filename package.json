@@ -1,0 +1,40 @@
+{
+  "name": "meshterm",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @meshterm/server --filter @meshterm/web dev",
+    "dev:fake": "pnpm --parallel --filter @meshterm/fake-node --filter @meshterm/server --filter @meshterm/web dev",
+    "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -r typecheck",
+    "lint": "pnpm lint:ts && pnpm lint:css",
+    "lint:ts": "eslint .",
+    "lint:css": "stylelint \"**/*.css\" --allow-empty-input",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:unit": "vitest run --exclude \"**/*.int.test.ts\"",
+    "test:int": "vitest run .int.test.ts --passWithNoTests",
+    "test:e2e": "pnpm --filter @meshterm/web test:e2e"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "24.19.2",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "stylelint": "17.16.0",
+    "stylelint-config-standard": "40.0.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  }
+}
