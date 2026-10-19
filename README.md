@@ -30,6 +30,8 @@ You need a Meshtastic node with Wi-Fi or Ethernet (or `meshtasticd`) reachable f
 
 Everything MeshTerm stores is in `./data` (`meshterm.db`).
 
+Images are published for **amd64 and arm64** (e.g. a Raspberry Pi 4/5 with a 64-bit OS) as `ghcr.io/fireshaper/meshterm:latest`, plus a `:sha-<commit>` tag per build of `main`.
+
 ### Settings
 
 | Variable                         | Default    | Meaning                                    |

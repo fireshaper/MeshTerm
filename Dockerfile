@@ -1,7 +1,11 @@
 # syntax=docker/dockerfile:1
 
 # ── Build: install everything, build the SPA and the server bundle ─────────────
-FROM node:26-alpine AS build
+# Runs on the build machine's own platform even for a multi-arch build: the output is
+# JavaScript plus one prebuilt native file picked for the target (below), so nothing
+# here needs emulation.
+FROM --platform=$BUILDPLATFORM node:26-alpine AS build
+ARG TARGETARCH
 # Node 25+ no longer ships corepack; pin pnpm to package.json's packageManager.
 RUN npm install -g pnpm@10.33.1
 WORKDIR /app
@@ -17,16 +21,25 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 # The server bundle contains every JavaScript dependency; only better-sqlite3 (native)
-# ships beside it, trimmed to this architecture's musl prebuild (N-API, any Node version;
-# its compile step is skipped, see pnpm-workspace.yaml).
+# ships beside it, trimmed to the TARGET architecture's musl prebuild (N-API, any Node
+# version; its compile step is skipped, see pnpm-workspace.yaml).
 RUN pnpm --filter @meshterm/web build \
  && pnpm --filter @meshterm/server build \
+ && case "${TARGETARCH:-$(node -p process.arch)}" in \
+      amd64|x64) NODE_ARCH=x64 ;; \
+      arm64) NODE_ARCH=arm64 ;; \
+      *) echo "unsupported TARGETARCH ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
  && mkdir -p /out/node_modules \
  && cp -rL apps/server/node_modules/better-sqlite3 /out/node_modules/better-sqlite3 \
  && cd /out/node_modules/better-sqlite3 \
  && rm -rf deps src docs build \
- && find prebuilds -type f ! -name "linuxmusl-$(node -p process.arch).node" -delete \
- && node -e "const D=require('/out/node_modules/better-sqlite3'); new D(':memory:').close()"
+ && find prebuilds -type f ! -name "linuxmusl-${NODE_ARCH}.node" -delete \
+ && test -f "prebuilds/linuxmusl-${NODE_ARCH}.node" \
+ # Load it when the build machine can (same architecture); the runtime image proves the rest.
+ && if [ "$(node -p process.arch)" = "${NODE_ARCH}" ]; then \
+      node -e "const D=require('/out/node_modules/better-sqlite3'); new D(':memory:').close()"; \
+    fi
 
 # ── FakeNode: test double for compose.test.yml (never needed in production) ───
 FROM build AS fake-node

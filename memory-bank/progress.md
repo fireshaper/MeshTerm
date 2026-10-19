@@ -147,12 +147,16 @@ State at the end of Phase 10: everything is green locally and in GitHub Actions.
 
 Notes for Phase 11: the gate test can use `compose.test.yml` (or `e2e/serve.ts`) plus the FakeNode control API. Publishing images to GHCR (multi-arch) is not set up yet; the CI docker job only builds amd64.
 
-## Phase 11: Base-app gate (2026-10-19)
+## Phase 11: Base-app gate (done 2026-10-19)
 
 - **11.1:** `e2e/gate.spec.ts`: two browser contexts on channel 0. A sends and both see `acked`; a mesh message shows in both; `reboot(5000)` takes both pills to `reconnecting` → `connected` without a reload; B sends after recovery; then a **real restart of the server process** (the built bundle) and a reload of both pages, after which all three messages are still shown. The transmit audit shows exactly 2 text transmits, 0 other. Passed **3/3** locally with `pnpm test:gate`. CI now runs it three times in a row.
 - **11.2:** Visual baselines for channel view, node list and DM view at 1280 and 390 px (Default theme), win32 and linux (the latter generated in the Playwright image, and stable on a rerun). The baselines exposed a bug, now fixed: own-node SNR showed "0 dB". better-sqlite3 now uses its prebuilds everywhere (no compiler; Dockerfile simplified, image still 163 MB). Docs closed out: `architecture.md`, `DECISIONS.md`, `CLAUDE.md` (status, commands, visual-baseline workflow).
 
 State: `typecheck`, `lint`, `format:check`, `test` (307), `test:e2e` (39 Playwright incl. gate and visuals) and `test:gate` (3/3) are green locally.
+
+CI (GitHub Actions run 39305074455, commit `ab435d4`): all three jobs green. Inside the Playwright image, the full e2e suite passed including the Linux visual baselines, and the gate passed **three runs in a row**. The fresh-clone check passed: a clean tree, following CLAUDE.md alone, installed, passed `pnpm test` (307), and ran `compose.test.yml` with FakeNode to `healthy`/`connected`.
+
+**The base app is done** (the implementation plan's Phase 11 gate). Next work is the "Out of scope" list in `implementation-plan.md`, to be planned separately.
 
 ## Open items
 

@@ -82,3 +82,41 @@ jobs:
       - name: Image size
         run: |
           docker image inspect meshterm:ci --format '{{.Size}}' | awk '{printf "uncompressed: %.1f MB\n", $1/1e6}'
+
+  publish:
+    name: Publish image to GHCR
+    # Only images whose commit passed every check on main get published.
+    needs: [checks, e2e, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      # The runtime stage's one RUN step executes per platform; QEMU covers arm64.
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/meshterm
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+      - name: Build and push (amd64 + arm64)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: runtime
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
