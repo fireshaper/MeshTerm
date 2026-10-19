@@ -13,22 +13,22 @@ What works today: channel and direct messages with delivery status, a live node 
 
 You need a Meshtastic node with Wi-Fi or Ethernet (or `meshtasticd`) reachable from the Docker host.
 
-1. Create the data folder. The container runs as uid 1000:
-
-   ```sh
-   mkdir -p data && sudo chown 1000:1000 data
-   ```
-
-2. Copy [`docker-compose.yml`](docker-compose.yml) and set `MESHTERM_NODE_HOST` to your node's IP address or hostname.
-3. Start it:
+1. Copy [`docker-compose.yml`](docker-compose.yml) (or paste it into Komodo, Portainer, …) and set `MESHTERM_NODE_HOST` to your node's IP address or hostname.
+2. Start it:
 
    ```sh
    docker compose up -d
    ```
 
-4. Open `http://<docker-host>:8080`.
+3. Open `http://<docker-host>:8080`.
 
-Everything MeshTerm stores is in `./data` (`meshterm.db`).
+Everything MeshTerm stores (`meshterm.db`) is in the `meshterm-data` named volume, which keeps its contents across redeploys and image updates.
+
+**Prefer a host folder?** Change the volume to `./data:/data`, and create the folder first: the container runs as uid 1000, and a folder Docker creates for you is owned by root. MeshTerm then refuses to start with "Data directory /data is not writable".
+
+```sh
+mkdir -p data && sudo chown 1000:1000 data
+```
 
 Images are published for **amd64 and arm64** (e.g. a Raspberry Pi 4/5 with a 64-bit OS) as `ghcr.io/fireshaper/meshterm:latest`, plus a `:sha-<commit>` tag per build of `main`.
 
