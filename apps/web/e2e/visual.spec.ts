@@ -1,5 +1,5 @@
-// Visual baselines (Step 11.2): channel view, node list and DM view in the Default
-// theme, at 1280 px (visual-desktop) and 390 px (visual-mobile).
+// Visual baselines (Step 11.2, D7.3): channel view, node list, DM view and dashboard in
+// the Default theme, at 1280 px (visual-desktop) and 390 px (visual-mobile).
 //
 // Runs against its own server instance (VISUAL_PORT) seeded once with fixed content,
 // so other specs can't change what is drawn. Relative times are masked.
@@ -7,7 +7,7 @@
 // which CI also runs in. Update them with `pnpm test:visual:update` (see CLAUDE.md).
 import { expect, test, type Page } from "@playwright/test";
 import { controlClient, ME, RIDGE, TRAIL } from "./control.js";
-import { VISUAL_CONTROL_PORT, VISUAL_PORT } from "./ports.js";
+import { VISUAL_CONTROL_PORT, VISUAL_DASHBOARD_PORT, VISUAL_PORT } from "./ports.js";
 
 const BASE = `http://127.0.0.1:${VISUAL_PORT}`;
 const node = controlClient(VISUAL_CONTROL_PORT);
@@ -84,4 +84,30 @@ test("DM view", async ({ page }) => {
     "acked",
   );
   await expect(page).toHaveScreenshot("dm-view.png", { mask: MASKS(page) });
+});
+
+test("dashboard", async ({ page }) => {
+  // Its own instance on the `dashboard` scenario; map tiles come from the fake tile server.
+  await page.goto(`http://127.0.0.1:${VISUAL_DASHBOARD_PORT}/dashboard`);
+  await expect(page.locator("[data-mt=status-pill]")).toHaveAttribute("data-mt-state", "connected");
+  await expect(page.locator("[data-mt=node-card]")).toHaveCount(7);
+  // Every tile in view has loaded (lazy ones below the fold don't matter).
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        [...document.querySelectorAll<HTMLImageElement>("[data-mt=mini-map-tiles] img")]
+          .filter((img) => img.getBoundingClientRect().top < window.innerHeight)
+          .every((img) => img.complete && img.naturalWidth > 0),
+      ),
+    )
+    .toBe(true);
+  await expect(page).toHaveScreenshot("dashboard.png", {
+    mask: [
+      page.locator("[data-mt=node-card] time"),
+      page.locator("[data-mt=status-tile][data-mt-variant=connection] [data-mt=status-tile-value]"),
+      page.locator(
+        "[data-mt=status-tile][data-mt-variant=last-packet] [data-mt=status-tile-value]",
+      ),
+    ],
+  });
 });

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { MessagesSquare, Radio } from "lucide-react";
+import { LayoutGrid, MessagesSquare, Radio } from "lucide-react";
 
 interface MainNavProps {
   /** `sidebar` at 768 px and up, `tab-bar` below; also the element's data-mt. */
@@ -14,6 +14,15 @@ export function MainNav({ variant }: MainNavProps) {
 
   return (
     <nav data-mt={variant} aria-label="Main">
+      <Link
+        to="/dashboard"
+        data-mt="nav-item"
+        data-mt-state={state("/dashboard")}
+        aria-current={state("/dashboard") === "active" ? "page" : undefined}
+      >
+        <LayoutGrid data-mt="icon" {...ICON} />
+        <span data-mt="nav-label">Dashboard</span>
+      </Link>
       <Link
         to="/channels/$index"
         params={{ index: "0" }}

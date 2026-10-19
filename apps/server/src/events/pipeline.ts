@@ -32,6 +32,9 @@ export function wireConnection(
   };
   const onFromRadio = (message: FromRadio) => {
     const ctx: DecodeContext = { connectionId, now: now(), newId };
+    if (message.payloadVariant.case === "packet") {
+      hub.publish("radio.packet", { connectionId, at: ctx.now });
+    }
     const heard = nodeHeard(message, ctx);
     if (heard) publish(hub, heard);
     const result = decodeFromRadio(message, ctx);

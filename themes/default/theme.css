@@ -26,6 +26,23 @@
     --mt-bubble-in-text: #1b1f27;
     --mt-bubble-out-bg: #2563eb;
     --mt-bubble-out-text: #fff;
+
+    --mt-card-bg: #fff;
+    --mt-card-border: #d5d9e0;
+    --mt-card-radius: 0.75rem;
+    --mt-card-shadow: 0 1px 2px #1b1f2714, 0 2px 8px #1b1f270d;
+    --mt-card-self-accent: #2563eb;
+    --mt-battery-low: #b45309;
+    --mt-battery-critical: #b91c1c;
+    --mt-chart-1: #2563eb;
+
+    --mt-signal-online: #16a34a;
+    --mt-signal-recent: #2563eb;
+    --mt-signal-stale: #d97706;
+    --mt-signal-offline: #9ca3af;
+
+    --mt-map-marker: #2563eb;
+    --mt-map-marker-self: #db2777;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -50,6 +67,22 @@
       --mt-bubble-in-text: #e6e9ef;
       --mt-bubble-out-bg: #2563eb;
       --mt-bubble-out-text: #fff;
+
+      --mt-card-bg: #1b1f27;
+      --mt-card-border: #2e3440;
+      --mt-card-shadow: none;
+      --mt-card-self-accent: #60a5fa;
+      --mt-battery-low: #fbbf24;
+      --mt-battery-critical: #f87171;
+      --mt-chart-1: #60a5fa;
+
+      --mt-signal-online: #4ade80;
+      --mt-signal-recent: #60a5fa;
+      --mt-signal-stale: #fbbf24;
+      --mt-signal-offline: #6b7280;
+
+      --mt-map-marker: #60a5fa;
+      --mt-map-marker-self: #f472b6;
     }
   }
 }

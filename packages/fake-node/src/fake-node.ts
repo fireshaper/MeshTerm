@@ -9,6 +9,7 @@ import {
   type MessageInitShape,
   Portnums,
   StreamFramer,
+  Telemetry,
   toBinary,
   type ToRadio,
 } from "@meshterm/protocol";
@@ -45,6 +46,9 @@ export interface InjectTextOptions {
   /** Reuse a packet id, e.g. to simulate hearing a rebroadcast of the same packet. */
   packetId?: number;
 }
+
+export type TelemetryInit = MessageInitShape<typeof Telemetry.TelemetrySchema>;
+export type PositionInit = MessageInitShape<typeof Mesh.PositionSchema>;
 
 export type NodeInfoInit = MessageInitShape<typeof Mesh.NodeInfoSchema> & { num: number };
 
@@ -136,30 +140,53 @@ export class FakeNode {
     text: string,
     options: InjectTextOptions = {},
   ): number {
-    const id = options.packetId ?? this.newPacketId();
-    const hopsAway = options.hopsAway ?? 0;
-    this.broadcast({
-      case: "packet",
-      value: {
-        from,
-        to: "to" in target ? target.to : BROADCAST_NUM,
-        channel: "channel" in target ? target.channel : 0,
-        id,
-        rxTime: this.nowSeconds(),
-        rxSnr: options.rxSnr ?? 6.25,
-        rxRssi: options.rxRssi ?? -72,
-        hopStart: HOP_START,
-        hopLimit: HOP_START - hopsAway,
-        payloadVariant: {
-          case: "decoded",
-          value: {
-            portnum: Portnums.PortNum.TEXT_MESSAGE_APP,
-            payload: new TextEncoder().encode(text),
-          },
-        },
-      },
+    return this.injectPacket(
+      from,
+      target,
+      Portnums.PortNum.TEXT_MESSAGE_APP,
+      new TextEncoder().encode(text),
+      options,
+    );
+  }
+
+  /**
+   * Delivers a TELEMETRY_APP broadcast (device or environment metrics) from `from`.
+   * `time` defaults to now. Returns the packet id.
+   */
+  injectTelemetry(from: number, telemetry: TelemetryInit, options: InjectTextOptions = {}): number {
+    const message = create(Telemetry.TelemetrySchema, {
+      time: this.nowSeconds(),
+      ...telemetry,
     });
-    return id;
+    return this.injectPacket(
+      from,
+      { channel: 0 },
+      Portnums.PortNum.TELEMETRY_APP,
+      toBinary(Telemetry.TelemetrySchema, message),
+      options,
+    );
+  }
+
+  /**
+   * Delivers a POSITION_APP broadcast from `from` (`latitudeI`/`longitudeI` are
+   * degrees × 1e7) and records it in the NodeDB for later handshakes. Returns the packet id.
+   */
+  injectPosition(from: number, position: PositionInit, options: InjectTextOptions = {}): number {
+    const message = create(Mesh.PositionSchema, { time: this.nowSeconds(), ...position });
+    const known = this.nodeDb.get(from);
+    if (known) {
+      this.nodeDb.set(from, {
+        ...known,
+        info: create(Mesh.NodeInfoSchema, { ...known.info, position: message }),
+      });
+    }
+    return this.injectPacket(
+      from,
+      { channel: 0 },
+      Portnums.PortNum.POSITION_APP,
+      toBinary(Mesh.PositionSchema, message),
+      options,
+    );
   }
 
   /**
@@ -172,7 +199,11 @@ export class FakeNode {
       ...node,
       lastHeard: node.lastHeard ?? this.nowSeconds(),
     });
-    this.nodeDb.set(info.num, { info, lastHeardAgoS: null });
+    this.nodeDb.set(info.num, {
+      info,
+      lastHeardAgoS: null,
+      environment: this.nodeDb.get(info.num)?.environment ?? null,
+    });
     const id = this.newPacketId();
     const hopsAway = info.hopsAway ?? 0;
     this.broadcast({
@@ -230,6 +261,45 @@ export class FakeNode {
       this.later(downMs, resolve);
     });
     if (!this.stopped) await this.listen(this.boundPort);
+  }
+
+  /** A decoded packet as if heard over the mesh, sent to every client. */
+  private injectPacket(
+    from: number,
+    target: TextTarget,
+    portnum: Portnums.PortNum,
+    payload: Uint8Array,
+    options: InjectTextOptions,
+  ): number {
+    const id = options.packetId ?? this.newPacketId();
+    this.broadcast(this.packetVariant(id, from, target, portnum, payload, options));
+    return id;
+  }
+
+  private packetVariant(
+    id: number,
+    from: number,
+    target: TextTarget,
+    portnum: Portnums.PortNum,
+    payload: Uint8Array,
+    options: InjectTextOptions,
+  ): FromRadioVariant {
+    const hopsAway = options.hopsAway ?? 0;
+    return {
+      case: "packet",
+      value: {
+        from,
+        to: "to" in target ? target.to : BROADCAST_NUM,
+        channel: "channel" in target ? target.channel : 0,
+        id,
+        rxTime: this.nowSeconds(),
+        rxSnr: options.rxSnr ?? 6.25,
+        rxRssi: options.rxRssi ?? -72,
+        hopStart: HOP_START,
+        hopLimit: HOP_START - hopsAway,
+        payloadVariant: { case: "decoded", value: { portnum, payload } },
+      },
+    };
   }
 
   /** Sends one framed `FromRadio` to every connected client. */
@@ -337,6 +407,26 @@ export class FakeNode {
     if (this.configCompleteMode === "none") return;
     const id = this.configCompleteMode === "echo" ? nonce : (nonce + 1) >>> 0;
     this.send(socket, { case: "configCompleteId", value: id });
+
+    // Environment sensors announce their readings as ordinary telemetry packets.
+    for (const node of this.nodeDb.values()) {
+      if (!node.environment) continue;
+      const telemetry = create(Telemetry.TelemetrySchema, {
+        time: this.nowSeconds() - (node.lastHeardAgoS ?? 0),
+        variant: { case: "environmentMetrics", value: node.environment },
+      });
+      this.send(
+        socket,
+        this.packetVariant(
+          this.newPacketId(),
+          node.info.num,
+          { channel: 0 },
+          Portnums.PortNum.TELEMETRY_APP,
+          toBinary(Telemetry.TelemetrySchema, telemetry),
+          { hopsAway: node.info.hopsAway ?? 0 },
+        ),
+      );
+    }
   }
 
   private nodeInfoNow(node: ScenarioNode): Mesh.NodeInfo {

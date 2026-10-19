@@ -22,6 +22,20 @@
       "when": 1792422937455,
       "tag": "0002_connection_my_node_num",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792438238823,
+      "tag": "0003_dashboard_data",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792439621708,
+      "tag": "0004_dashboard_api",
+      "breakpoints": true
     }
   ]
 }

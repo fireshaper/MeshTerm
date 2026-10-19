@@ -1,4 +1,4 @@
-import type { Channel, MeshNode } from "@meshterm/shared";
+import type { Channel, DashboardDTO, MeshNode } from "@meshterm/shared";
 import type { QueryClient } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { App } from "../App.js";
@@ -10,6 +10,7 @@ import { createTestRouter } from "../router.js";
 export interface Seed {
   channels?: Channel[];
   nodes?: MeshNode[];
+  dashboard?: DashboardDTO;
   conversations?: [ReturnType<typeof queryKeys.messages>, ConversationData][];
   myNodeNum?: number | null;
   nodeState?: Parameters<ReturnType<typeof useLiveStore.getState>["setNodeState"]>[0];
@@ -27,6 +28,7 @@ export async function renderApp(path: string, seed: Seed = {}) {
   const queryClient: QueryClient = createQueryClient();
   if (seed.channels) queryClient.setQueryData(queryKeys.channels(1), seed.channels);
   if (seed.nodes) queryClient.setQueryData(queryKeys.nodes(1), seed.nodes);
+  if (seed.dashboard) queryClient.setQueryData(queryKeys.dashboard(1), seed.dashboard);
   for (const [key, data] of seed.conversations ?? []) queryClient.setQueryData(key, data);
 
   const router = createTestRouter(path);

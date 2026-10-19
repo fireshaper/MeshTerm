@@ -15,6 +15,7 @@ export const queryKeys = {
   connections: ["connections"] as const,
   nodes: (connectionId: number) => ["nodes", connectionId] as const,
   channels: (connectionId: number) => ["channels", connectionId] as const,
+  dashboard: (connectionId: number) => ["dashboard", connectionId] as const,
   /** Prefix of every conversation of a connection. */
   allMessages: (connectionId: number) => ["messages", connectionId] as const,
   messages: (connectionId: number, conversation: Conversation) =>

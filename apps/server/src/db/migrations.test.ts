@@ -29,7 +29,9 @@ describe("migrations", () => {
       "connections",
       "messages",
       "nodes",
+      "positions",
       "settings",
+      "telemetry",
     ]);
     expect(objects("index")).toEqual(
       expect.arrayContaining(["messages_channel_idx", "messages_dedupe_idx", "messages_peer_idx"]),

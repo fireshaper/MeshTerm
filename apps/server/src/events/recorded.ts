@@ -14,7 +14,7 @@ export interface RecordedFrames {
   nodeInfoPacket: FromRadio;
   ack: FromRadio;
   nak: FromRadio;
-  telemetry: FromRadio;
+  unhandled: FromRadio;
 }
 
 const isPortPacket = (m: FromRadio, port: Portnums.PortNum) =>
@@ -95,7 +95,7 @@ export async function recordFrames(): Promise<RecordedFrames> {
     const nak = await routingReply(() => {
       client.send(textPacketTo(0x2222, RIDGE));
     });
-    const telemetry = await next(() => {
+    const unhandled = await next(() => {
       node.sendFromRadio({
         case: "packet",
         value: {
@@ -106,14 +106,14 @@ export async function recordFrames(): Promise<RecordedFrames> {
           payloadVariant: {
             case: "decoded",
             value: {
-              portnum: Portnums.PortNum.TELEMETRY_APP,
+              portnum: Portnums.PortNum.RANGE_TEST_APP,
               payload: toBinary(Mesh.DataSchema, create(Mesh.DataSchema)),
             },
           },
         },
       });
     });
-    return { handshake, channelText, dmText, nodeInfoPacket, ack, nak, telemetry };
+    return { handshake, channelText, dmText, nodeInfoPacket, ack, nak, unhandled };
   } finally {
     client.close();
     await node.stop();

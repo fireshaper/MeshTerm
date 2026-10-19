@@ -24,6 +24,17 @@ export const EnvSchema = z
     MESHTERM_ACK_TIMEOUT_MS: durationMs.default(120_000),
     MESHTERM_BACKOFF_MIN_MS: durationMs.default(2_000),
     MESHTERM_BACKOFF_MAX_MS: durationMs.default(60_000),
+    /** Map tile source for the server's tile proxy; {z}/{x}/{y} are substituted. */
+    MESHTERM_TILE_URL: z
+      .string()
+      .trim()
+      .pipe(z.url({ protocol: /^https?$/ }))
+      .refine((u) => u.includes("{z}") && u.includes("{x}") && u.includes("{y}"), {
+        message: "must contain {z}, {x} and {y}",
+      })
+      .default("https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
+    /** Size cap of the on-disk tile cache (<data dir>/tiles). */
+    MESHTERM_TILE_CACHE_MB: z.coerce.number().positive().default(500),
   })
   .refine((env) => env.MESHTERM_BACKOFF_MAX_MS >= env.MESHTERM_BACKOFF_MIN_MS, {
     path: ["MESHTERM_BACKOFF_MAX_MS"],
@@ -45,6 +56,8 @@ export const ConfigSchema = EnvSchema.transform((env) => ({
   ackTimeoutMs: env.MESHTERM_ACK_TIMEOUT_MS,
   backoffMinMs: env.MESHTERM_BACKOFF_MIN_MS,
   backoffMaxMs: env.MESHTERM_BACKOFF_MAX_MS,
+  tileUrl: env.MESHTERM_TILE_URL,
+  tileCacheMb: env.MESHTERM_TILE_CACHE_MB,
 }));
 
 export type Config = z.output<typeof ConfigSchema>;

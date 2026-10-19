@@ -83,6 +83,7 @@ export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
   private pending: NodeModel = emptyModel();
   private current: NodeModel = emptyModel();
   private failures = 0;
+  private enteredStateAt: number;
 
   constructor(options: NodeConnectionOptions) {
     super();
@@ -91,11 +92,20 @@ export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
     this.timing = options.timing;
     this.clock = options.clock ?? systemClock;
     this.random = options.random ?? Math.random;
-    this.machine.on("change", (change) => this.emit("state", change));
+    this.enteredStateAt = this.clock.now();
+    this.machine.on("change", (change) => {
+      this.enteredStateAt = this.clock.now();
+      this.emit("state", change);
+    });
   }
 
   get state(): ConnectionState {
     return this.machine.state;
+  }
+
+  /** When the connection entered its current state (epoch ms); e.g. "connected since". */
+  get stateSince(): number {
+    return this.enteredStateAt;
   }
 
   /** The model from the last completed handshake (empty before the first one). */

@@ -9,6 +9,7 @@ import {
   upsertChannel,
   upsertNode,
 } from "../db/repositories.js";
+import { recordPosition, recordTelemetry, setLastPacketAt, setNodeRssi } from "../db/telemetry.js";
 import { silentLogger, type Logger } from "../logger.js";
 import type { Hub, NodeUpdate } from "./events.js";
 
@@ -16,16 +17,39 @@ import type { Hub, NodeUpdate } from "./events.js";
  * Writes every `radio.*` event to SQLite and then publishes the public event built
  * from what was stored. Duplicates produce no `message.new`. Returns an unsubscribe.
  */
-export function attachPersistence(hub: Hub, db: Db, logger: Logger = silentLogger): () => void {
+export function attachPersistence(
+  hub: Hub,
+  db: Db,
+  logger: Logger = silentLogger,
+  now: () => number = Date.now,
+): () => void {
   const offs = [
     hub.subscribe("radio.myInfo", ({ connectionId, myNodeNum }) => {
       setMyNodeNum(db, connectionId, myNodeNum);
     }),
 
     hub.subscribe("radio.node", ({ connectionId, update }) => {
-      const node = mergeNode(getNode(db, connectionId, update.num), update, connectionId);
+      const existing = getNode(db, connectionId, update.num);
+      const node = mergeNode(existing, update, connectionId);
       upsertNode(db, node);
+      // RSSI follows the same "at least as recent" rule as SNR (see mergeNode).
+      if (update.rssi !== undefined && isFresh(existing, update)) {
+        setNodeRssi(db, connectionId, update.num, update.rssi);
+      }
       hub.publish("node.upsert", { node });
+    }),
+
+    hub.subscribe("radio.packet", ({ connectionId, at }) => {
+      setLastPacketAt(db, connectionId, at);
+    }),
+
+    hub.subscribe("radio.telemetry", ({ report }) => {
+      // A repeat (e.g. the handshake re-sending a node's last metrics) isn't news.
+      if (recordTelemetry(db, report)) hub.publish("telemetry.new", { telemetry: report });
+    }),
+
+    hub.subscribe("radio.position", ({ position }) => {
+      if (recordPosition(db, position, now())) hub.publish("position.new", { position });
     }),
 
     hub.subscribe("radio.channel", ({ channel }) => {
@@ -62,6 +86,12 @@ export function attachPersistence(hub: Hub, db: Db, logger: Logger = silentLogge
   };
 }
 
+/** Whether an update is at least as recent as what is stored, so its signal values apply. */
+export function isFresh(existing: MeshNode | null, update: NodeUpdate): boolean {
+  const stored = existing?.lastHeard ?? null;
+  return update.lastHeard == null || stored === null || update.lastHeard >= stored;
+}
+
 /**
  * Applies what one packet or record told us to the stored node. Rules:
  * - absent fields keep their stored value;
@@ -91,7 +121,7 @@ export function mergeNode(
   // exactOptionalPropertyTypes: absent fields are missing keys, never `undefined`.
   const merged: MeshNode = { ...base, ...rest };
 
-  const fresh = lastHeard == null || base.lastHeard === null || lastHeard >= base.lastHeard;
+  const fresh = isFresh(existing, update);
   if (lastHeard != null && (base.lastHeard === null || lastHeard > base.lastHeard)) {
     merged.lastHeard = lastHeard;
   }

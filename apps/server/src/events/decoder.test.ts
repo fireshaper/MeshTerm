@@ -29,7 +29,7 @@ const only = (events: RadioEvent[]) => {
 describe("decodeFromRadio", () => {
   it("my_info becomes radio.myInfo", () => {
     const myInfo = frames.handshake.find((m) => m.payloadVariant.case === "myInfo");
-    expect(only(decode(myInfo ?? frames.telemetry).events)).toEqual({
+    expect(only(decode(myInfo ?? frames.unhandled).events)).toEqual({
       type: "radio.myInfo",
       payload: { connectionId: 1, myNodeNum: ME },
     });
@@ -39,7 +39,7 @@ describe("decodeFromRadio", () => {
     const ridge = frames.handshake.find(
       (m) => m.payloadVariant.case === "nodeInfo" && m.payloadVariant.value.num === RIDGE,
     );
-    expect(only(decode(ridge ?? frames.telemetry).events)).toEqual({
+    expect(only(decode(ridge ?? frames.unhandled).events)).toEqual({
       type: "radio.node",
       payload: {
         connectionId: 1,
@@ -138,7 +138,7 @@ describe("decodeFromRadio", () => {
   });
 
   it("an unhandled port yields no events and says why", () => {
-    expect(decode(frames.telemetry)).toEqual({ events: [], ignored: "port TELEMETRY_APP" });
+    expect(decode(frames.unhandled)).toEqual({ events: [], ignored: "port RANGE_TEST_APP" });
   });
 
   it("config, metadata and config_complete_id yield no events", () => {
@@ -157,17 +157,17 @@ describe("nodeHeard", () => {
       type: "radio.node",
       payload: {
         connectionId: 1,
-        update: { num: RIDGE, lastHeard: RECORDED_AT_MS, snr: -2.5, hopsAway: 1 },
+        update: { num: RIDGE, lastHeard: RECORDED_AT_MS, snr: -2.5, rssi: -101, hopsAway: 1 },
       },
     });
   });
 
   it("applies to packets the decoder ignores", () => {
-    const heard = nodeHeard(frames.telemetry, ctx);
+    const heard = nodeHeard(frames.unhandled, ctx);
     expect(heard?.payload).toMatchObject({ update: { num: RIDGE, lastHeard: RECORDED_AT_MS } });
   });
 
   it("ignores non-packets", () => {
-    expect(nodeHeard(frames.handshake[0] ?? frames.telemetry, ctx)).toBeNull();
+    expect(nodeHeard(frames.handshake[0] ?? frames.unhandled, ctx)).toBeNull();
   });
 });

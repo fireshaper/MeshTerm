@@ -26,6 +26,19 @@ export function useNodes(connectionId: number | null) {
   });
 }
 
+/** Spark data is appended live; the whole dashboard is refreshed this often anyway. */
+export const DASHBOARD_REFRESH_MS = 10 * 60_000;
+
+/** Everything the dashboard shows, in one request, patched live by WS events. */
+export function useDashboard(connectionId: number | null) {
+  return useQuery({
+    queryKey: queryKeys.dashboard(connectionId ?? 0),
+    queryFn: () => api.dashboard(connectionId ?? 0),
+    enabled: connectionId !== null,
+    refetchInterval: DASHBOARD_REFRESH_MS,
+  });
+}
+
 export function useChannels(connectionId: number | null) {
   return useQuery({
     queryKey: queryKeys.channels(connectionId ?? 0),

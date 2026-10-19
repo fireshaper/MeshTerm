@@ -138,6 +138,16 @@ function toServerMessage(
         connectionId: event.payload.connectionId,
         message: { type: "message.status", ...event.payload },
       };
+    case "telemetry.new":
+      return {
+        connectionId: event.payload.telemetry.connectionId,
+        message: { type: "telemetry.new", ...event.payload },
+      };
+    case "position.new":
+      return {
+        connectionId: event.payload.position.connectionId,
+        message: { type: "position.new", ...event.payload },
+      };
     default:
       return null;
   }

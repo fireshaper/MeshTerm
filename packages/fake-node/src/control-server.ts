@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { auditInbound } from "./audit.js";
-import type { AckMode, FakeNode, TextTarget } from "./fake-node.js";
+import type { AckMode, FakeNode, TelemetryInit, TextTarget } from "./fake-node.js";
 
 /** Default port of the control API, next to the node's own 4403. */
 export const DEFAULT_CONTROL_PORT = 4404;
@@ -22,6 +22,9 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
  * `inject` command, docker compose). For test setups only: it has no auth.
  *
  * - `POST /inject-text` `{from, target: {channel} | {to}, text}` → `{packetId}`
+ * - `POST /inject-telemetry` `{from, device: {batteryLevel?, voltage?, channelUtilization?, airUtilTx?, uptimeSeconds?}}`
+ *   or `{from, environment: {temperature?, relativeHumidity?, barometricPressure?}}` → `{packetId}`
+ * - `POST /inject-position` `{from, lat, lon, altitude?, precisionBits?}` → `{packetId}`
  * - `POST /reboot` `{downMs}`
  * - `POST /ack-mode` `{mode: "ack" | "nak" | "silent"}`
  * - `POST /clear-inbound`
@@ -42,6 +45,21 @@ export function startControlServer(node: FakeNode, port: number, host = "127.0.0
                 body.target as TextTarget,
                 String(body.text),
               ),
+            };
+            break;
+          case "POST /inject-telemetry":
+            result = { packetId: node.injectTelemetry(Number(body.from), telemetryFrom(body)) };
+            break;
+          case "POST /inject-position":
+            result = {
+              packetId: node.injectPosition(Number(body.from), {
+                latitudeI: Math.round(Number(body.lat) * 1e7),
+                longitudeI: Math.round(Number(body.lon) * 1e7),
+                ...(body.altitude === undefined ? {} : { altitude: Number(body.altitude) }),
+                ...(body.precisionBits === undefined
+                  ? {}
+                  : { precisionBits: Number(body.precisionBits) }),
+              }),
             };
             break;
           case "POST /reboot":
@@ -70,6 +88,16 @@ export function startControlServer(node: FakeNode, port: number, host = "127.0.0
   });
   server.listen(port, host);
   return server;
+}
+
+function telemetryFrom(body: Record<string, unknown>): TelemetryInit {
+  if (body.environment && typeof body.environment === "object") {
+    return { variant: { case: "environmentMetrics", value: body.environment } };
+  }
+  if (body.device && typeof body.device === "object") {
+    return { variant: { case: "deviceMetrics", value: body.device } };
+  }
+  throw new Error("inject-telemetry needs device or environment");
 }
 
 export function inboundReport(node: FakeNode): InboundReport {

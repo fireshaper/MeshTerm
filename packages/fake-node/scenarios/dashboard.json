@@ -1,0 +1,164 @@
+{
+  "name": "dashboard",
+  "description": "Dashboard fixtures: powered, no-position, reduced-precision, environment-sensor, multi-hop, stale and offline nodes; favorites; positions around Seattle.",
+  "myInfo": {
+    "myNodeNum": 2712847316,
+    "rebootCount": 1,
+    "minAppVersion": 30200,
+    "pioEnv": "heltec-v3",
+    "nodedbCount": 7
+  },
+  "metadata": {
+    "firmwareVersion": "2.7.15.fake",
+    "deviceStateVersion": 24,
+    "canShutdown": true,
+    "hasWifi": true,
+    "role": "CLIENT",
+    "hwModel": "HELTEC_V3",
+    "hasPKC": true
+  },
+  "nodes": [
+    {
+      "num": 2712847316,
+      "user": {
+        "id": "!a1b2c3d4",
+        "longName": "MeshTerm Base",
+        "shortName": "MTB",
+        "hwModel": "HELTEC_V3",
+        "role": "CLIENT"
+      },
+      "position": { "latitudeI": 476062000, "longitudeI": -1223321000, "altitude": 52 },
+      "deviceMetrics": {
+        "batteryLevel": 87,
+        "voltage": 4.05,
+        "channelUtilization": 12.5,
+        "airUtilTx": 3.2,
+        "uptimeSeconds": 272640
+      },
+      "lastHeardAgoS": 0
+    },
+    {
+      "num": 195939070,
+      "user": {
+        "id": "!0badcafe",
+        "longName": "Ridge Repeater",
+        "shortName": "RDG",
+        "hwModel": "RAK4631",
+        "role": "ROUTER"
+      },
+      "position": { "latitudeI": 476500000, "longitudeI": -1222800000, "altitude": 312 },
+      "deviceMetrics": {
+        "batteryLevel": 101,
+        "voltage": 5.1,
+        "channelUtilization": 9.1,
+        "airUtilTx": 1.4,
+        "uptimeSeconds": 1209600
+      },
+      "snr": 7.25,
+      "hopsAway": 0,
+      "isFavorite": true,
+      "lastHeardAgoS": 120
+    },
+    {
+      "num": 439041101,
+      "user": {
+        "id": "!1a2b3c4d",
+        "longName": "Trail Walker",
+        "shortName": "TRL",
+        "hwModel": "T_ECHO",
+        "role": "TRACKER"
+      },
+      "position": {
+        "latitudeI": 475800000,
+        "longitudeI": -1221200000,
+        "altitude": 410,
+        "precisionBits": 13
+      },
+      "deviceMetrics": { "batteryLevel": 45, "voltage": 3.71 },
+      "snr": -4.5,
+      "hopsAway": 1,
+      "lastHeardAgoS": 1800
+    },
+    {
+      "num": 1584361601,
+      "user": {
+        "id": "!5e6f7081",
+        "longName": "Garage Station",
+        "shortName": "GAR",
+        "hwModel": "STATION_G2",
+        "role": "CLIENT_MUTE"
+      },
+      "position": { "latitudeI": 476200000, "longitudeI": -1223900000, "altitude": 30 },
+      "deviceMetrics": { "batteryLevel": 78, "voltage": 3.98, "uptimeSeconds": 360000 },
+      "environmentMetrics": {
+        "temperature": 22.4,
+        "relativeHumidity": 61,
+        "barometricPressure": 1013.2
+      },
+      "snr": 2,
+      "hopsAway": 2,
+      "lastHeardAgoS": 600
+    },
+    {
+      "num": 573785173,
+      "user": {
+        "id": "!22334455",
+        "longName": "Hilltop Solar",
+        "shortName": "HIL",
+        "hwModel": "RAK4631",
+        "role": "ROUTER_LATE"
+      },
+      "position": { "latitudeI": 477000000, "longitudeI": -1221500000, "altitude": 520 },
+      "deviceMetrics": { "batteryLevel": 15, "voltage": 3.52 },
+      "snr": 9.5,
+      "hopsAway": 0,
+      "isFavorite": true,
+      "lastHeardAgoS": 25200
+    },
+    {
+      "num": 860116326,
+      "user": {
+        "id": "!33445566",
+        "longName": "Kayak",
+        "shortName": "KYK",
+        "hwModel": "TBEAM",
+        "role": "CLIENT"
+      },
+      "deviceMetrics": { "batteryLevel": 8, "voltage": 3.41 },
+      "snr": -11,
+      "hopsAway": 3,
+      "lastHeardAgoS": 259200
+    },
+    {
+      "num": 1432778632,
+      "user": {
+        "id": "!55667788",
+        "longName": "Bike",
+        "shortName": "BIK",
+        "hwModel": "T_ECHO",
+        "role": "CLIENT"
+      }
+    }
+  ],
+  "channels": [
+    { "index": 0, "role": "PRIMARY", "settings": { "psk": "AQ==", "name": "" } },
+    {
+      "index": 1,
+      "role": "SECONDARY",
+      "settings": { "psk": "bWVzaHRlcm0tZmFrZS1ub2RlLXNlY29uZGFyeS1wc2s=", "name": "Friends" }
+    }
+  ],
+  "config": [
+    { "device": { "role": "CLIENT" } },
+    {
+      "lora": {
+        "usePreset": true,
+        "modemPreset": "LONG_FAST",
+        "region": "US",
+        "hopLimit": 3,
+        "txEnabled": true
+      }
+    }
+  ],
+  "moduleConfig": [{ "telemetry": { "deviceUpdateInterval": 1800 } }]
+}

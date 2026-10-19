@@ -7,6 +7,10 @@ const token = (page: Page, name: string) =>
   page.evaluate((n) => getComputedStyle(document.body).getPropertyValue(n).trim(), name);
 
 test.describe("theme layers", () => {
+  // Some tests inject <style> tags to stand in for theme files, which the CSP blocks
+  // (only index.html's hashed style is allowed). Real themes load via <link>.
+  test.use({ bypassCSP: true });
+
   test("body gets --mt-surface-bg from the Default theme", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("[data-mt=app-shell]")).toBeVisible();

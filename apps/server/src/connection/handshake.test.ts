@@ -61,6 +61,18 @@ describe("NodeConnection config handshake", () => {
     expect(rec.states[2]?.reason).toBe(`config_complete_id ${nonces[0] ?? -1}`);
   });
 
+  it("records when it entered its current state", async () => {
+    const { clock } = await setup();
+    const startedAt = clock.now();
+    expect(conn.stateSince).toBe(startedAt);
+    conn.start();
+    await until(() => conn.state === "connected");
+    clock.advance(5_000);
+    expect(conn.stateSince).toBe(startedAt); // the fake clock only moved after connecting
+    await conn.stop();
+    expect(conn.stateSince).toBe(startedAt + 5_000);
+  });
+
   it("builds the model from whichever scenario the node has", async () => {
     await setup("busy");
     conn.start();

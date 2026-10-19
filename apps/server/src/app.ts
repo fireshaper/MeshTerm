@@ -9,6 +9,7 @@ import {
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
+import { join } from "node:path";
 import { systemClock, type Clock, type Random } from "./clock.js";
 import { NodeConnection } from "./connection/node-connection.js";
 import { openDataDirDatabase, type DatabaseHandle, type Db } from "./db/database.js";
@@ -19,7 +20,12 @@ import { attachPersistence } from "./events/persistence.js";
 import { wireConnection } from "./events/pipeline.js";
 import { MessageSender } from "./messaging/sender.js";
 import { apiRoutes } from "./routes/api.js";
+import { dashboardRoutes } from "./routes/dashboard.js";
 import { healthRoutes } from "./routes/health.js";
+import { HttpError } from "./routes/http-error.js";
+import { tileRoutes } from "./routes/tiles.js";
+import { registerSecurityHeaders } from "./security.js";
+import { TileCache } from "./tiles/tile-cache.js";
 import { isReservedPath, NO_CACHE, staticRoutes } from "./routes/static.js";
 import { resolveThemesDir, resolveWebDir } from "./paths.js";
 import { sendRoutes } from "./routes/send.js";
@@ -49,6 +55,8 @@ export interface AppDeps {
   webDir?: string | null;
   /** Themes folder; null serves none. Default: `config.themesDir` or the repo's themes/. */
   themesDir?: string | null;
+  /** Map tile cache. Default: `<dataDir>/tiles`, upstream `config.tileUrl`. */
+  tiles?: TileCache;
 }
 
 /** What routes need, available as `app.meshterm`. */
@@ -83,6 +91,11 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   await app.register(websocket);
   // Off by default; routes opt in with `config.rateLimit`.
   await app.register(rateLimit, { global: false });
+  const webDir = deps.webDir !== undefined ? deps.webDir : resolveWebDir(config.webDir);
+  const themesDir =
+    deps.themesDir !== undefined ? deps.themesDir : resolveThemesDir(config.themesDir);
+  // Before any route, so every response carries the headers.
+  await registerSecurityHeaders(app, webDir);
 
   const handle = deps.database ?? openDataDirDatabase(config.dataDir);
   try {
@@ -94,7 +107,7 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   }
 
   const hub = new Hub(app.log);
-  attachPersistence(hub, handle.db, app.log);
+  attachPersistence(hub, handle.db, app.log, () => clock.now());
 
   const createTransport =
     deps.createTransport ??
@@ -134,6 +147,10 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
     if (hasZodFastifySchemaValidationErrors(err)) {
       return reply.code(400).send({ error: "bad_request", message: err.message });
     }
+    // Deliberate errors (any status) keep their code and message.
+    if (err instanceof HttpError) {
+      return reply.code(err.statusCode).send({ error: err.code, message: err.message });
+    }
     const status = err.statusCode ?? 500;
     if (status >= 500) app.log.error({ err }, "request failed");
     return reply.code(status).send({
@@ -142,9 +159,6 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
       message: status >= 500 ? "internal error" : err.message,
     });
   });
-  const webDir = deps.webDir !== undefined ? deps.webDir : resolveWebDir(config.webDir);
-  const themesDir =
-    deps.themesDir !== undefined ? deps.themesDir : resolveThemesDir(config.themesDir);
   await app.register(staticRoutes({ webDir, themesDir }));
   app.log.info({ webDir, themesDir }, "static files");
 
@@ -162,6 +176,15 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
 
   await app.register(healthRoutes);
   await app.register(apiRoutes);
+  await app.register(dashboardRoutes);
+  const tiles =
+    deps.tiles ??
+    new TileCache({
+      dir: join(config.dataDir, "tiles"),
+      upstream: config.tileUrl,
+      maxBytes: config.tileCacheMb * 1024 * 1024,
+    });
+  await app.register(tileRoutes(tiles));
   const sender = new MessageSender({
     db: handle.db,
     hub,

@@ -69,8 +69,21 @@ export function setMyNodeNum(db: Db, connectionId: number, myNodeNum: number): v
 
 type NodeRow = typeof nodes.$inferSelect;
 
+/** The shared `MeshNode` fields only; the row also carries the dashboard's latest-value columns. */
 function toMeshNode(row: NodeRow): MeshNode {
-  return { ...row, id: nodeIdFromNum(row.num) };
+  return {
+    connectionId: row.connectionId,
+    num: row.num,
+    id: nodeIdFromNum(row.num),
+    longName: row.longName,
+    shortName: row.shortName,
+    hwModel: row.hwModel,
+    role: row.role,
+    lastHeard: row.lastHeard,
+    snr: row.snr,
+    hopsAway: row.hopsAway,
+    isFavorite: row.favoriteOverride ?? row.isFavorite,
+  };
 }
 
 export function upsertNode(db: Db, node: MeshNode): void {

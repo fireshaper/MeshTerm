@@ -14,6 +14,12 @@ function issuesFor(env: Record<string, string | undefined>): string[] {
 }
 
 describe("parseConfig", () => {
+  it("rejects a tile URL without {z}/{x}/{y}", () => {
+    expect(issuesFor({ ...HOST, MESHTERM_TILE_URL: "https://tiles.example/x.png" })).toEqual([
+      "MESHTERM_TILE_URL",
+    ]);
+  });
+
   it("applies defaults when only the host is given", () => {
     expect(parseConfig(HOST)).toEqual({
       nodeHost: "192.168.1.50",
@@ -30,6 +36,8 @@ describe("parseConfig", () => {
       ackTimeoutMs: 120_000,
       backoffMinMs: 2_000,
       backoffMaxMs: 60_000,
+      tileUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      tileCacheMb: 500,
     });
   });
 

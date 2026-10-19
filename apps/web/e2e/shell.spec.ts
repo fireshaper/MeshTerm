@@ -38,9 +38,9 @@ test.describe("app shell", () => {
     });
   }
 
-  test("/ redirects to channel 0", async ({ page }) => {
+  test("/ redirects to the dashboard", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveURL(/\/channels\/0$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
   });
 
   test("navigates between sections with the visible navigation", async ({ page }) => {

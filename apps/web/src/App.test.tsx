@@ -25,10 +25,11 @@ describe("<App /> shell", () => {
     expectDataMt(byDataMt("tab-bar"), "tab-bar");
   });
 
-  it("redirects / to channel 0", async () => {
+  it("redirects / to the dashboard", async () => {
     const router = await renderAt("/");
-    expect(router.state.location.pathname).toBe("/channels/0");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Channel 0");
+    expect(router.state.location.pathname).toBe("/dashboard");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Dashboard");
+    expectDataMt(byDataMt("dashboard"), "dashboard");
   });
 
   it.each([

@@ -31,6 +31,28 @@
     --mt-bubble-out-bg: AccentColor;
     --mt-bubble-out-text: AccentColorText;
 
+    /* Dashboard cards */
+    --mt-card-bg: var(--mt-surface-raised);
+    --mt-card-border: var(--mt-border-color);
+    --mt-card-radius: var(--mt-radius-md);
+    --mt-card-shadow: none;
+    --mt-card-self-accent: var(--mt-accent);
+    --mt-card-min-width: 17.5rem;
+    --mt-battery-low: var(--mt-status-warn);
+    --mt-battery-critical: var(--mt-status-error);
+    --mt-chart-1: var(--mt-accent);
+
+    /* How recently a node was heard */
+    --mt-signal-online: var(--mt-status-ok);
+    --mt-signal-recent: var(--mt-status-info);
+    --mt-signal-stale: var(--mt-status-warn);
+    --mt-signal-offline: var(--mt-text-muted);
+
+    /* Mini maps */
+    --mt-mini-map-height: 10rem;
+    --mt-map-marker: var(--mt-accent);
+    --mt-map-marker-self: var(--mt-status-error);
+
     /* Typography */
     --mt-font-body: system-ui, sans-serif;
     --mt-font-mono: ui-monospace, monospace;

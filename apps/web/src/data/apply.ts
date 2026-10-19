@@ -6,7 +6,15 @@ import {
   type ServerMessage,
   type ServerMessageOf,
 } from "@meshterm/shared";
+import type { DashboardDTO } from "@meshterm/shared";
 import type { QueryClient } from "@tanstack/react-query";
+import {
+  applyConnectionState,
+  applyMessage,
+  applyNodeUpsert,
+  applyPosition,
+  applyTelemetry,
+} from "./dashboard-cache.js";
 import { conversationOf, queryKeys, type ConversationData } from "./keys.js";
 import { useLiveStore } from "./store.js";
 
@@ -63,10 +71,37 @@ export function applySnapshot(qc: QueryClient, snapshot: ServerMessageOf<"snapsh
     store.setNodeState(snapshot.state);
     store.setMyNodeNum(snapshot.myNodeNum);
   }
+
+  // A later snapshot means the socket reconnected and events may have been missed:
+  // reload the dashboard. The first one arrives with the page, which just loaded it.
+  if (seenSnapshot.has(qc)) {
+    void qc.invalidateQueries(
+      { queryKey: queryKeys.dashboard(connectionId) },
+      { cancelRefetch: false },
+    );
+  }
+  seenSnapshot.add(qc);
+}
+
+const seenSnapshot = new WeakSet<QueryClient>();
+
+/** Patches the cached dashboard of a connection, if one is cached. */
+function patchDashboard(
+  qc: QueryClient,
+  connectionId: number,
+  patch: (data: DashboardDTO) => DashboardDTO,
+): void {
+  qc.setQueryData<DashboardDTO>(queryKeys.dashboard(connectionId), (data) =>
+    data ? patch(data) : data,
+  );
 }
 
 /** Applies one validated server message to the cache and store. */
-export function applyServerMessage(qc: QueryClient, message: ServerMessage): void {
+export function applyServerMessage(
+  qc: QueryClient,
+  message: ServerMessage,
+  now: number = Date.now(),
+): void {
   switch (message.type) {
     case "snapshot":
       applySnapshot(qc, message);
@@ -82,6 +117,7 @@ export function applyServerMessage(qc: QueryClient, message: ServerMessage): voi
         next[i] = node;
         return next;
       });
+      patchDashboard(qc, node.connectionId, (d) => applyNodeUpsert(d, node));
       return;
     }
 
@@ -96,6 +132,7 @@ export function applyServerMessage(qc: QueryClient, message: ServerMessage): voi
           return messages === data.messages ? data : { ...data, messages };
         },
       );
+      patchDashboard(qc, m.connectionId, (d) => applyMessage(d, m));
       return;
     }
 
@@ -119,6 +156,19 @@ export function applyServerMessage(qc: QueryClient, message: ServerMessage): voi
     case "connection.state": {
       const store = useLiveStore.getState();
       if (store.connectionId === message.connectionId) store.setNodeState(message.state);
+      patchDashboard(qc, message.connectionId, (d) => applyConnectionState(d, message.state, now));
+      return;
+    }
+
+    case "telemetry.new": {
+      const { telemetry } = message;
+      patchDashboard(qc, telemetry.connectionId, (d) => applyTelemetry(d, telemetry));
+      return;
+    }
+
+    case "position.new": {
+      const { position } = message;
+      patchDashboard(qc, position.connectionId, (d) => applyPosition(d, position));
       return;
     }
 

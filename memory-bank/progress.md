@@ -158,6 +158,55 @@ CI (GitHub Actions run 39305074455, commit `ab435d4`): all three jobs green. Ins
 
 **The base app is done** (the implementation plan's Phase 11 gate). Next work is the "Out of scope" list in `implementation-plan.md`, to be planned separately.
 
+## Dashboard feature (started 2026-10-19)
+
+- The user supplied a Dashboard Feature Spec. Agreed scope: **Dashboard v1 + the data it needs** (telemetry and position storage, tile proxy, dashboard API and UI). Actions and settings that depend on unbuilt features (traceroute, details drawer, map view, admin actions, viewer role, Settings UI, other themes) are left out. Plan: `memory-bank/dashboard-plan.md` (phases D1–D7). Process: plan, then build. From D3 on, the user asked to build all remaining phases (D3–D7) before committing.
+
+### Phase D1: Telemetry and position data (done 2026-10-19)
+
+- **D1.1:** Migration `0003_dashboard_data`: `positions` and `telemetry` history tables (unique per node/time), latest-value columns + `rssi` on `nodes`, `connections.last_packet_at`. Tests: fresh-DB structure, and an upgrade of a DB holding base-app data keeps its rows.
+- **D1.2:** The decoder handles TELEMETRY_APP (device/environment), POSITION_APP and NodeInfo's position/device metrics; `nodeHeard` adds RSSI. 8 tests on frames recorded from FakeNode (`dashboard` scenario), incl. reduced precision, no fix and an ignored variant.
+- **D1.3:** Persistence stores history + latest values (never older over newer; partial reports keep fields), publishes `telemetry.new`/`position.new` (new shared WS schemas, forwarded by the gateway), and tracks `last_packet_at`; `NodeConnection.stateSince`. Repository unit tests + an integration test (full app on the `dashboard` scenario; WS clients receive both events).
+- **D1.4:** FakeNode `injectTelemetry`/`injectPosition`, control API + CLI commands, `dashboard` and `large` (300) scenarios, with handshake tests.
+
+State: `typecheck`, `lint`, `format:check`, `test` (333) and `test:e2e` (39) are green locally. Not committed.
+
+### Phase D2: Dashboard API (done 2026-10-19)
+
+- **D2.1:** `GET /api/connections/:id/dashboard` → `DashboardDTO` (shared Zod schema): summary tiles, thresholds (from settings with defaults), and one card per node with position, device/environment metrics and a ≤ 48-point 30-min battery spark. Tests: every card field for the `dashboard` scenario's fixtures, ordering, spark bucketing/averaging, thresholds setting, 404. **Performance: 26 ms median for 300 nodes × 24 h telemetry** (target < 50 ms), after a covering index and JS-side bucketing (the first version measured 46 ms).
+- **D2.2:** `PUT …/nodes/:num/favorite` with a new `favorite_override` column (migration 0004), so local favorites survive the device re-sending its own flag on every handshake. Tests: one `node.upsert`, nothing transmitted, survives a node reboot (favoriting and un-favoriting), 404/400.
+
+State: `typecheck`, `lint`, `format:check`, `test` (344) and `test:e2e` (39) are green locally. Not committed.
+
+### Phase D3: Tile proxy and CSP (done 2026-10-19)
+
+- **D3.1:** `GET /api/tiles/:z/:x/:y.png` through a disk cache under `<data>/tiles` (`MESHTERM_TILE_URL`, default OSM; `MESHTERM_TILE_CACHE_MB`, default 500): 30-day TTL (shorter upstream `max-age` honoured, `no-store` not cached), LRU eviction, shared in-flight fetches, stale copy on upstream failure, else 502. `FakeTileServer` in `@meshterm/fake-node`. 9 tests.
+- **D3.2:** CSP and Helmet headers on every response (`img-src 'self' data:`; inline styles only by hash; no HTTPS upgrade or HSTS). Playwright `csp.spec` walks every screen with zero violations. Fixes it surfaced: zod's `new Function` probe (web now sets `jitless`), and `theme.spec`'s injected test styles (that spec bypasses the CSP). `HttpError` 5xx codes now reach the client (`tile_unavailable`).
+
+State: `typecheck`, `lint`, `format:check`, `test` (358) and `test:e2e` (41) are green locally. Not committed.
+
+### Phase D4: Dashboard page and data (done 2026-10-19)
+
+- **D4.1:** `/dashboard` is the default route with a nav item. `useDashboard` loads the DTO in one request; WS events patch it in place (`node.upsert`, `telemetry.new` with spark points, `position.new`, `connection.state`, `message.new`); a reconnect snapshot refetches; full refresh every 10 min. One shared 30 s clock (`NowProvider`).
+- **D4.2:** Status strip: connection + duration, nodes online (click → Online filter), my power, channel util and air util TX against thresholds, messages 24 h (→ channel 0), last packet (ticks every second).
+- **D4.3:** Toolbar: search (names, `!id`, hardware enum and label), filter, sort, density; my node first, favorites pinned in their own section; filter/sort/density persist in localStorage.
+
+### Phase D5: Node card (done 2026-10-19)
+
+- Status dot, names, role badge, hardware label, click-to-copy id, last seen, battery meter (+ Powered), sparkline, signal (direct only, else "via N hops"), hops, utilization, uptime, environment, Message and ★ (optimistic, reverted on error). `updated` flash for 1.5 s; Enter → DM, `f` → favorite.
+
+### Phase D6: Mini maps (done 2026-10-19)
+
+- 3×2 tile mosaic through `/api/tiles`, node centered, pin (self in its own color), precision circle, "No position shared" placeholder, distance + bearing + altitude. Compact density hides map and sparkline.
+
+### Phase D7: Scale, theming and acceptance (done 2026-10-19)
+
+- **D7.1:** Above 150 cards: row-virtualized grid and Compact by default; empty state.
+- **D7.2:** New tokens (cards, battery, signal, chart, mini map) in base and the Default theme (light + dark); hooks listed in `architecture.md`.
+- **D7.3:** `e2e/serve.ts` takes a scenario and always runs a FakeTileServer (no test reaches a real tile server); new instances for `dashboard`, its baselines and `large`. `dashboard.spec`: landing page, pinning, filter/sort across reload, live telemetry with the flash and no refetch, tiles through the proxy (second load `x-tile-cache: hit`), no horizontal scroll, 300 nodes virtualized (< 100 cards in the DOM, more on scroll). CSP spec covers the dashboard with maps. Visual baselines: dashboard added; **all** baselines regenerated (win32 + linux) because the nav gained a Dashboard item (the old ones still passed only within the 1 % tolerance).
+
+State: `typecheck`, `lint`, `format:check`, `test`, `test:e2e` and `test:gate` green locally: `test` 425 (61 files), `test:e2e` 55 Playwright (incl. CSP, dashboard, 8 visual baselines), `test:gate` 3/3. Not committed yet: waiting for the user.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

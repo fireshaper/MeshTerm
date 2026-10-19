@@ -1,4 +1,4 @@
-import type { Channel, ConnectionState, MeshNode, Message } from "@meshterm/shared";
+import type { Channel, ConnectionState, DashboardDTO, MeshNode, Message } from "@meshterm/shared";
 import type { Conversation } from "./keys.js";
 
 /** `GET /api/connections` row. */
@@ -46,6 +46,16 @@ export const api = {
   nodes: (connectionId: number) => request<MeshNode[]>(`/api/connections/${connectionId}/nodes`),
   channels: (connectionId: number) =>
     request<Channel[]>(`/api/connections/${connectionId}/channels`),
+
+  dashboard: (connectionId: number) =>
+    request<DashboardDTO>(`/api/connections/${connectionId}/dashboard`),
+
+  /** Local favorite flag; the server answers with the node and a `node.upsert`. */
+  setFavorite: (connectionId: number, num: number, favorite: boolean) =>
+    request<{ node: MeshNode }>(`/api/connections/${connectionId}/nodes/${num}/favorite`, {
+      method: "PUT",
+      body: JSON.stringify({ favorite }),
+    }),
 
   /** One page of a conversation, newest first. */
   messages: (

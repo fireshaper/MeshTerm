@@ -21,6 +21,10 @@ export function controlClient(port: number) {
     reboot: (downMs: number) => call("POST", "/reboot", { downMs }),
     injectText: (from: number, target: { channel: number } | { to: number }, text: string) =>
       call<{ packetId: number }>("POST", "/inject-text", { from, target, text }),
+    injectTelemetry: (
+      from: number,
+      report: { device: Record<string, number> } | { environment: Record<string, number> },
+    ) => call<{ packetId: number }>("POST", "/inject-telemetry", { from, ...report }),
     setAckMode: (mode: "ack" | "nak" | "silent") => call("POST", "/ack-mode", { mode }),
     clearInbound: () => call("POST", "/clear-inbound"),
     inbound: () => call<InboundAudit>("GET", "/inbound"),

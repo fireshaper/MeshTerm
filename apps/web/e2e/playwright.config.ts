@@ -1,5 +1,16 @@
 import { defineConfig, devices } from "@playwright/test";
-import { CONTROL_PORT, E2E_PORT, VISUAL_CONTROL_PORT, VISUAL_PORT } from "./ports.js";
+import {
+  CONTROL_PORT,
+  DASHBOARD_CONTROL_PORT,
+  DASHBOARD_PORT,
+  E2E_PORT,
+  LARGE_CONTROL_PORT,
+  LARGE_PORT,
+  VISUAL_CONTROL_PORT,
+  VISUAL_DASHBOARD_CONTROL_PORT,
+  VISUAL_DASHBOARD_PORT,
+  VISUAL_PORT,
+} from "./ports.js";
 
 const DESKTOP = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } };
 const MOBILE = {
@@ -51,22 +62,27 @@ export default defineConfig({
     },
   ],
   webServer: [
-    {
-      command: "pnpm exec tsx e2e/serve.ts",
-      cwd: "..",
-      env: { E2E_PORT: String(E2E_PORT), E2E_CONTROL_PORT: String(CONTROL_PORT) },
-      url: `http://127.0.0.1:${E2E_PORT}/healthz`,
-      reuseExistingServer: false,
-      timeout: 30_000,
-    },
-    {
-      // A separate instance for visual baselines, untouched by other specs.
-      command: "pnpm exec tsx e2e/serve.ts",
-      cwd: "..",
-      env: { E2E_PORT: String(VISUAL_PORT), E2E_CONTROL_PORT: String(VISUAL_CONTROL_PORT) },
-      url: `http://127.0.0.1:${VISUAL_PORT}/healthz`,
-      reuseExistingServer: false,
-      timeout: 30_000,
-    },
+    serve(E2E_PORT, CONTROL_PORT, "default"),
+    // Separate instances so specs can't disturb each other's meshes or the baselines.
+    serve(VISUAL_PORT, VISUAL_CONTROL_PORT, "default"),
+    serve(DASHBOARD_PORT, DASHBOARD_CONTROL_PORT, "dashboard"),
+    serve(VISUAL_DASHBOARD_PORT, VISUAL_DASHBOARD_CONTROL_PORT, "dashboard"),
+    serve(LARGE_PORT, LARGE_CONTROL_PORT, "large"),
   ],
 });
+
+/** One e2e/serve.ts instance (FakeNode on a scenario + the real server + fake tiles). */
+function serve(port: number, controlPort: number, scenario: string) {
+  return {
+    command: "pnpm exec tsx e2e/serve.ts",
+    cwd: "..",
+    env: {
+      E2E_PORT: String(port),
+      E2E_CONTROL_PORT: String(controlPort),
+      E2E_SCENARIO: scenario,
+    },
+    url: `http://127.0.0.1:${port}/healthz`,
+    reuseExistingServer: false,
+    timeout: 30_000,
+  };
+}

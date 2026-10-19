@@ -7,6 +7,8 @@ import {
   MeshNode,
   Message,
   MessageStatus,
+  NodePosition,
+  TelemetryReport,
   Uint32,
 } from "./domain.js";
 
@@ -60,6 +62,16 @@ export const MessageStatusMessage = z.object({
   status: MessageStatus,
 });
 
+export const TelemetryNewMessage = z.object({
+  type: z.literal("telemetry.new"),
+  telemetry: TelemetryReport,
+});
+
+export const PositionNewMessage = z.object({
+  type: z.literal("position.new"),
+  position: NodePosition,
+});
+
 export const ErrorMessage = z.object({
   type: z.literal("error"),
   code: z.string().min(1),
@@ -72,6 +84,8 @@ export const ServerMessage = z.discriminatedUnion("type", [
   NodeUpsertMessage,
   MessageNewMessage,
   MessageStatusMessage,
+  TelemetryNewMessage,
+  PositionNewMessage,
   ErrorMessage,
 ]);
 export type ServerMessage = z.infer<typeof ServerMessage>;

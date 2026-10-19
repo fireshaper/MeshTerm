@@ -1,6 +1,7 @@
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
+import { NowProvider } from "./components/useNow.js";
 import { LiveConnection } from "./data/LiveConnection.js";
 import { createQueryClient } from "./data/queries.js";
 import { createAppRouter } from "./router.js";
@@ -18,7 +19,9 @@ export function App({ router, queryClient, live = true }: AppProps) {
   return (
     <QueryClientProvider client={client}>
       {live && <LiveConnection />}
-      <RouterProvider router={appRouter} />
+      <NowProvider>
+        <RouterProvider router={appRouter} />
+      </NowProvider>
     </QueryClientProvider>
   );
 }

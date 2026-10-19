@@ -15,6 +15,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "@fastify/helmet": "13.1.2",
     "@fastify/rate-limit": "11.2.1",
     "@fastify/static": "10.1.6",
     "@fastify/websocket": "11.3.4",

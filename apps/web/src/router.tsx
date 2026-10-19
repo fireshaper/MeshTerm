@@ -7,6 +7,7 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router";
 import { ChannelPage } from "./pages/ChannelPage.js";
+import { DashboardPage } from "./pages/DashboardPage.js";
 import { DmPage } from "./pages/DmPage.js";
 import { NodesPage } from "./pages/NodesPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
@@ -22,8 +23,14 @@ const indexRoute = createRoute({
   path: "/",
   beforeLoad: () => {
     // eslint-disable-next-line @typescript-eslint/only-throw-error -- TanStack Router's redirect API
-    throw redirect({ to: "/channels/$index", params: { index: "0" } });
+    throw redirect({ to: "/dashboard" });
   },
+});
+
+export const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard",
+  component: DashboardPage,
 });
 
 export const channelRoute = createRoute({
@@ -44,7 +51,13 @@ export const dmRoute = createRoute({
   component: DmPage,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, channelRoute, nodesRoute, dmRoute]);
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  dashboardRoute,
+  channelRoute,
+  nodesRoute,
+  dmRoute,
+]);
 
 /** The app's router; tests pass a memory history starting at a given path. */
 export function createAppRouter(history?: RouterHistory) {

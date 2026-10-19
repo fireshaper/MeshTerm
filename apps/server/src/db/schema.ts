@@ -26,6 +26,8 @@ export const connections = sqliteTable("connections", {
     .default("user"),
   /** Our node's number, from the last handshake; NULL until the first one. */
   myNodeNum: integer("my_node_num"),
+  /** When the last packet of any kind arrived from the node (no packet log yet). */
+  lastPacketAt: integer("last_packet_at"),
   createdAt: integer("created_at").notNull(),
 });
 
@@ -44,8 +46,84 @@ export const nodes = sqliteTable(
     snr: real("snr"),
     hopsAway: integer("hops_away"),
     isFavorite: integer("is_favorite", { mode: "boolean" }).notNull().default(false),
+    /**
+     * Set from MeshTerm (the dashboard star); wins over `is_favorite`, which mirrors the
+     * device's NodeDB and is rewritten by every handshake. NULL = follow the device.
+     */
+    favoriteOverride: integer("favorite_override", { mode: "boolean" }),
+    /** RSSI of the last packet heard directly from this node. */
+    rssi: integer("rssi"),
+
+    // Latest values, cached here so the dashboard reads one row per node.
+    // History lives in `positions` and `telemetry`; NULL means never reported.
+    lat: real("lat"),
+    lon: real("lon"),
+    altitude: integer("altitude"),
+    precisionBits: integer("precision_bits"),
+    positionTime: integer("position_time"),
+    batteryLevel: integer("battery_level"),
+    voltage: real("voltage"),
+    channelUtil: real("channel_util"),
+    airUtilTx: real("air_util_tx"),
+    uptimeSeconds: integer("uptime_seconds"),
+    deviceTime: integer("device_time"),
+    temperature: real("temperature"),
+    humidity: real("humidity"),
+    pressure: real("pressure"),
+    envTime: integer("env_time"),
   },
   (t) => [primaryKey({ columns: [t.connectionId, t.num] })],
+);
+
+/** Position history. Latest per node is also on `nodes`. */
+export const positions = sqliteTable(
+  "positions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    connectionId: integer("connection_id")
+      .notNull()
+      .references(() => connections.id, { onDelete: "cascade" }),
+    nodeNum: integer("node_num").notNull(),
+    lat: real("lat").notNull(),
+    lon: real("lon").notNull(),
+    altitude: integer("altitude"),
+    precisionBits: integer("precision_bits"),
+    /** When the position was taken (the node's clock, else when we heard it). */
+    time: integer("time").notNull(),
+    rxTime: integer("rx_time").notNull(),
+  },
+  // Unique: the handshake re-sends the last position on every reconnect.
+  (t) => [uniqueIndex("positions_node_time_idx").on(t.connectionId, t.nodeNum, t.time)],
+);
+
+/** Telemetry history, one row per report. Latest per node is also on `nodes`. */
+export const telemetry = sqliteTable(
+  "telemetry",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    connectionId: integer("connection_id")
+      .notNull()
+      .references(() => connections.id, { onDelete: "cascade" }),
+    nodeNum: integer("node_num").notNull(),
+    kind: text("kind", { enum: ["device", "environment"] }).notNull(),
+    time: integer("time").notNull(),
+    // device
+    batteryLevel: integer("battery_level"),
+    voltage: real("voltage"),
+    channelUtil: real("channel_util"),
+    airUtilTx: real("air_util_tx"),
+    uptimeSeconds: integer("uptime_seconds"),
+    // environment
+    temperature: real("temperature"),
+    humidity: real("humidity"),
+    pressure: real("pressure"),
+  },
+  (t) => [
+    // Unique: the handshake re-sends the last device metrics on every reconnect.
+    uniqueIndex("telemetry_node_time_idx").on(t.connectionId, t.nodeNum, t.kind, t.time),
+    // Covering index for the dashboard's battery sparklines (all nodes, last 24 h).
+    index("telemetry_spark_idx").on(t.connectionId, t.kind, t.time, t.nodeNum, t.batteryLevel),
+  ],
 );
 
 /** Channel settings without the PSK, which is never stored. */
