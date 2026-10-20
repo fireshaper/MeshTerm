@@ -6,7 +6,13 @@ import {
   type ServerMessage,
   type ServerMessageOf,
 } from "@meshterm/shared";
-import type { ActivityPage, ConversationsDTO, DashboardDTO, MapNodesDTO } from "@meshterm/shared";
+import type {
+  ActivityPage,
+  ConversationsDTO,
+  DashboardDTO,
+  MapNodesDTO,
+  NodeDetailDTO,
+} from "@meshterm/shared";
 import { applyNodeToMap, applyPositionToMap, applyTelemetryToMap } from "../map/map-data.js";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -17,6 +23,11 @@ import {
   applyTelemetry,
 } from "./dashboard-cache.js";
 import { applyMessageToConversations, applyStatusToConversations } from "./conversations-cache.js";
+import {
+  applyNodeToDetail,
+  applyPositionToDetail,
+  applyTelemetryToDetail,
+} from "./node-detail-cache.js";
 import { conversationOf, queryKeys, type ConversationData } from "./keys.js";
 import { useLiveStore } from "./store.js";
 
@@ -82,6 +93,7 @@ export function applySnapshot(qc: QueryClient, snapshot: ServerMessageOf<"snapsh
       queryKeys.activity(connectionId),
       queryKeys.mapNodes(connectionId),
       queryKeys.conversations(connectionId),
+      queryKeys.allNodeDetails(connectionId),
     ]) {
       void qc.invalidateQueries({ queryKey }, { cancelRefetch: false });
     }
@@ -116,6 +128,18 @@ function patchMap(
   );
 }
 
+/** Patches the cached detail of one node (the drawer), if loaded. */
+function patchDetail(
+  qc: QueryClient,
+  connectionId: number,
+  num: number,
+  patch: (data: NodeDetailDTO) => NodeDetailDTO,
+): void {
+  qc.setQueryData<NodeDetailDTO>(queryKeys.nodeDetail(connectionId, num), (data) =>
+    data ? patch(data) : data,
+  );
+}
+
 /** Applies one validated server message to the cache and store. */
 export function applyServerMessage(
   qc: QueryClient,
@@ -139,6 +163,7 @@ export function applyServerMessage(
       });
       patchDashboard(qc, node.connectionId, (d) => applyNodeUpsert(d, node));
       patchMap(qc, node.connectionId, (d) => applyNodeToMap(d, node));
+      patchDetail(qc, node.connectionId, node.num, (d) => applyNodeToDetail(d, node));
       return;
     }
 
@@ -192,6 +217,9 @@ export function applyServerMessage(
       const { telemetry } = message;
       patchDashboard(qc, telemetry.connectionId, (d) => applyTelemetry(d, telemetry));
       patchMap(qc, telemetry.connectionId, (d) => applyTelemetryToMap(d, telemetry));
+      patchDetail(qc, telemetry.connectionId, telemetry.nodeNum, (d) =>
+        applyTelemetryToDetail(d, telemetry),
+      );
       return;
     }
 
@@ -200,6 +228,9 @@ export function applyServerMessage(
       patchDashboard(qc, position.connectionId, (d) => applyPosition(d, position));
       patchMap(qc, position.connectionId, (d) =>
         applyPositionToMap(d, position, useLiveStore.getState().myNodeNum),
+      );
+      patchDetail(qc, position.connectionId, position.nodeNum, (d) =>
+        applyPositionToDetail(d, position),
       );
       return;
     }

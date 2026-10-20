@@ -2,7 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Outlet } from "@tanstack/react-router";
 import { Menu, PanelLeftClose, PanelLeftOpen, RadioTower, X } from "lucide-react";
 import { useState } from "react";
-import { NodeDetailsDrawer } from "../dashboard/NodeDetailsDrawer.js";
+import { NodeDrawer } from "../node-drawer/NodeDrawer.js";
 import { ConnectionIndicator, useDeviceInfo } from "./ConnectionIndicator.js";
 import { MainNav } from "./MainNav.js";
 import { Toaster } from "./Toaster.js";
@@ -124,7 +124,7 @@ export function AppShell() {
       <main data-mt="main">
         <Outlet />
       </main>
-      <NodeDetailsDrawer />
+      <NodeDrawer />
       <Toaster />
     </div>
   );

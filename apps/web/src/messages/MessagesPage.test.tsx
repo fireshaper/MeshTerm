@@ -2,12 +2,14 @@ import type { ConversationsDTO } from "@meshterm/shared";
 import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import { queryKeys } from "../data/keys.js";
 import { renderApp } from "../test/render-app.js";
 import { byDataMt, expectDataMt } from "../test/data-mt.js";
 import {
   SCENARIO_MY_NODE,
   scenarioChannels,
   scenarioDashboard,
+  scenarioNodeDetail,
   scenarioNodes,
 } from "../test/scenario.js";
 
@@ -97,6 +99,7 @@ describe("Messages view", () => {
     await renderApp("/messages/dm/!0badcafe", {
       ...seed(),
       dashboard: scenarioDashboard("default", NOW),
+      queries: [[queryKeys.nodeDetail(1, RIDGE), scenarioNodeDetail(RIDGE, "default", NOW)]],
     });
     const header = byDataMt("thread-header");
     expectDataMt(header, "thread-header", { variant: "dm" });

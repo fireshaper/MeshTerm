@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { NodeCard } from "./dashboard.js";
+import { CardPosition, NodeCard } from "./dashboard.js";
 import { EpochMs, TelemetryKind, TelemetryMetrics } from "./domain.js";
 
 /** The newest stored report of one telemetry kind: every numeric field it carried. */
@@ -28,6 +28,8 @@ export const NodeDetailDTO = NodeCard.extend({
     batteryMin: z.number().nullable(),
     batteryMax: z.number().nullable(),
   }),
+  /** My node's position, for distance and bearing; null for my node or without a fix. */
+  origin: CardPosition.nullable(),
   /** Kinds this node has ever reported, in `TELEMETRY_KINDS` order. */
   telemetryKinds: z.array(TelemetryKind),
 });

@@ -1,4 +1,9 @@
-import type { ActivityPage, HistoryWindow, TrafficWindow } from "@meshterm/shared";
+import {
+  NodeDetailDTO,
+  type ActivityPage,
+  type HistoryWindow,
+  type TrafficWindow,
+} from "@meshterm/shared";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import { compareMessages, cursorFor, insertMessage } from "./apply.js";
 import { api } from "./api.js";
@@ -59,6 +64,17 @@ export function useMapNodes(connectionId: number | null) {
     queryKey: queryKeys.mapNodes(connectionId ?? 0),
     queryFn: () => api.mapNodes(connectionId ?? 0),
     enabled: connectionId !== null,
+  });
+}
+
+/** Everything about one node (the drawer), kept current by WS events. */
+export function useNodeDetail(connectionId: number | null, num: number | null) {
+  return useQuery({
+    queryKey: queryKeys.nodeDetail(connectionId ?? 0, num ?? 0),
+    // Validated: the drawer renders every field, so a bad payload must not crash it.
+    queryFn: async () => NodeDetailDTO.parse(await api.nodeDetail(connectionId ?? 0, num ?? 0)),
+    enabled: connectionId !== null && num !== null,
+    retry: false,
   });
 }
 

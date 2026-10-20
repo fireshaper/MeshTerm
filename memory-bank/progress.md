@@ -337,6 +337,38 @@ State: `typecheck`, `lint`, `format:check`, `test` (529), `test:e2e` (98 passed,
 
 State: `typecheck`, `lint`, `format`, `test` (558), `test:e2e` (98 passed, 3 skipped by viewport) and `test:gate` (3/3) green.
 
+### Phase C2: drawer shell and Overview (done 2026-10-20)
+
+- **URL:** the drawer lives in the URL. `?node=!hex` on any route opens it over that view.
+  - Opening from the app pushes a history entry, so Back closes it.
+  - Escape and ✕ close it too, and focus returns to whatever opened it.
+  - The view underneath and its scroll position never change.
+  - Malformed detail data shows "Unknown node" instead of crashing.
+- **Map:** the map's own deep link is now `?focus=!hex`; old decimal `?node=<num>` links still focus.
+  - Mini maps and Show on map link to `?focus=`.
+  - The map popup's Details opens the drawer over the map.
+- **Layout:**
+  - Full screen below 768 px.
+  - From 768 px: 480 px, resizable 400–800 px by drag or arrow keys, remembered.
+  - Header: status, names, ★, ⋯ menu (copy ID / copy link / show on map), ✕; role · hardware · ID; seen · hops · firmware.
+  - Footer: Message and Show on map.
+- **Tabs:** Overview, Telemetry, Signal, Raw.
+  - Overview: identity with key fingerprint and PKI, status with first seen / MQTT / ignored, power, radio, every reported environment / power-monitor / air-quality field, position with distance and bearing, last-24 h stats, recent DMs.
+  - Telemetry and Signal are lazy-loaded and show the existing SVG charts until C3.
+  - Raw: the stored JSON.
+- **Data:** `GET …/nodes/:num` (gained `origin`), validated with Zod, patched live by `node.upsert` / `telemetry.new` / `position.new`.
+- **Entry points:** cards, previews, table rows, the activity feed, the network view, busiest nodes, the map popup and the "not on map" list, the DM header ⓘ, and now the channel message sender name.
+- **Replaced:** `NodeDetailsDrawer` is replaced by `src/node-drawer/`. The `history-window` hook became `range-picker`. `@radix-ui/react-dropdown-menu` 2.1.25 was added.
+- **Tests:**
+  - Drawer component: 13 cases.
+  - Cache patches, metrics, width.
+  - e2e `node-drawer.spec.ts`: card → URL → Back keeps the scroll, deep link over Messages, tabs, sender chip, full screen vs. resize.
+  - Map `?focus=` and legacy links.
+  - New `node-drawer` visual baselines (win32 and linux).
+- **Test runner:** the timing tests (`*-perf.int.test.ts`) now run as their own Vitest project after the others, one file at a time (`apps/server/vitest.perf.config.ts`). The new 30-day perf test's setup had starved the dashboard timing test.
+
+State: `typecheck`, `lint`, `format:check`, `test` (569), `test:e2e` (110 passed, 5 skipped by viewport), `test:visual` (16) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

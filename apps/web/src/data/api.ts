@@ -8,6 +8,7 @@ import type {
   MapNodesDTO,
   MeshNode,
   Message,
+  NodeDetailDTO,
   NodeHistory,
   TopologyDTO,
   TrafficDTO,
@@ -75,6 +76,9 @@ export const api = {
 
   nodeHistory: (connectionId: number, num: number, window: HistoryWindow) =>
     request<NodeHistory>(`/api/connections/${connectionId}/nodes/${num}/history?window=${window}`),
+
+  nodeDetail: (connectionId: number, num: number) =>
+    request<NodeDetailDTO>(`/api/connections/${connectionId}/nodes/${num}`),
 
   conversations: (connectionId: number) =>
     request<ConversationsDTO>(`/api/connections/${connectionId}/conversations`),

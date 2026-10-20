@@ -71,6 +71,13 @@ const VOLATILE = [
   "[data-mt=chart-times]",
   "[data-mt=connection-link]",
   "[data-mt=thread-details]",
+  // Node drawer (outside [data-mt=main]: it's a portal).
+  "[data-mt=node-drawer-seen]",
+  "[data-mt=node-drawer] [data-mt=detail-age]",
+  "[data-mt=node-drawer] time",
+  "[data-mt=detail-field][data-mt-variant=last-heard] dd",
+  "[data-mt=detail-field][data-mt-variant=first-seen] dd",
+  "[data-mt=detail-field][data-mt-variant=packets] dd",
 ];
 
 const MASKS = (page: Page) => VOLATILE.map((selector) => page.locator(selector));
@@ -174,6 +181,25 @@ test("nodes table", async ({ page }) => {
   await expect(page.locator("[data-mt=node-row]")).toHaveCount(7);
   await freeze(page);
   await expect(page).toHaveScreenshot("nodes-table.png", { mask: MASKS(page) });
+});
+
+test("node drawer", async ({ page }) => {
+  await ready(page, `${DASH}/nodes?node=!0badcafe`);
+  const drawer = page.getByRole("dialog", { name: "Ridge Repeater" });
+  await expect(drawer).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        [
+          ...document.querySelectorAll<HTMLImageElement>(
+            "[data-mt=node-drawer] [data-mt=mini-map-tiles] img",
+          ),
+        ].every((img) => img.complete && img.naturalWidth > 0),
+      ),
+    )
+    .toBe(true);
+  await freeze(page);
+  await expect(page).toHaveScreenshot("node-drawer.png", { mask: MASKS(page) });
 });
 
 test("map", async ({ page }) => {

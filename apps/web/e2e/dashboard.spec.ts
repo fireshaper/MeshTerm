@@ -205,7 +205,9 @@ test("node details open from a preview and close with Escape", async ({ page }) 
   const drawer = page.getByRole("dialog");
   await expect(drawer).toBeVisible();
   await expect(drawer.getByRole("heading", { name: "Garage Station" })).toBeVisible();
-  await expect(drawer.locator("[data-mt=detail-section][data-mt-variant=history]")).toBeVisible();
+  await expect(drawer.locator("[data-mt=detail-section][data-mt-variant=identity]")).toBeVisible();
+  await drawer.getByRole("tab", { name: "Telemetry" }).click();
+  await expect(drawer.locator("[data-mt=chart-group]").first()).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(drawer).toBeHidden();
   const overflow = await page.evaluate(

@@ -8,15 +8,24 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router";
 import { nodeIdFromNum } from "@meshterm/shared";
+
 import { ChannelThread, DmThread, MessagesIndex, MessagesPage } from "./messages/MessagesPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { NodesPage } from "./pages/NodesPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { AppShell } from "./shell/AppShell.js";
 
+/** A node ID as the apps show it: `!` and 8 hex digits. */
+const NODE_PARAM = /^![0-9a-f]{8}$/i;
+
 const rootRoute = createRootRoute({
   component: AppShell,
   notFoundComponent: NotFoundPage,
+  // `?node=!a1b2c3d4` on any route opens the node drawer over it (CR-001 §5.1).
+  validateSearch: (search: Record<string, unknown>): { node?: string } =>
+    typeof search.node === "string" && NODE_PARAM.test(search.node)
+      ? { node: search.node.toLowerCase() }
+      : {},
 });
 
 const indexRoute = createRoute({
@@ -88,13 +97,22 @@ const legacyDmRoute = createRoute({
   },
 });
 
-/** `/map?node=<num>` opens the map centered on that node. Code-split: MapLibre loads here only. */
+/**
+ * `/map?focus=!a1b2c3d4` opens the map centered on that node with its popup (`?node=`
+ * is the drawer everywhere). Old links' decimal `?node=<num>` still focus. Code-split:
+ * MapLibre loads here only.
+ */
 export const mapRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/map",
-  validateSearch: (search: Record<string, unknown>): { node?: number } => {
-    const node = Number(search.node);
-    return Number.isInteger(node) && node > 0 ? { node } : {};
+  validateSearch: (search: Record<string, unknown>): { focus?: string } => {
+    if (typeof search.focus === "string" && NODE_PARAM.test(search.focus)) {
+      return { focus: search.focus.toLowerCase() };
+    }
+    const legacy = typeof search.node === "number" ? search.node : NaN;
+    return Number.isInteger(legacy) && legacy > 0 && legacy < 0xffff_ffff
+      ? { focus: nodeIdFromNum(legacy) }
+      : {};
   },
   component: lazyRouteComponent(() => import("./map/MapPage.js"), "MapPage"),
 });

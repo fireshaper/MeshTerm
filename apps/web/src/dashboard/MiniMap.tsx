@@ -1,3 +1,4 @@
+import { nodeIdFromNum } from "@meshterm/shared";
 import type { CardPosition } from "@meshterm/shared";
 import { Link } from "@tanstack/react-router";
 import { MapPinOff } from "lucide-react";
@@ -70,7 +71,7 @@ export function MiniMap({
       {num !== undefined && (
         <Link
           to="/map"
-          search={{ node: num }}
+          search={{ focus: nodeIdFromNum(num) }}
           data-mt="mini-map-link"
           aria-label="Open on the map"
           title="Open on the map"

@@ -85,14 +85,24 @@ test("lists nodes that aren't on the map", async ({ page }) => {
   await expect(list).toContainText("Bike");
 });
 
-test("deep link ?node= centers on the node and opens its popup", async ({ page }) => {
-  await openMap(page, `/map?node=${TRAIL}`);
+test("deep link ?focus= centers on the node and opens its popup", async ({ page }) => {
+  await openMap(page, "/map?focus=!1a2b3c4d");
   const popover = page.locator(
     `[data-mt=map-popover][data-node-num='${TRAIL}'] [data-mt=map-popover-card]`,
   );
   await expect(popover).toBeVisible();
   // (Its precision may have changed: the live-move test sends an exact position.)
   await expect(popover).toContainText("Trail Walker");
+});
+
+test("old links' decimal ?node= still focus the node (and don't open the drawer)", async ({
+  page,
+}) => {
+  await openMap(page, `/map?node=${TRAIL}`);
+  await expect(
+    page.locator(`[data-mt=map-popover][data-node-num='${TRAIL}'] [data-mt=map-popover-card]`),
+  ).toBeVisible();
+  await expect(page.locator("[data-mt=node-drawer]")).toHaveCount(0);
 });
 
 test("a new position moves the marker live", async ({ page }) => {
@@ -139,7 +149,7 @@ test("dashboard mini maps link here", async ({ page }) => {
   await page
     .locator(`[data-mt=node-card][data-node-num='${RIDGE}'] [data-mt=mini-map-link]`)
     .click();
-  await expect(page).toHaveURL(new RegExp(`/map\\?node=${RIDGE}$`));
+  await expect(page).toHaveURL(/\/map\?focus=(%21|!)0badcafe$/);
   await expect(
     page.locator(`[data-mt=map-popover][data-node-num='${RIDGE}'] [data-mt=map-popover-card]`),
   ).toBeVisible({

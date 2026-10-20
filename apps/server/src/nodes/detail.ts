@@ -39,6 +39,17 @@ export function rowMetrics(row: TelemetryRow): TelemetryMetrics {
   );
 }
 
+/** My node's position (null for my own node, or without one). */
+function originOf(db: Db, connectionId: number, myNodeNum: number | null, num: number) {
+  if (myNodeNum === null || myNodeNum === num) return null;
+  const me = db
+    .select()
+    .from(nodes)
+    .where(and(eq(nodes.connectionId, connectionId), eq(nodes.num, myNodeNum)))
+    .get();
+  return me ? toCard(me, myNodeNum, []).position : null;
+}
+
 /** Null for a node we've never stored. */
 export function buildNodeDetail(
   db: Db,
@@ -139,6 +150,7 @@ export function buildNodeDetail(
       batteryMin: battery?.min ?? null,
       batteryMax: battery?.max ?? null,
     },
+    origin: originOf(db, connectionId, myNodeNum, num),
     telemetryKinds: kinds,
   };
 }

@@ -9,6 +9,7 @@ import {
   type DashboardDTO,
   type MeshNode,
   type NodeCard,
+  type NodeDetailDTO,
 } from "@meshterm/shared";
 
 const enumName = (e: object, v: number): string | null => {
@@ -130,5 +131,77 @@ export function scenarioDashboard(name = "dashboard", nowMs = Date.now()): Dashb
     },
     thresholds: DEFAULT_DASHBOARD_THRESHOLDS,
     nodes,
+  };
+}
+
+/** `GET …/nodes/:num` for a scenario node, as the server would build it right after the handshake. */
+export function scenarioNodeDetail(
+  num: number,
+  name = "dashboard",
+  nowMs = Date.now(),
+): NodeDetailDTO {
+  const scenario = loadScenario(name);
+  const dashboard = scenarioDashboard(name, nowMs);
+  const card = dashboard.nodes.find((n) => n.num === num);
+  if (!card) throw new Error(`no node ${num} in ${name}`);
+  const info = scenario.nodes.find((n) => n.info.num === num)?.info;
+  const key = info?.user?.publicKey;
+  const publicKey = key?.length === 32 ? Buffer.from(key).toString("hex") : null;
+  const self = dashboard.nodes.find((n) => n.isSelf);
+  const latestTelemetry: NodeDetailDTO["latestTelemetry"] = {};
+  if (card.device) {
+    const d = card.device;
+    latestTelemetry.device = {
+      time: d.time,
+      metrics: Object.fromEntries(
+        [
+          ["battery_level", d.batteryLevel],
+          ["voltage", d.voltage],
+          ["channel_utilization", d.channelUtil],
+          ["air_util_tx", d.airUtilTx],
+          ["uptime_seconds", d.uptimeSeconds],
+        ].filter((e): e is [string, number] => e[1] !== null),
+      ),
+    };
+  }
+  if (card.environment) {
+    const e = card.environment;
+    latestTelemetry.environment = {
+      time: e.time,
+      metrics: Object.fromEntries(
+        [
+          ["temperature", e.temperature],
+          ["relative_humidity", e.humidity],
+          ["barometric_pressure", e.pressure],
+        ].filter((x): x is [string, number] => x[1] !== null),
+      ),
+    };
+  }
+  return {
+    ...card,
+    firstSeen: nowMs - 3 * 24 * 3600_000,
+    firmware: card.isSelf ? scenario.metadata.firmwareVersion || null : null,
+    publicKeyFingerprint: publicKey ? publicKey.slice(0, 16) : null,
+    publicKey,
+    viaMqtt: false,
+    isIgnored: info?.isIgnored ?? false,
+    latestTelemetry,
+    stats24h: {
+      packets: card.isSelf ? 0 : 12,
+      messages: 0,
+      batteryMin:
+        card.device?.batteryLevel != null && card.device.batteryLevel <= 100
+          ? card.device.batteryLevel
+          : null,
+      batteryMax:
+        card.device?.batteryLevel != null && card.device.batteryLevel <= 100
+          ? card.device.batteryLevel
+          : null,
+    },
+    origin: card.isSelf ? null : (self?.position ?? null),
+    telemetryKinds: [
+      ...(card.device ? (["device"] as const) : []),
+      ...(card.environment ? (["environment"] as const) : []),
+    ],
   };
 }

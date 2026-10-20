@@ -1,6 +1,7 @@
 import { nodeIdFromNum, type MeshNode, type Message, type MessageStatus } from "@meshterm/shared";
 import { formatDistanceStrict } from "date-fns";
 import { memo } from "react";
+import { openNodeDetails } from "../data/ui-store.js";
 
 /** Status text for outgoing messages, so state never depends on color alone. */
 export const STATUS_LABELS: Record<MessageStatus, string> = {
@@ -31,7 +32,16 @@ export const MessageItem = memo(function MessageItem({ message, sender, now }: M
       aria-label={`${sender}: ${text}`}
     >
       <header data-mt="message-meta">
-        <span data-mt="message-sender">{sender}</span>
+        <button
+          type="button"
+          data-mt="message-sender"
+          title="Node details"
+          onClick={() => {
+            openNodeDetails(message.fromNum);
+          }}
+        >
+          {sender}
+        </button>
         <time
           data-mt="message-time"
           dateTime={new Date(rxTime).toISOString()}

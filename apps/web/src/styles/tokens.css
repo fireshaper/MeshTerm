@@ -100,6 +100,11 @@
     --mt-tab-bar-height: 3.5rem;
     --mt-sidebar-width: 14rem;
     --mt-conversation-list-width: 20rem;
+
+    /* Node details drawer (CR-001): width from 768 px (resizable 400–800 px), surface. */
+    --mt-node-drawer-width: 30rem;
+    --mt-drawer-bg: var(--mt-sidebar-bg);
+    --mt-drawer-shadow: var(--mt-shadow-popover);
     --mt-sidebar-collapsed-width: 4rem;
     --mt-drawer-width: min(18rem, 85vw);
 

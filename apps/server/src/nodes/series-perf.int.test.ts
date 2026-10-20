@@ -16,31 +16,28 @@ let handle: DatabaseHandle;
 
 beforeAll(() => {
   handle = openTestDatabase();
-  const { sqlite } = handle;
-  const insert = sqlite.prepare(
-    `INSERT INTO telemetry (connection_id, node_num, kind, time, battery_level, voltage,
-       channel_util, air_util_tx, uptime_seconds, metrics)
-     VALUES (1, ?, 'device', ?, ?, ?, ?, ?, ?, ?)`,
-  );
-  const signal = sqlite.prepare(
-    "INSERT INTO signal_log (connection_id, node_num, time, snr, rssi, hops) VALUES (1, ?, ?, ?, ?, 0)",
-  );
-  sqlite.transaction(() => {
-    for (let n = 1; n <= NODES; n++) {
-      for (let t = NOW - DAYS * DAY; t < NOW; t += STEP) {
-        const battery = 50 + ((t / STEP + n) % 50);
-        const metrics = JSON.stringify({
-          battery_level: battery,
-          voltage: 3.9,
-          channel_utilization: 12.5,
-          air_util_tx: 1.5,
-          uptime_seconds: (t - NOW + DAYS * DAY) / 1000,
-        });
-        insert.run(n, t, battery, 3.9, 12.5, 1.5, (t - NOW + DAYS * DAY) / 1000, metrics);
-        if (n <= 20 && t > NOW - 7 * DAY) signal.run(n, t, 5.5, -90);
-      }
-    }
-  })();
+  // Generated inside SQLite in one statement each: much less CPU than 864 000 inserts
+  // from JS, so the other timing tests running alongside aren't starved.
+  const start = NOW - DAYS * DAY;
+  handle.sqlite.exec(`
+    WITH RECURSIVE
+      n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ${NODES}),
+      t(ts) AS (SELECT ${start} UNION ALL SELECT ts + ${STEP} FROM t WHERE ts + ${STEP} < ${NOW})
+    INSERT INTO telemetry (connection_id, node_num, kind, time, battery_level, voltage,
+      channel_util, air_util_tx, uptime_seconds, metrics)
+    SELECT 1, i, 'device', ts, 50 + ((ts / ${STEP} + i) % 50), 3.9, 12.5, 1.5,
+      (ts - ${start}) / 1000,
+      json_object('battery_level', 50 + ((ts / ${STEP} + i) % 50), 'voltage', 3.9,
+        'channel_utilization', 12.5, 'air_util_tx', 1.5, 'uptime_seconds', (ts - ${start}) / 1000)
+    FROM n, t;
+    WITH RECURSIVE
+      n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 20),
+      t(ts) AS (SELECT ${NOW - 7 * DAY} UNION ALL SELECT ts + ${STEP} FROM t WHERE ts + ${STEP} < ${NOW})
+    INSERT INTO signal_log (connection_id, node_num, time, snr, rssi, hops)
+    SELECT 1, i, ts, 5.5, -90, 0 FROM n, t;
+  `);
+  const rows = handle.sqlite.prepare("SELECT count(*) AS n FROM telemetry").get() as { n: number };
+  expect(rows.n).toBe(NODES * DAYS * 96);
 }, 120_000);
 
 afterAll(() => {

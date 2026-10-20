@@ -1,4 +1,4 @@
-import type { DashboardDTO } from "@meshterm/shared";
+import type { DashboardDTO, NodeDetailDTO } from "@meshterm/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { api } from "../data/api.js";
@@ -17,6 +17,9 @@ export function useToggleFavorite(connectionId: number | null) {
       const key = queryKeys.dashboard(connectionId);
       const set = (value: boolean) => {
         qc.setQueryData<DashboardDTO>(key, (d) => (d ? applyFavorite(d, num, value) : d));
+        qc.setQueryData<NodeDetailDTO>(queryKeys.nodeDetail(connectionId, num), (d) =>
+          d ? { ...d, isFavorite: value } : d,
+        );
       };
       set(favorite);
       try {

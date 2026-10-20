@@ -1,4 +1,4 @@
-import type { MapNodeFeature } from "@meshterm/shared";
+import { nodeNumFromId, type MapNodeFeature } from "@meshterm/shared";
 import { useSearch } from "@tanstack/react-router";
 import { Crosshair, Maximize2, Minus, PanelRightOpen, Plus, X } from "lucide-react";
 import {
@@ -184,8 +184,8 @@ function Popover({
 export function MapPage() {
   const connectionId = useLiveStore((s) => s.connectionId);
   const { data, isError } = useMapNodes(connectionId);
-  const search: { node?: number } = useSearch({ strict: false });
-  const deepNode = typeof search.node === "number" ? search.node : null;
+  const search: { focus?: string } = useSearch({ strict: false });
+  const deepNode = search.focus ? nodeNumFromId(search.focus) : null;
   const now = useNow();
   const containerRef = useRef<HTMLDivElement>(null);
   const tokensRef = useRef<MapTokens | null>(null);

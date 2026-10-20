@@ -20,6 +20,9 @@ export const queryKeys = {
   topology: (connectionId: number) => ["topology", connectionId] as const,
   mapNodes: (connectionId: number) => ["mapNodes", connectionId] as const,
   conversations: (connectionId: number) => ["conversations", connectionId] as const,
+  /** Prefix of every node detail of a connection. */
+  allNodeDetails: (connectionId: number) => ["nodeDetail", connectionId] as const,
+  nodeDetail: (connectionId: number, num: number) => ["nodeDetail", connectionId, num] as const,
   traffic: (connectionId: number, window: string) => ["traffic", connectionId, window] as const,
   history: (connectionId: number, num: number, window: string) =>
     ["history", connectionId, num, window] as const,

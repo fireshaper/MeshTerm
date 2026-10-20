@@ -47,7 +47,7 @@ CR: [cr-001-node-drawer.md](cr-001-node-drawer.md). Stop after each phase, repor
   - A 6 h gap.
 - Performance test: 30 d of one node in < 100 ms, measured on a 300-node × 30-day database.
 
-## Phase C2: drawer shell and Overview
+## Phase C2: drawer shell and Overview (done 2026-10-20)
 
 - The drawer is driven by a `?node=!hex` search param on any route. Esc, ✕ and mobile Back (history) close it and restore the view.
 - Width: 480 px, resizable 400–800 px, remembered per browser. Full screen below 768 px.

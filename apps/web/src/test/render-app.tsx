@@ -74,6 +74,7 @@ export async function renderApp(path: string, seed: Seed = {}) {
 
   const router = createTestRouter(path);
   const utils = render(<App router={router} queryClient={queryClient} live={false} />);
-  await screen.findByRole("heading", { level: 1 });
+  // `hidden`: a deep-linked drawer opens at once and hides the page from the a11y tree.
+  await screen.findByRole("heading", { level: 1, hidden: true });
   return { ...utils, router, queryClient };
 }
