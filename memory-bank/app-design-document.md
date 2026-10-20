@@ -58,21 +58,20 @@ Theme loader (/data/themes) ──CSS/fonts──▶ Browser
 
 ## 6. Features (v1)
 
-| Area            | Scope                                                                                                                                                                                                                                     |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dashboard       | Default landing view: mesh status strip + per-node cards (last seen, power, role, hw, mini map, signal, telemetry). See `dashboard-spec.md`                                                                                               |
-| Connection      | Status pill, node switcher, firmware/uptime                                                                                                                                                                                               |
-| Channels        | Tabs 0–7, unread counts, send/receive, reactions                                                                                                                                                                                          |
-| Direct messages | Per-peer conversations, PKI indicator, ACK status                                                                                                                                                                                         |
-| Node list       | Sortable/filterable: name, ID, hw, role, last heard, hops, SNR, battery, distance                                                                                                                                                         |
-| Node detail     | Info, position, metrics, neighbors; DM, request position, traceroute, remove                                                                                                                                                              |
-| Map             | Standalone page (`/map`, own nav item): pannable/zoomable OpenStreetMap with a marker for every node ever seen. Later: neighbor links, traceroute paths, position trails, range rings, themeable via token bridge. See `map-view-spec.md` |
-| Telemetry       | Battery, voltage, channel util, environment; 1 h – 30 d                                                                                                                                                                                   |
-| Config          | Device, Position, Power, Network, Display, LoRa, Bluetooth + common modules                                                                                                                                                               |
-| Actions         | Reboot, shutdown, factory reset, reset NodeDB (with confirmation)                                                                                                                                                                         |
-| Logs            | Live decoded packet log + raw debug console                                                                                                                                                                                               |
-| Notifications   | Browser notifications/sounds for DMs and mentions                                                                                                                                                                                         |
-| Settings        | Theme picker, units, time format, map tiles, node connections                                                                                                                                                                             |
+| Area            | Scope                                                                             |
+| --------------- | --------------------------------------------------------------------------------- |
+| Connection      | Status pill, node switcher, firmware/uptime                                       |
+| Channels        | Tabs 0–7, unread counts, send/receive, reactions                                  |
+| Direct messages | Per-peer conversations, PKI indicator, ACK status                                 |
+| Node list       | Sortable/filterable: name, ID, hw, role, last heard, hops, SNR, battery, distance |
+| Node detail     | Info, position, metrics, neighbors; DM, request position, traceroute, remove      |
+| Map             | Node markers by last-heard age, my node highlighted, traceroute paths             |
+| Telemetry       | Battery, voltage, channel util, environment; 1 h – 30 d                           |
+| Config          | Device, Position, Power, Network, Display, LoRa, Bluetooth + common modules       |
+| Actions         | Reboot, shutdown, factory reset, reset NodeDB (with confirmation)                 |
+| Logs            | Live decoded packet log + raw debug console                                       |
+| Notifications   | Browser notifications/sounds for DMs and mentions                                 |
+| Settings        | Theme picker, units, time format, map tiles, node connections                     |
 
 Responsive: bottom tab bar at 390 px; three-pane layout at ≥ 1200 px.
 
