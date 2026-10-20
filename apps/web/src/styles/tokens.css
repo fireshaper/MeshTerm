@@ -47,6 +47,17 @@
     --mt-chart-3: var(--mt-accent);
     --mt-chart-4: var(--mt-status-warn);
     --mt-chart-5: var(--mt-text-muted);
+    --mt-chart-6: var(--mt-status-info);
+
+    /* Telemetry charts (CR-001, canvas: read through useChartTokens) */
+    --mt-chart-grid: color-mix(in srgb, var(--mt-border-color) 60%, transparent);
+    --mt-chart-axis: var(--mt-text-muted);
+    --mt-chart-crosshair: var(--mt-text-muted);
+    --mt-chart-band-alpha: 0.2;
+    --mt-chart-threshold-warn: var(--mt-status-warn);
+    --mt-chart-threshold-danger: var(--mt-status-error);
+    --mt-chart-powered: var(--mt-status-ok);
+    --mt-chart-reboot: var(--mt-status-warn);
     --mt-shadow-popover: none;
 
     /* How recently a node was heard */

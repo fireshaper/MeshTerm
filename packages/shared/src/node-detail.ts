@@ -53,6 +53,8 @@ export const SeriesDTO = z.object({
   to: EpochMs,
   bucketMs: z.number().int().nonnegative(),
   t: z.array(EpochMs),
+  /** Samples per entry of `t` (1 when raw), so a live sample can join its bucket's average. */
+  count: z.array(z.number().int().nonnegative()),
   series: z.record(z.string(), Series),
 });
 export type SeriesDTO = z.infer<typeof SeriesDTO>;

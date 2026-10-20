@@ -1,0 +1,91 @@
+/*
+ * Node drawer charts (uPlot). uPlot's own CSS goes in @layer reset so base and theme
+ * layers win over it; app code never targets .u-* classes (themes may). Tokens only.
+ */
+@import url("uplot/dist/uPlot.min.css") layer(reset);
+
+@layer base {
+  [data-mt="chart-group"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-1);
+  }
+
+  [data-mt="chart-group-header"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mt-space-1) var(--mt-space-3);
+    align-items: center;
+  }
+
+  [data-mt="chart-title"] {
+    margin: 0;
+    font-size: var(--mt-font-size-sm);
+    font-weight: var(--mt-font-weight-medium);
+  }
+
+  [data-mt="chart-table-toggle"] {
+    margin-inline-start: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--mt-accent);
+    font-size: var(--mt-font-size-xs);
+    cursor: pointer;
+  }
+
+  [data-mt="chart-canvas"] {
+    position: relative;
+  }
+
+  /* The tooltip rule sets display: flex, which would beat [hidden]. */
+  [data-mt="chart-canvas"] [data-mt="chart-tooltip"][hidden] {
+    display: none;
+  }
+
+  [data-mt="chart-canvas"] [data-mt="chart-plot"] {
+    overflow: hidden;
+    border-bottom: none;
+  }
+
+  [data-mt="chart-table-wrap"] {
+    max-block-size: 16rem;
+    overflow: auto;
+  }
+
+  [data-mt="chart-table"] {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font-size: var(--mt-font-size-xs);
+  }
+
+  [data-mt="chart-table"] th,
+  [data-mt="chart-table"] td {
+    padding: var(--mt-space-1) var(--mt-space-2);
+    border-bottom: var(--mt-border-width) solid var(--mt-border-color);
+    text-align: start;
+    white-space: nowrap;
+  }
+
+  [data-mt="range-picker"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-2);
+  }
+
+  [data-mt="range-custom"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mt-space-2);
+    align-items: end;
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="range-custom"] input {
+    padding: var(--mt-space-1);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-radius-sm);
+    background: var(--mt-surface-raised);
+    color: var(--mt-text);
+  }
+}

@@ -6,7 +6,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { FakeNode, FakeTileServer, startControlServer } from "@meshterm/fake-node";
+import { FakeNode, FakeTileServer, startControlServer, until } from "@meshterm/fake-node";
 import { buildApp } from "@meshterm/server";
 import { parseConfig } from "@meshterm/shared";
 import { CONTROL_PORT as DEFAULT_CONTROL_PORT, E2E_PORT as DEFAULT_PORT } from "./ports.js";
@@ -34,6 +34,20 @@ const config = parseConfig({
   MESHTERM_THEMES_DIR: fileURLToPath(new URL("../../../themes/", import.meta.url)),
 });
 const app = await buildApp(config);
+const historyDays = Number(process.env.E2E_HISTORY_DAYS ?? 0);
+if (historyDays > 0) {
+  // Backdated telemetry (FakeNode historyPackets), stored before /healthz answers.
+  // Connections start once the app is ready.
+  await app.ready();
+  await until(() => app.meshterm.connections.get(1)?.state === "connected", 30_000);
+  let stored = 0;
+  const off = app.meshterm.hub.subscribe("telemetry.new", () => {
+    stored++;
+  });
+  const sent = node.injectHistory(historyDays);
+  await until(() => stored >= sent, 110_000);
+  off();
+}
 await app.listen({ host: "127.0.0.1", port: E2E_PORT });
 const control = startControlServer(node, CONTROL_PORT);
 

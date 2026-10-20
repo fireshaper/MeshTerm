@@ -1,6 +1,8 @@
 import { sep } from "node:path";
 import fastifyStatic from "@fastify/static";
+import type { FastifyReply } from "fastify";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
+import { indexHtmlRenderer } from "../security.js";
 
 export interface StaticOptions {
   /** Built SPA; null serves nothing (dev, where Vite serves it). */
@@ -40,9 +42,21 @@ export function staticRoutes({ webDir, themesDir }: StaticOptions): FastifyPlugi
       });
     }
     if (webDir) {
+      const renderIndex = indexHtmlRenderer(webDir);
+      if (renderIndex) {
+        // index.html carries a per-response CSP nonce, so it's never served as a file.
+        const sendIndex = (_req: unknown, reply: FastifyReply) =>
+          reply
+            .header("cache-control", NO_CACHE)
+            .type("text/html; charset=utf-8")
+            .send(renderIndex(reply.raw));
+        app.get("/", sendIndex);
+        app.get("/index.html", sendIndex);
+      }
       await app.register(fastifyStatic, {
         root: webDir,
         prefix: "/",
+        index: false,
         cacheControl: false,
         setHeaders: (reply, path) => {
           void reply.header(

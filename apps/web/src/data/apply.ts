@@ -12,8 +12,10 @@ import type {
   DashboardDTO,
   MapNodesDTO,
   NodeDetailDTO,
+  SeriesDTO,
 } from "@meshterm/shared";
 import { applyNodeToMap, applyPositionToMap, applyTelemetryToMap } from "../map/map-data.js";
+import { applyReportToSeries } from "../node-drawer/charts/series-data.js";
 import type { QueryClient } from "@tanstack/react-query";
 import {
   applyConnectionState,
@@ -219,6 +221,14 @@ export function applyServerMessage(
       patchMap(qc, telemetry.connectionId, (d) => applyTelemetryToMap(d, telemetry));
       patchDetail(qc, telemetry.connectionId, telemetry.nodeNum, (d) =>
         applyTelemetryToDetail(d, telemetry),
+      );
+      // Open charts on a sliding range (not a custom one) take the sample in place.
+      qc.setQueriesData<SeriesDTO>(
+        {
+          queryKey: queryKeys.seriesOf(telemetry.connectionId, telemetry.nodeNum, telemetry.kind),
+          predicate: (q) => !String(q.queryKey[4]).startsWith("custom:"),
+        },
+        (d) => (d ? applyReportToSeries(d, telemetry) : d),
       );
       return;
     }

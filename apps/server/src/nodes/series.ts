@@ -104,6 +104,8 @@ export function metricsInRange(
 interface Aggregated {
   bucketMs: number;
   t: number[];
+  /** Rows per entry of `t` (1 for raw samples). */
+  count: number[];
   series: Record<string, Series>;
 }
 
@@ -133,7 +135,8 @@ function aggregate(
   const empty = (): Series => (bucketMs === 0 ? { avg: [] } : { avg: [], min: [], max: [] });
   const series: Record<string, Series> = Object.fromEntries(names.map((n) => [n, empty()]));
   const t: number[] = [];
-  if (names.length === 0) return { bucketMs, t, series };
+  const count: number[] = [];
+  if (names.length === 0) return { bucketMs, t, count, series };
 
   if (bucketMs === 0) {
     const cols = sql.join(
@@ -145,9 +148,10 @@ function aggregate(
     );
     for (const row of rows) {
       t.push(row.t as number);
+      count.push(1);
       names.forEach((n, i) => series[n]?.avg.push(row[`m${i}`] ?? null));
     }
-    return { bucketMs, t, series };
+    return { bucketMs, t, count, series };
   }
 
   const cols = sql.join(
@@ -162,12 +166,13 @@ function aggregate(
     sql`, `,
   );
   const rows = db.all<Record<string, number | null>>(
-    sql`SELECT (${time} / ${int(bucketMs)}) * ${int(bucketMs)} AS t, ${cols}
+    sql`SELECT (${time} / ${int(bucketMs)}) * ${int(bucketMs)} AS t, count(*) AS n, ${cols}
         FROM ${table} WHERE ${where} GROUP BY 1 ORDER BY 1`,
   );
   const round = (v: number | null) => (v === null ? null : Math.round(v * 1e4) / 1e4);
   for (const row of rows) {
     t.push(row.t as number);
+    count.push(row.n ?? 0);
     names.forEach((n, i) => {
       const s = series[n];
       if (!s) return;
@@ -176,7 +181,7 @@ function aggregate(
       s.max?.push(row[`hi${i}`] ?? null);
     });
   }
-  return { bucketMs, t, series };
+  return { bucketMs, t, count, series };
 }
 
 /** Index of the entry of `t` (bucket starts, or raw times) that `time` falls in. */

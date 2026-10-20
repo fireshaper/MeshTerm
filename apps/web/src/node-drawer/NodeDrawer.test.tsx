@@ -1,4 +1,10 @@
-import { fixtures, type NodeDetailDTO, type NodeHistory } from "@meshterm/shared";
+import {
+  fixtures,
+  type NodeDetailDTO,
+  type NodeHistory,
+  type SeriesDTO,
+  type SignalDTO,
+} from "@meshterm/shared";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
@@ -33,6 +39,42 @@ const history = (): NodeHistory => ({
   },
 });
 
+const HOUR = 3600_000;
+const T = [NOW - 3 * HOUR, NOW - 2 * HOUR, NOW - HOUR];
+
+function deviceSeries(): SeriesDTO {
+  return {
+    kind: "device",
+    from: NOW - 24 * HOUR,
+    to: NOW,
+    bucketMs: 5 * 60_000,
+    t: T,
+    count: [3, 3, 3],
+    series: {
+      battery_level: { avg: [null, null, null], min: [null, null, null], max: [null, null, null] },
+      powered: { avg: [1, 1, 1], min: [1, 1, 1], max: [1, 1, 1] },
+      voltage: { avg: [5.1, 5.09, 5.1], min: [5.08, 5.08, 5.09], max: [5.12, 5.1, 5.11] },
+    },
+  };
+}
+
+function signalSeries(): SignalDTO {
+  return {
+    kind: "signal",
+    from: NOW - 24 * HOUR,
+    to: NOW,
+    bucketMs: 5 * 60_000,
+    t: T,
+    count: [4, 4, 4],
+    series: {
+      snr: { avg: [7, 7.5, 7.25], min: [6, 7, 7], max: [8, 8, 7.5] },
+      rssi: { avg: [-80, -79, -81], min: [-82, -80, -83], max: [-78, -77, -80] },
+      hops: { avg: [0, 0, 0], min: [0, 0, 0], max: [0, 0, 0] },
+    },
+    rate: { bucketMs: HOUR, t: T, packets: [4, 4, 4] },
+  };
+}
+
 /** The Nodes page with the drawer's data cached, as if fetched. */
 async function render(
   num: number,
@@ -44,6 +86,9 @@ async function render(
     queries: [
       [queryKeys.nodeDetail(1, num), change(scenarioNodeDetail(num, "dashboard", NOW))],
       [queryKeys.history(1, num, "24h"), history()],
+      [queryKeys.series(1, num, "device", "24h"), deviceSeries()],
+      [queryKeys.signal(1, num, "24h"), signalSeries()],
+      [queryKeys.signal(1, num, "30d"), signalSeries()],
       [
         queryKeys.messages(1, { peer: num }),
         {
@@ -164,17 +209,44 @@ describe("<NodeDrawer />", () => {
     const tabs = within(dialog).getAllByRole("tab");
     expect(tabs.map((t) => t.textContent)).toEqual(["Overview", "Telemetry", "Signal", "Raw"]);
     await user.click(within(dialog).getByRole("tab", { name: "Telemetry" }));
+    // External power: the battery chart shows a "Powered" band; voltage has values.
     expect(
-      await within(dialog).findByRole("img", { name: /battery and channel utilization/ }),
+      await within(dialog).findByRole("img", {
+        name: "Voltage, 24 h: Voltage min 5.08 V max 5.12 V latest 5.10 V",
+      }),
     ).toBeInTheDocument();
+    expectDataMt(
+      dialog.querySelector('[data-mt="chart-group"][data-mt-variant="battery"]'),
+      "chart-group",
+      { state: "ready", variant: "battery" },
+    );
+    expect(within(dialog).getByRole("link", { name: "Export CSV" })).toHaveAttribute(
+      "href",
+      expect.stringMatching(
+        /^\/api\/connections\/1\/nodes\/195939070\/telemetry\.csv\?from=\d+&to=\d+$/,
+      ),
+    );
+    await user.click(
+      within(dialog).getAllByRole("button", { name: "View as table" })[1] as HTMLElement,
+    );
+    expect(within(dialog).getByRole("table")).toHaveTextContent("5.10 V");
+    within(dialog).getByRole("tab", { name: "Telemetry" }).focus();
     await user.keyboard("{ArrowRight}");
     expectDataMt(within(dialog).getByRole("tab", { name: "Signal" }), "node-drawer-tab", {
       state: "active",
       variant: "signal",
     });
     expect(
+      await within(dialog).findByRole("img", {
+        name: /^SNR \(heard directly\), 24 h: SNR min 6\.0 dB/,
+      }),
+    ).toBeInTheDocument();
+    // The range is shared and remembered.
+    await user.click(within(dialog).getByRole("button", { name: "30 d" }));
+    expect(
       await within(dialog).findByText("Signal history is kept for 7 days."),
     ).toBeInTheDocument();
+    expect(localStorage.getItem("meshterm.nodeRange")).toBe('{"preset":"30d"}');
     await user.click(within(dialog).getByRole("tab", { name: "Raw" }));
     const raw = document.querySelector('[data-mt="raw-json"][data-mt-variant="node"]');
     expect(raw?.textContent).toContain('"publicKey"');

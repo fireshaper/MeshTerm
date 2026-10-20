@@ -10,6 +10,7 @@ import { controlClient, ME, RIDGE, TRAIL } from "./control.js";
 import {
   VISUAL_CONTROL_PORT,
   VISUAL_DASHBOARD_CONTROL_PORT,
+  HISTORY_PORT,
   VISUAL_DASHBOARD_PORT,
   VISUAL_PORT,
 } from "./ports.js";
@@ -17,6 +18,8 @@ import {
 const BASE = `http://127.0.0.1:${VISUAL_PORT}`;
 /** A second visual instance on the `dashboard` scenario. */
 const DASH = `http://127.0.0.1:${VISUAL_DASHBOARD_PORT}`;
+/** The read-only instance with 30 days of telemetry history. */
+const HISTORY = `http://127.0.0.1:${HISTORY_PORT}`;
 const node = controlClient(VISUAL_CONTROL_PORT);
 
 const CHANNEL = [
@@ -200,6 +203,26 @@ test("node drawer", async ({ page }) => {
     .toBe(true);
   await freeze(page);
   await expect(page).toHaveScreenshot("node-drawer.png", { mask: MASKS(page) });
+});
+
+test("node drawer telemetry charts", async ({ page }) => {
+  await ready(page, `${HISTORY}/nodes?node=!5e6f7081`);
+  const drawer = page.getByRole("dialog", { name: "Garage Station" });
+  await drawer.getByRole("tab", { name: "Telemetry" }).click();
+  for (const g of ["battery", "voltage", "radio", "uptime"]) {
+    await expect(
+      drawer.locator(`[data-mt=chart-group][data-mt-variant=${g}] canvas`).first(),
+    ).toBeVisible();
+  }
+  await page.mouse.move(0, 0);
+  await freeze(page);
+  // The time axis is drawn on the canvas (its labels follow the clock) and buckets
+  // align to wall-clock time: a little more room than the DOM screens get.
+  await expect(drawer).toHaveScreenshot("node-drawer-telemetry.png", {
+    mask: MASKS(page),
+    maxDiffPixelRatio: 0.04,
+    threshold: 0.3,
+  });
 });
 
 test("map", async ({ page }) => {

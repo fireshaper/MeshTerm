@@ -10,6 +10,9 @@ import type {
   Message,
   NodeDetailDTO,
   NodeHistory,
+  SeriesDTO,
+  SignalDTO,
+  TelemetryKind,
   TopologyDTO,
   TrafficDTO,
   TrafficWindow,
@@ -79,6 +82,36 @@ export const api = {
 
   nodeDetail: (connectionId: number, num: number) =>
     request<NodeDetailDTO>(`/api/connections/${connectionId}/nodes/${num}`),
+
+  /** Telemetry series (CR-001 §6.2); `signal` lets a range change cancel the old request. */
+  telemetrySeries: (
+    connectionId: number,
+    num: number,
+    kind: TelemetryKind,
+    from: number,
+    to: number,
+    signal?: AbortSignal,
+  ) =>
+    request<SeriesDTO>(
+      `/api/connections/${connectionId}/nodes/${num}/telemetry?kind=${kind}&from=${from}&to=${to}`,
+      signal ? { signal } : undefined,
+    ),
+
+  signalSeries: (
+    connectionId: number,
+    num: number,
+    from: number,
+    to: number,
+    signal?: AbortSignal,
+  ) =>
+    request<SignalDTO>(
+      `/api/connections/${connectionId}/nodes/${num}/signal?from=${from}&to=${to}`,
+      signal ? { signal } : undefined,
+    ),
+
+  /** Download link for raw telemetry (not fetched by the app). */
+  telemetryCsvUrl: (connectionId: number, num: number, from: number, to: number) =>
+    `/api/connections/${connectionId}/nodes/${num}/telemetry.csv?from=${from}&to=${to}`,
 
   conversations: (connectionId: number) =>
     request<ConversationsDTO>(`/api/connections/${connectionId}/conversations`),

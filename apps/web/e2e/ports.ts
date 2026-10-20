@@ -13,6 +13,10 @@ export const DASHBOARD_CONTROL_PORT = 4179;
 export const VISUAL_DASHBOARD_PORT = 4186;
 export const VISUAL_DASHBOARD_CONTROL_PORT = 4187;
 
+/** serve.ts on the `dashboard` scenario with 30 days of telemetry history (read-only for specs). */
+export const HISTORY_PORT = 4192;
+export const HISTORY_CONTROL_PORT = 4193;
+
 /** serve.ts on the generated 300-node `large` scenario. */
 export const LARGE_PORT = 4184;
 export const LARGE_CONTROL_PORT = 4185;

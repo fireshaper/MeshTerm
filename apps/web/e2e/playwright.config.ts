@@ -4,6 +4,8 @@ import {
   DASHBOARD_CONTROL_PORT,
   DASHBOARD_PORT,
   E2E_PORT,
+  HISTORY_CONTROL_PORT,
+  HISTORY_PORT,
   LARGE_CONTROL_PORT,
   LARGE_PORT,
   VISUAL_CONTROL_PORT,
@@ -71,11 +73,21 @@ export default defineConfig({
     serve(DASHBOARD_PORT, DASHBOARD_CONTROL_PORT, "dashboard"),
     serve(VISUAL_DASHBOARD_PORT, VISUAL_DASHBOARD_CONTROL_PORT, "dashboard"),
     serve(LARGE_PORT, LARGE_CONTROL_PORT, "large"),
+    // Injecting 30 days of history takes a while; nothing may change it afterwards.
+    {
+      ...serve(HISTORY_PORT, HISTORY_CONTROL_PORT, "dashboard", { E2E_HISTORY_DAYS: "30" }),
+      timeout: 120_000,
+    },
   ],
 });
 
 /** One e2e/serve.ts instance (FakeNode on a scenario + the real server + fake tiles). */
-function serve(port: number, controlPort: number, scenario: string) {
+function serve(
+  port: number,
+  controlPort: number,
+  scenario: string,
+  env: Record<string, string> = {},
+) {
   return {
     command: "pnpm exec tsx e2e/serve.ts",
     cwd: "..",
@@ -83,6 +95,7 @@ function serve(port: number, controlPort: number, scenario: string) {
       E2E_PORT: String(port),
       E2E_CONTROL_PORT: String(controlPort),
       E2E_SCENARIO: scenario,
+      ...env,
     },
     url: `http://127.0.0.1:${port}/healthz`,
     reuseExistingServer: false,

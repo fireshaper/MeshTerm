@@ -1,5 +1,6 @@
 // First: configures zod before any module defines or runs a schema.
 import "./zod-config.js";
+import "./csp-nonce.js";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.js";

@@ -60,7 +60,7 @@ CR: [cr-001-node-drawer.md](cr-001-node-drawer.md). Stop after each phase, repor
 - Entry points: dashboard, node list, map popup, DM header ⓘ, channel sender chip.
 - Actions: Message and Show on map. Transmitting actions wait for their own CRs.
 
-## Phase C3: charts
+## Phase C3: charts (done 2026-10-20)
 
 - uPlot, lazy-loaded, with a token bridge (`useChartTokens`, re-applied on theme change) and new chart/drawer tokens.
 - Range picker: 1 h / 24 h / 7 d / 30 d / Custom. Shared by both tabs and remembered.

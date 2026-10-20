@@ -17,6 +17,7 @@ import { useLiveStore } from "../data/store.js";
 import { openNodeDetails } from "../data/ui-store.js";
 import { boundsOf, readViewport, toMapSource, writeViewport } from "./map-data.js";
 import { buildStyle, LAYER, MAX_ZOOM, NODE_SOURCE, tokenPaint } from "./map-style.js";
+import { useThemeChange } from "../components/useThemeChange.js";
 import { drawLabel, readMapTokens, type MapTokens } from "./map-tokens.js";
 import "./map.css";
 
@@ -44,28 +45,6 @@ function webglAvailable(): boolean {
   } catch {
     return false;
   }
-}
-
-/** Calls `onChange` when the theme stylesheet or the color scheme attribute changes. */
-function useThemeChange(onChange: () => void): void {
-  const latest = useRef(onChange);
-  useEffect(() => {
-    latest.current = onChange;
-  });
-  useEffect(() => {
-    const link = document.querySelector('[data-mt="theme-link"]');
-    const observer = new MutationObserver(() => {
-      latest.current();
-    });
-    if (link) observer.observe(link, { attributes: true, attributeFilter: ["href"] });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-mt-theme", "data-mt-scheme"],
-    });
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
 }
 
 /** Recolors layers and drops label images (they are redrawn with the new tokens). */

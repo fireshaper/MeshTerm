@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
+import { installCanvasStub, installMatchMediaStub } from "./canvas.js";
 import { installLayoutMock } from "./layout.js";
 
 // DOM stubs, only when running under jsdom (some files use the node environment).
@@ -22,6 +23,8 @@ if (typeof Element !== "undefined") {
     };
   }
   installLayoutMock();
+  installCanvasStub();
+  installMatchMediaStub();
 }
 
 afterEach(() => {

@@ -23,6 +23,14 @@ export const queryKeys = {
   /** Prefix of every node detail of a connection. */
   allNodeDetails: (connectionId: number) => ["nodeDetail", connectionId] as const,
   nodeDetail: (connectionId: number, num: number) => ["nodeDetail", connectionId, num] as const,
+  /** Telemetry series of one node and kind; `range` is a preset name or `custom:<from>-<to>`. */
+  series: (connectionId: number, num: number, kind: string, range: string) =>
+    ["series", connectionId, num, kind, range] as const,
+  /** Prefix: every cached series of one node and kind (live updates patch them). */
+  seriesOf: (connectionId: number, num: number, kind: string) =>
+    ["series", connectionId, num, kind] as const,
+  signal: (connectionId: number, num: number, range: string) =>
+    ["signal", connectionId, num, range] as const,
   traffic: (connectionId: number, window: string) => ["traffic", connectionId, window] as const,
   history: (connectionId: number, num: number, window: string) =>
     ["history", connectionId, num, window] as const,

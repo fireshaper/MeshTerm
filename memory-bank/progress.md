@@ -369,6 +369,40 @@ State: `typecheck`, `lint`, `format`, `test` (558), `test:e2e` (98 passed, 3 ski
 
 State: `typecheck`, `lint`, `format:check`, `test` (569), `test:e2e` (110 passed, 5 skipped by viewport), `test:visual` (16) and `test:gate` (3/3) green.
 
+### Phase C3: charts (done 2026-10-20)
+
+- **uPlot** 1.6.32 in the Telemetry/Signal lazy chunk.
+  - Colors come from `--mt-chart-*` tokens through a probe element, re-read on theme change.
+  - New tokens: `--mt-chart-6`, grid, axis, crosshair, band alpha, threshold warn/danger, powered, reboot.
+  - uPlot's CSS sits in `@layer reset`.
+- **Range:** 1 h / 24 h / 7 d / 30 d / Custom, shared by both tabs and remembered. A replaced range's request is cancelled.
+- **Charts:**
+  - Synced crosshair and tooltips across a tab's charts; drag to zoom all, double-click to reset.
+  - Avg line with a min–max band when bucketed. Gaps (> 3× the typical interval) break the line.
+  - Battery is a 0–100 % axis with 20/10 % lines and a "Powered" band above 100.
+  - Radio load gets the dashboard's channel-util thresholds.
+  - Uptime is a stepped line with "Reboot" marks.
+  - Environment, power-monitor and air-quality groups appear for what's reported.
+  - Signal: SNR/RSSI (direct only), hops, packets per hour, and a 7-day note.
+  - Each group has an empty state, and a node that never reported gets an explanation.
+- **Accessibility:** summaries ("Battery, 24 h: Battery min 61% max 98% latest 78%") and "View as table".
+- **Export CSV** (≤ 31 d).
+- **Live:** `telemetry.new` merges into cached series (raw append, or bucket merge by the new `count` field) with no refetch; at most one redraw per second.
+- **History fixture:** FakeNode's curves are now relative to "now", so screenshots are stable.
+- **New e2e `history` instance** (ports 4192/4193): the dashboard scenario with 30 days injected before `/healthz` answers. Read-only.
+- **CSP:**
+  - Opening a modal dialog (Radix scroll lock, react-remove-scroll) inserts a `<style>`, which the CSP had always blocked. The CSP walk now opens the drawer and its charts, which found it.
+  - Each response now gets a nonce in `style-src-elem`. index.html is served with the nonce in `<meta name="mt-csp-nonce">` (also for `/index.html` and client routes), and `csp-nonce.ts` hands it to `get-nonce` via `__webpack_nonce__`.
+- **Test stubs:** jsdom has no canvas, `Path2D` or `matchMedia` (`src/test/canvas.ts`).
+- **Tests:**
+  - Series transforms (gaps, live merge, ranges), tokens.
+  - Drawer charts in jsdom (summaries, table view, CSV link, shared range).
+  - e2e `charts.spec.ts` (groups per node type, synced crosshair, zoom/reset, reboot, shared range, Powered band, sensors, power monitor, Signal, CSV download, live report without refetch); CSP walk with charts.
+  - CSP nonce unit tests.
+  - `node-drawer-telemetry` visual baselines (win32 and linux; 4 % tolerance for the canvas time axis).
+
+State: `typecheck`, `lint`, `format`, `test` (577), `test:e2e` (125 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

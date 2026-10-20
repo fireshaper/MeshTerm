@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cspDirectives, inlineStyleHashes } from "./security.js";
+import { CSP_NONCE_PLACEHOLDER, cspDirectives, inlineStyleHashes } from "./security.js";
 import { startTestApp, type TestApp } from "./test-app.js";
 
 const STYLE = "@layer reset,base,theme,overrides;";
@@ -31,7 +31,7 @@ describe("security headers", () => {
     mkdirSync(join(root, "web"));
     writeFileSync(
       join(root, "web", "index.html"),
-      `<!doctype html><style>${STYLE}</style><div id="root"></div>`,
+      `<!doctype html><style>${STYLE}</style><meta name="mt-csp-nonce" content="${CSP_NONCE_PLACEHOLDER}"><div id="root"></div>`,
     );
     t = await startTestApp({ deps: { webDir: join(root, "web") } });
   });
@@ -41,7 +41,8 @@ describe("security headers", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("sends a CSP that keeps images same-origin and allows only the hashed inline style", async () => {
+  it("sends a CSP that keeps images same-origin and allows the hashed style and this response's nonce", async () => {
+    const nonces = new Set<string>();
     for (const url of ["/", "/api/connections", "/healthz"]) {
       const res = await t.app.inject({ method: "GET", url });
       const csp = res.headers["content-security-policy"];
@@ -54,11 +55,31 @@ describe("security headers", () => {
       );
       expect(directives["img-src"], url).toEqual(["'self'", "data:"]);
       expect(directives["script-src"], url).toEqual(["'self'"]);
-      expect(directives["style-src-elem"], url).toEqual(["'self'", HASH]);
+      const elem = directives["style-src-elem"] ?? [];
+      expect(elem.slice(0, 2), url).toEqual(["'self'", HASH]);
+      expect(elem[2], url).toMatch(/^'nonce-[A-Za-z0-9+/]{22}==' *$/);
+      nonces.add(elem[2] ?? "");
       expect(directives["connect-src"], url).toEqual(["'self'"]);
       expect(directives["upgrade-insecure-requests"], url).toBeUndefined();
       expect(res.headers["strict-transport-security"], url).toBeUndefined();
       expect(res.headers["x-content-type-options"], url).toBe("nosniff");
+      if (url === "/") {
+        // index.html carries the same nonce, for styles libraries insert at runtime.
+        const nonce = /'nonce-([^']+)'/.exec(elem[2] ?? "")?.[1] ?? "missing";
+        expect(res.body).toContain(`<meta name="mt-csp-nonce" content="${nonce}">`);
+        expect(res.body).not.toContain(CSP_NONCE_PLACEHOLDER);
+      }
+    }
+    // A fresh nonce per response.
+    expect(nonces.size).toBe(3);
+  });
+
+  it("serves the nonced index.html for client routes and /index.html too", async () => {
+    for (const url of ["/dashboard", "/index.html"]) {
+      const res = await t.app.inject({ method: "GET", url });
+      expect(res.statusCode, url).toBe(200);
+      expect(res.headers["content-type"], url).toContain("text/html");
+      expect(res.body, url).not.toContain(CSP_NONCE_PLACEHOLDER);
     }
   });
 });

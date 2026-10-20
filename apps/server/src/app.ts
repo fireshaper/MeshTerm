@@ -28,7 +28,7 @@ import { dashboardRoutes } from "./routes/dashboard.js";
 import { healthRoutes } from "./routes/health.js";
 import { HttpError } from "./routes/http-error.js";
 import { tileRoutes } from "./routes/tiles.js";
-import { registerSecurityHeaders } from "./security.js";
+import { indexHtmlRenderer, registerSecurityHeaders } from "./security.js";
 import { TileCache } from "./tiles/tile-cache.js";
 import { isReservedPath, NO_CACHE, staticRoutes } from "./routes/static.js";
 import { resolveThemesDir, resolveWebDir } from "./paths.js";
@@ -169,12 +169,18 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   await app.register(staticRoutes({ webDir, themesDir }));
   app.log.info({ webDir, themesDir }, "static files");
 
+  const renderIndex = indexHtmlRenderer(webDir);
   app.setNotFoundHandler((req, reply) => {
     // SPA fallback: client-side routes like /channels/0 get index.html. Never for the
     // API, /ws, /healthz or /themes, and never for paths that look like a file.
     const lastSegment = req.url.split("?")[0]?.split("/").pop() ?? "";
     if (webDir && req.method === "GET" && !isReservedPath(req.url) && !lastSegment.includes(".")) {
-      return reply.header("cache-control", NO_CACHE).sendFile("index.html", webDir);
+      return renderIndex
+        ? reply
+            .header("cache-control", NO_CACHE)
+            .type("text/html; charset=utf-8")
+            .send(renderIndex(reply.raw))
+        : reply.header("cache-control", NO_CACHE).sendFile("index.html", webDir);
     }
     return reply
       .code(404)

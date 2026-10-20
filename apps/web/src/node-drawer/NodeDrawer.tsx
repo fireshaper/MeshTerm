@@ -25,14 +25,17 @@ import { registerNodeDrawer, useUiStore } from "../data/ui-store.js";
 import { useThresholds } from "../messages/useNodeMap.js";
 import { OverviewTab } from "./OverviewTab.js";
 import { CopyButton, ICON, useCopy } from "./parts.js";
+import { readRange, writeRange, type NodeRange } from "./charts/series-data.js";
 import { RawTab } from "./RawTab.js";
 import { clampWidth, DRAWER_WIDTH, readDrawerWidth, writeDrawerWidth } from "./width.js";
 
-// Charts load only when their tab is opened (the uPlot chunk in Phase C3).
+// Charts load only when their tab is opened (uPlot is in that chunk).
 const TelemetryTab = lazy(() =>
-  import("./HistoryTabs.js").then((m) => ({ default: m.TelemetryTab })),
+  import("./charts/ChartTabs.js").then((m) => ({ default: m.TelemetryTab })),
 );
-const SignalTab = lazy(() => import("./HistoryTabs.js").then((m) => ({ default: m.SignalTab })));
+const SignalTab = lazy(() =>
+  import("./charts/ChartTabs.js").then((m) => ({ default: m.SignalTab })),
+);
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -275,6 +278,12 @@ function Body({
 }) {
   const { data: node, isPending, isError } = useNodeDetail(connectionId, num);
   const [tab, setTab] = useState<TabId>("overview");
+  // Shared by the Telemetry and Signal tabs, remembered per browser.
+  const [range, setRangeState] = useState<NodeRange>(readRange);
+  const setRange = (next: NodeRange) => {
+    setRangeState(next);
+    writeRange(next);
+  };
   const panelId = useId();
 
   if (isPending || isError) {
@@ -305,8 +314,17 @@ function Body({
       <div data-mt="node-drawer-body" role="tabpanel" id={panelId} aria-label={tab}>
         {tab === "overview" && <OverviewTab connectionId={connectionId} node={node} />}
         <Suspense fallback={<div data-mt="skeleton" data-mt-variant="chart" aria-hidden />}>
-          {tab === "telemetry" && <TelemetryTab connectionId={connectionId} node={node} />}
-          {tab === "signal" && <SignalTab connectionId={connectionId} node={node} />}
+          {tab === "telemetry" && (
+            <TelemetryTab
+              connectionId={connectionId}
+              node={node}
+              range={range}
+              onRange={setRange}
+            />
+          )}
+          {tab === "signal" && (
+            <SignalTab connectionId={connectionId} node={node} range={range} onRange={setRange} />
+          )}
         </Suspense>
         {tab === "raw" && <RawTab node={node} />}
       </div>

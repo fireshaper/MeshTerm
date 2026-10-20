@@ -38,13 +38,16 @@ function noise(seed: number): () => number {
   };
 }
 
-/** 0 at midnight, 1 at noon (UTC): a stand-in for sunlight. */
+/**
+ * A stand-in for sunlight: 0 a whole number of days before `now`, 1 half a day off.
+ * Relative to `now`, so the curves look the same whenever the fixture is generated.
+ */
 const daylight = (t: number) => (1 - Math.cos(((t % DAY) / DAY) * 2 * Math.PI)) / 2;
 const round = (x: number, places = 2) => Number(x.toFixed(places));
 
 /**
  * 30 days of telemetry for the `dashboard` scenario, ending at `now`, oldest first.
- * Deterministic for a given `now` (rounded to the minute).
+ * The same shape for any `now` (rounded to the minute), so screenshots are stable.
  */
 export function historyPackets(nowMs: number, days = 30): HistoryPacket[] {
   const now = Math.floor(nowMs / MIN) * MIN;
@@ -58,7 +61,7 @@ export function historyPackets(nowMs: number, days = 30): HistoryPacket[] {
   const rebootAt = now - 5 * DAY;
   for (let t = start; t < now; t += 15 * MIN) {
     if (t >= gapFrom && t < gapTo) continue;
-    const sun = daylight(t);
+    const sun = daylight(t - now);
     const uptimeStart = t >= rebootAt ? rebootAt : start - 2 * DAY;
     out.push({
       from: HISTORY_NODES.garden,
@@ -88,8 +91,8 @@ export function historyPackets(nowMs: number, days = 30): HistoryPacket[] {
       from: HISTORY_NODES.ridge,
       at: t,
       hopsAway: 0,
-      rxSnr: round(7 + 2 * Math.sin(t / (6 * HOUR)) + n()),
-      rxRssi: Math.round(-80 + 4 * Math.sin(t / (6 * HOUR)) + n() * 2),
+      rxSnr: round(7 + 2 * Math.sin((t - now) / (6 * HOUR)) + n()),
+      rxRssi: Math.round(-80 + 4 * Math.sin((t - now) / (6 * HOUR)) + n() * 2),
       telemetry: {
         time: Math.floor(t / 1000),
         variant: {
@@ -97,8 +100,8 @@ export function historyPackets(nowMs: number, days = 30): HistoryPacket[] {
           value: {
             batteryLevel: 101,
             voltage: round(5.1 + n() * 0.02, 3),
-            channelUtilization: round(14 + 8 * daylight(t) + n() * 2),
-            airUtilTx: round(2.5 + daylight(t) + n() * 0.3),
+            channelUtilization: round(14 + 8 * daylight(t - now) + n() * 2),
+            airUtilTx: round(2.5 + daylight(t - now) + n() * 0.3),
             uptimeSeconds: Math.floor((t - (start - 10 * DAY)) / 1000),
           },
         },
@@ -108,7 +111,7 @@ export function historyPackets(nowMs: number, days = 30): HistoryPacket[] {
 
   // Trail: environment sensor.
   for (let t = start; t < now; t += 30 * MIN) {
-    const sun = daylight(t);
+    const sun = daylight(t - now);
     out.push({
       from: HISTORY_NODES.trail,
       at: t,
@@ -122,8 +125,8 @@ export function historyPackets(nowMs: number, days = 30): HistoryPacket[] {
           value: {
             temperature: round(8 + 14 * sun + n()),
             relativeHumidity: round(85 - 40 * sun + n() * 3),
-            barometricPressure: round(1012 + 6 * Math.sin(t / (3 * DAY)) + n() * 0.5),
-            gasResistance: round(80 + 20 * Math.sin(t / DAY) + n() * 2),
+            barometricPressure: round(1012 + 6 * Math.sin((t - now) / (3 * DAY)) + n() * 0.5),
+            gasResistance: round(80 + 20 * Math.sin((t - now) / DAY) + n() * 2),
             lux: round(Math.max(0, 900 * sun - 150 + n() * 20)),
           },
         },
@@ -133,7 +136,7 @@ export function historyPackets(nowMs: number, days = 30): HistoryPacket[] {
 
   // Hill: INA power monitor (solar panel on ch1, load on ch2).
   for (let t = start; t < now; t += 30 * MIN) {
-    const sun = daylight(t);
+    const sun = daylight(t - now);
     out.push({
       from: HISTORY_NODES.hill,
       at: t,
