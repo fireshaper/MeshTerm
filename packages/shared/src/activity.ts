@@ -59,6 +59,10 @@ export const TrafficBucket = z.object({
   messagesOut: z.number().int().nonnegative(),
   /** My node's average reported channel utilization in the bucket; null without reports. */
   channelUtil: z.number().nullable(),
+  /** Packets heard from other nodes (all ports). */
+  packets: z.number().int().nonnegative(),
+  /** `packets` by port name (`TEXT_MESSAGE_APP`, …, `ENCRYPTED`); ports without packets omitted. */
+  packetsByPort: z.record(z.string(), z.number().int().nonnegative()),
 });
 export type TrafficBucket = z.infer<typeof TrafficBucket>;
 
@@ -69,6 +73,10 @@ export const TrafficDTO = z.object({
   from: EpochMs,
   to: EpochMs,
   buckets: z.array(TrafficBucket),
+  /** Ports seen in the window, most packets first. */
+  ports: z.array(z.object({ port: z.string(), packets: z.number().int().nonnegative() })),
+  /** The nodes heard most in the window (up to 5), most packets first. */
+  topNodes: z.array(z.object({ num: Uint32, packets: z.number().int().nonnegative() })),
 });
 export type TrafficDTO = z.infer<typeof TrafficDTO>;
 
@@ -104,5 +112,40 @@ export const NodeHistory = z.object({
       altitude: z.number().int().nullable(),
     }),
   ),
+  /** Packets heard from the node per bucket (1 h for 24 h, 6 h for 7 d), every bucket present. */
+  heard: z.object({
+    bucketMs: z.number().int().positive(),
+    buckets: z.array(z.object({ time: EpochMs, packets: z.number().int().nonnegative() })),
+  }),
 });
 export type NodeHistory = z.infer<typeof NodeHistory>;
+
+/**
+ * What is actually known about how nodes connect. Only two kinds of link:
+ * `direct` — my node heard that node's last packet with 0 hops (SNR as my node measured);
+ * `reported` — a node's NeighborInfo report says it heard the other node (SNR as reported).
+ * Hop counts place other nodes on rings; they never imply a route.
+ */
+export const TopologyDTO = z.object({
+  myNodeNum: Uint32.nullable(),
+  /** Nodes heard within this many ms are included. */
+  windowMs: z.number().int().positive(),
+  nodes: z.array(
+    z.object({
+      num: Uint32,
+      hopsAway: z.number().int().nonnegative().nullable(),
+      lastHeard: EpochMs.nullable(),
+    }),
+  ),
+  links: z.array(
+    z.object({
+      kind: z.enum(["direct", "reported"]),
+      /** For `reported`: the node that sent the report. For `direct`: my node. */
+      from: Uint32,
+      to: Uint32,
+      snr: z.number().nullable(),
+      time: EpochMs,
+    }),
+  ),
+});
+export type TopologyDTO = z.infer<typeof TopologyDTO>;

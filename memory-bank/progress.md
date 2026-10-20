@@ -229,6 +229,14 @@ State: `typecheck`, `lint`, `format:check`, `test` (438), `test:e2e` (62) and `t
 
 State: `typecheck`, `lint`, `format:check`, `test` (470), `test:e2e` (70; five of six full runs green, one run had a single `toBeVisible` timeout, since given more time) and `test:gate` (3/3) green locally. Not committed.
 
+### Phase O3: Network visualization (done 2026-10-20)
+
+- **Server (B3, B7):** migration 0006: `packet_stats` (packets heard per minute, node and port, 7 days; my node's own packets excluded) and `neighbors` (NeighborInfo reports, each replacing the reporter's list). Decoder handles NEIGHBORINFO_APP; `radio.packet` carries sender and port (`ENCRYPTED` when undecodable). Traffic gains packets per bucket and per type, port totals and the 5 busiest nodes; node history gains packets heard per hour; new `GET …/topology` with only observed links. FakeNode `injectNeighborInfo` + `/inject-neighbors`.
+- **Web:** _Network overview_ panel (rings by hop count, solid direct links colored by SNR, dashed NeighborInfo links, nothing inferred; nodes open details); traffic panel Packets/Messages views with packets stacked by type and _Busiest nodes_; _Packets heard_ chart in the node drawer. Dashboard grid: activity | network, favorites | feed, recent | attention.
+- Tests: packet counting, traffic/history packet buckets, topology rules (direct only at 0 hops, reports only within the window and between shown nodes, replacement), NeighborInfo decoding and port names, FakeNode integration; layout and map component tests (no link to a 2-hop node); e2e (reported link drawn, all links observed, packets by type). The dashboard perf test may retry twice (timing noise under a parallel suite; 29 ms alone). The visual dashboard test now waits for its chart, network view and feed; a win32 baseline had been captured mid-load.
+
+State: `typecheck`, `lint`, `format:check`, `test` (484), `test:e2e` (72, three full runs green after the visual fix) and `test:gate` (3/3) green locally. Not committed.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

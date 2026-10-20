@@ -44,6 +44,9 @@
     --mt-battery-critical: var(--mt-status-error);
     --mt-chart-1: var(--mt-accent);
     --mt-chart-2: var(--mt-status-ok);
+    --mt-chart-3: var(--mt-accent);
+    --mt-chart-4: var(--mt-status-warn);
+    --mt-chart-5: var(--mt-text-muted);
     --mt-shadow-popover: none;
 
     /* How recently a node was heard */

@@ -25,6 +25,8 @@ export function controlClient(port: number) {
       from: number,
       report: { device: Record<string, number> } | { environment: Record<string, number> },
     ) => call<{ packetId: number }>("POST", "/inject-telemetry", { from, ...report }),
+    injectNeighbors: (from: number, neighbors: { nodeId: number; snr: number }[]) =>
+      call<{ packetId: number }>("POST", "/inject-neighbors", { from, neighbors }),
     setAckMode: (mode: "ack" | "nak" | "silent") => call("POST", "/ack-mode", { mode }),
     clearInbound: () => call("POST", "/clear-inbound"),
     inbound: () => call<InboundAudit>("GET", "/inbound"),

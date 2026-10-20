@@ -10,6 +10,7 @@ import { AttentionList } from "../dashboard/AttentionList.js";
 import { formatAbsolute, formatAgo } from "../dashboard/format.js";
 import { attentionItems, recentlyActive } from "../dashboard/insights.js";
 import { NetworkKpis } from "../dashboard/NetworkKpis.js";
+import { NetworkMap } from "../dashboard/NetworkMap.js";
 import { NodePreviewCard } from "../dashboard/NodePreviewCard.js";
 import { TrafficPanel } from "../dashboard/TrafficPanel.js";
 import { useToggleFavorite } from "../dashboard/useFavorite.js";
@@ -195,16 +196,8 @@ function DashboardBody({
 
   return (
     <div data-mt="dashboard-grid">
-      <TrafficPanel connectionId={connectionId} />
-      <Panel variant="attention" title="Attention needed" count={attention.length}>
-        {attention.length === 0 ? (
-          <EmptyState title="All clear">
-            No low batteries, quiet favorites or busy channel right now.
-          </EmptyState>
-        ) : (
-          <AttentionList items={attention} />
-        )}
-      </Panel>
+      <TrafficPanel connectionId={connectionId} cards={nodes} />
+      <NetworkMap connectionId={connectionId} cards={nodes} thresholds={thresholds} />
       <Panel variant="pinned" title="My node & favorites" count={pinned.length}>
         <ul data-mt="preview-grid">{pinned.map(preview)}</ul>
         {favorites.length === 0 && <p data-mt="panel-hint">Star nodes to pin them here.</p>}
@@ -217,6 +210,15 @@ function DashboardBody({
           </EmptyState>
         ) : (
           <ul data-mt="preview-grid">{recent.slice(0, RECENT_PREVIEW_LIMIT).map(preview)}</ul>
+        )}
+      </Panel>
+      <Panel variant="attention" title="Attention needed" count={attention.length}>
+        {attention.length === 0 ? (
+          <EmptyState title="All clear">
+            No low batteries, quiet favorites or busy channel right now.
+          </EmptyState>
+        ) : (
+          <AttentionList items={attention} />
         )}
       </Panel>
     </div>

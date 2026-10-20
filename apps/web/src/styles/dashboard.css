@@ -615,7 +615,7 @@
     color: var(--mt-text-muted);
   }
 
-  /* One column; from 1024 px a 2:1 grid: chart | attention, favorites | feed, recent. */
+  /* One column; from 1024 px a 2:1 grid: chart | network, favorites | feed, recent | attention. */
   [data-mt="dashboard-grid"] {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -627,18 +627,22 @@
     [data-mt="dashboard-grid"] {
       grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
       grid-template-areas:
-        "traffic attention"
+        "traffic network"
         "pinned activity"
-        "recent recent";
+        "recent attention";
     }
 
     [data-mt="dashboard-grid"] > [data-mt-variant="traffic"] {
       grid-area: traffic;
     }
 
+    [data-mt="dashboard-grid"] > [data-mt-variant="network"] {
+      grid-area: network;
+      align-self: stretch;
+    }
+
     [data-mt="dashboard-grid"] > [data-mt-variant="attention"] {
       grid-area: attention;
-      align-self: stretch;
     }
 
     [data-mt="dashboard-grid"] > [data-mt-variant="pinned"] {

@@ -3,6 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "../data/keys.js";
+import { useUiStore } from "../data/ui-store.js";
 import { byDataMt, expectDataMt } from "../test/data-mt.js";
 import { renderApp } from "../test/render-app.js";
 import { scenarioDashboard } from "../test/scenario.js";
@@ -35,10 +36,30 @@ function stubFetch(handler: (url: string, init?: RequestInit) => Promise<Respons
     const answer = handler(url, init);
     if (answer) return answer;
     const empty = url.includes("/traffic")
-      ? { window: "24h", bucketMs: 3_600_000, from: 0, to: 3_600_000, buckets: [] }
+      ? {
+          window: "24h",
+          bucketMs: 3_600_000,
+          from: 0,
+          to: 3_600_000,
+          buckets: [],
+          ports: [],
+          topNodes: [],
+        }
       : url.includes("/events")
         ? { events: [], nextBefore: null }
-        : [];
+        : url.includes("/topology")
+          ? { myNodeNum: null, windowMs: 86_400_000, nodes: [], links: [] }
+          : url.includes("/history")
+            ? {
+                window: "24h",
+                device: [],
+                environment: [],
+                positions: [],
+                heard: { bucketMs: 3_600_000, buckets: [] },
+              }
+            : url.includes("/messages")
+              ? { messages: [], nextCursor: null }
+              : [];
     return Promise.resolve(new Response(JSON.stringify(empty), { status: 200 }));
   });
   vi.stubGlobal("fetch", mock);
@@ -270,7 +291,7 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("the traffic chart shows recorded buckets and remembers its window", async () => {
+  it("the traffic chart shows packets by type, busiest nodes, messages, and remembers its choices", async () => {
     const user = userEvent.setup();
     const hour = 3_600_000;
     const from = Math.floor(NOW / hour) * hour - 2 * hour;
@@ -286,19 +307,68 @@ describe("DashboardPage", () => {
             from,
             to: from + 3 * hour,
             buckets: [
-              { time: from, messagesIn: 2, messagesOut: 1, channelUtil: 11 },
-              { time: from + hour, messagesIn: 0, messagesOut: 0, channelUtil: null },
-              { time: from + 2 * hour, messagesIn: 4, messagesOut: 0, channelUtil: 13 },
+              {
+                time: from,
+                messagesIn: 2,
+                messagesOut: 1,
+                channelUtil: 11,
+                packets: 10,
+                packetsByPort: { POSITION_APP: 6, TEXT_MESSAGE_APP: 4 },
+              },
+              {
+                time: from + hour,
+                messagesIn: 0,
+                messagesOut: 0,
+                channelUtil: null,
+                packets: 0,
+                packetsByPort: {},
+              },
+              {
+                time: from + 2 * hour,
+                messagesIn: 4,
+                messagesOut: 0,
+                channelUtil: 13,
+                packets: 5,
+                packetsByPort: { TELEMETRY_APP: 5 },
+              },
+            ],
+            ports: [
+              { port: "POSITION_APP", packets: 6 },
+              { port: "TELEMETRY_APP", packets: 5 },
+              { port: "TEXT_MESSAGE_APP", packets: 4 },
+            ],
+            topNodes: [
+              { num: 195939070, packets: 9 },
+              { num: 1584361601, packets: 6 },
             ],
           },
         ],
       ],
     });
+    // Packets is the default view.
+    expect(
+      screen.getByRole("img", {
+        name: /15 packets heard \(Position 6, Telemetry 5, Text 4\); my node's channel utilization averaged 12%/,
+      }),
+    ).toBeInTheDocument();
+    const busiest = [...document.querySelectorAll('[data-mt="busiest-node"]')].map(
+      (e) => e.textContent,
+    );
+    expect(busiest).toEqual(["Ridge Repeater9 packets", "Garage Station6 packets"]);
+    await user.click(screen.getByRole("button", { name: "Ridge Repeater" }));
+    expect(useUiStore.getState().selectedNode).toBe(195939070);
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Messages" }));
     expect(
       screen.getByRole("img", {
         name: /6 received and 1 sent; my node's channel utilization averaged 12%/,
       }),
     ).toBeInTheDocument();
+    expect(localStorage.getItem("meshterm.trafficView")).toBe("messages");
     await user.click(screen.getByRole("button", { name: "1 h" }));
     expect(fetchMock.mock.calls.map(([u]) => u)).toContain("/api/connections/1/traffic?window=1h");
     expect(localStorage.getItem("meshterm.trafficWindow")).toBe("1h");

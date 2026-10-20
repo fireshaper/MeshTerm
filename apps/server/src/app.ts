@@ -10,6 +10,7 @@ import {
 } from "fastify-type-provider-zod";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { join } from "node:path";
+import { attachNetworkStats } from "./activity/network.js";
 import { attachActivity } from "./activity/recorder.js";
 import { systemClock, type Clock, type Random } from "./clock.js";
 import { NodeConnection } from "./connection/node-connection.js";
@@ -112,6 +113,7 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   attachPersistence(hub, handle.db, app.log, () => clock.now());
   // After persistence: the feed reads what was stored.
   attachActivity(hub, handle.db, { now: () => clock.now() });
+  attachNetworkStats(hub, handle.db);
 
   const createTransport =
     deps.createTransport ??

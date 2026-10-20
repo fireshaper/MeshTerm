@@ -528,4 +528,205 @@
       transition: none;
     }
   }
+
+  /* Traffic panel extras */
+
+  [data-mt="traffic-controls"] {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--mt-space-2);
+  }
+
+  [data-mt="busiest-nodes"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-1);
+    padding-block-start: var(--mt-space-2);
+    border-top: var(--mt-border-width) solid var(--mt-border-color);
+  }
+
+  [data-mt="busiest-nodes-title"],
+  [data-mt="detail-subtitle"] {
+    margin: 0;
+    font-size: var(--mt-font-size-xs);
+    font-weight: var(--mt-font-weight-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--mt-text-muted);
+  }
+
+  [data-mt="busiest-node"] {
+    display: grid;
+    grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--mt-space-2);
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="busiest-node-name"] {
+    overflow: hidden;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--mt-text);
+    text-align: start;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  [data-mt="busiest-node-name"]:hover {
+    color: var(--mt-accent);
+    text-decoration: underline;
+  }
+
+  [data-mt="busiest-node-count"] {
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-xs);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* Network overview */
+
+  [data-mt="network-map"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-2);
+    margin: 0;
+  }
+
+  [data-mt="network-map"] > svg {
+    display: block;
+    inline-size: 100%;
+    max-inline-size: 26rem;
+    margin-inline: auto;
+    aspect-ratio: 1;
+    overflow: visible;
+  }
+
+  [data-mt="network-ring"] circle {
+    fill: none;
+    stroke: var(--mt-border-color);
+    stroke-dasharray: 2 3;
+    stroke-width: 0.6;
+  }
+
+  [data-mt="network-ring"] text {
+    fill: var(--mt-text-muted);
+    font-size: 5.5px;
+    text-anchor: start;
+  }
+
+  [data-mt="network-link"] {
+    stroke: var(--mt-status-ok);
+    stroke-width: 1.2;
+    stroke-linecap: round;
+    opacity: 0.85;
+  }
+
+  [data-mt="network-link"][data-mt-state="weak"] {
+    stroke: var(--mt-status-warn);
+  }
+
+  [data-mt="network-link"][data-mt-state="poor"] {
+    stroke: var(--mt-status-error);
+  }
+
+  [data-mt="network-link"][data-mt-state="unknown"] {
+    stroke: var(--mt-text-muted);
+  }
+
+  [data-mt="network-link"][data-mt-variant="reported"] {
+    stroke-dasharray: 3 2;
+    stroke-width: 0.9;
+    opacity: 0.7;
+  }
+
+  [data-mt="network-node"] {
+    color: var(--mt-signal-offline);
+    cursor: pointer;
+    outline: none;
+  }
+
+  [data-mt="network-node"][data-mt-state="online"] {
+    color: var(--mt-signal-online);
+  }
+
+  [data-mt="network-node"][data-mt-state="recent"] {
+    color: var(--mt-signal-recent);
+  }
+
+  [data-mt="network-node"][data-mt-state="stale"] {
+    color: var(--mt-signal-stale);
+  }
+
+  [data-mt="network-node"][data-mt-variant~="self"] {
+    color: var(--mt-map-marker-self);
+    cursor: default;
+  }
+
+  [data-mt="network-node"] circle,
+  [data-mt="network-node"] rect {
+    fill: currentcolor;
+    stroke: var(--mt-card-bg);
+    stroke-width: 1.2;
+  }
+
+  [data-mt="network-node"]:hover circle,
+  [data-mt="network-node"]:hover rect,
+  [data-mt="network-node"]:focus-visible circle,
+  [data-mt="network-node"]:focus-visible rect {
+    stroke: var(--mt-accent);
+    stroke-width: 2;
+  }
+
+  [data-mt="network-node"] text {
+    fill: var(--mt-text);
+    font-size: 6px;
+    text-anchor: middle;
+    pointer-events: none;
+  }
+
+  [data-mt="network-caption"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-1);
+    font-size: var(--mt-font-size-xs);
+    color: var(--mt-text-muted);
+  }
+
+  [data-mt="network-focus"] {
+    min-block-size: 1.2em;
+    color: var(--mt-text);
+  }
+
+  [data-mt="network-legend"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mt-space-1) var(--mt-space-3);
+  }
+
+  [data-mt="network-legend-item"]::before {
+    content: "";
+    display: inline-block;
+    inline-size: 1rem;
+    block-size: 0;
+    margin-inline-end: var(--mt-space-1);
+    vertical-align: middle;
+    border-top: 2px solid var(--mt-status-ok);
+  }
+
+  [data-mt="network-legend-item"][data-mt-variant="reported"]::before {
+    border-top-style: dashed;
+  }
+
+  [data-mt="network-legend-item"][data-mt-variant="router"]::before {
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border: none;
+    background: var(--mt-text-muted);
+    transform: rotate(45deg);
+  }
 }

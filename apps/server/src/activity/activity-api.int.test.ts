@@ -1,5 +1,5 @@
 import { auditInbound, FakeNode, until } from "@meshterm/fake-node";
-import type { ActivityPage, NodeHistory, TrafficDTO } from "@meshterm/shared";
+import type { ActivityPage, NodeHistory, TopologyDTO, TrafficDTO } from "@meshterm/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp, type TestApp } from "../test-app.js";
 
@@ -112,5 +112,52 @@ describe("activity API", () => {
     ]) {
       expect((await t.app.inject({ url })).statusCode, url).toBe(404);
     }
+  });
+
+  it("decodes NeighborInfo into reported links and counts packets by port", async () => {
+    const TRAIL = 439041101;
+    t.node.injectNeighborInfo(RIDGE, [
+      { nodeId: TRAIL, snr: -2.25 },
+      { nodeId: GARAGE, snr: 4.5 },
+    ]);
+    t.node.injectText(GARAGE, { channel: 0 }, "count me");
+    await poll(async () =>
+      (await get<TopologyDTO>("/api/connections/1/topology")).links.some(
+        (l) => l.kind === "reported",
+      ),
+    );
+    const topology = await get<TopologyDTO>("/api/connections/1/topology");
+    expect(topology.windowMs).toBe(24 * 3600_000);
+    expect(
+      topology.links
+        .filter((l) => l.kind === "reported")
+        .map((l) => [l.from, l.to, l.snr])
+        .sort(),
+    ).toEqual(
+      [
+        [RIDGE, TRAIL, -2.25],
+        [RIDGE, GARAGE, 4.5],
+      ].sort(),
+    );
+    // Heard with 0 hops: Ridge and Hilltop (scenario), and now Garage, whose injected
+    // text arrived directly. Kayak (3 days ago) is outside the window.
+    expect(
+      topology.links
+        .filter((l) => l.kind === "direct")
+        .map((l) => l.to)
+        .sort(),
+    ).toEqual([RIDGE, 573785173, GARAGE].sort());
+    expect(topology.nodes.map((n) => n.num)).not.toContain(860116326);
+
+    await poll(async () =>
+      (await get<TrafficDTO>("/api/connections/1/traffic?window=1h")).ports.some(
+        (p) => p.port === "TEXT_MESSAGE_APP",
+      ),
+    );
+    const traffic = await get<TrafficDTO>("/api/connections/1/traffic?window=1h");
+    const ports = Object.fromEntries(traffic.ports.map((p) => [p.port, p.packets]));
+    expect(ports.NEIGHBORINFO_APP).toBe(1);
+    expect(ports.TEXT_MESSAGE_APP).toBe(1);
+    expect(traffic.topNodes.map((n) => n.num)).toContain(RIDGE);
   });
 });

@@ -190,6 +190,30 @@ export class FakeNode {
   }
 
   /**
+   * Delivers a NEIGHBORINFO_APP broadcast from `from`: the nodes it says it hears,
+   * with the SNR it measured. Returns the packet id.
+   */
+  injectNeighborInfo(
+    from: number,
+    neighbors: { nodeId: number; snr: number }[],
+    options: InjectTextOptions = {},
+  ): number {
+    const message = create(Mesh.NeighborInfoSchema, {
+      nodeId: from,
+      lastSentById: from,
+      nodeBroadcastIntervalSecs: 900,
+      neighbors: neighbors.map((n) => ({ nodeId: n.nodeId, snr: n.snr })),
+    });
+    return this.injectPacket(
+      from,
+      { channel: 0 },
+      Portnums.PortNum.NEIGHBORINFO_APP,
+      toBinary(Mesh.NeighborInfoSchema, message),
+      options,
+    );
+  }
+
+  /**
    * Adds or replaces a node in the NodeDB (so later handshakes include it) and
    * delivers its `User` as a `NODEINFO_APP` packet, the way firmware forwards a
    * node announcement it hears. Returns the packet id.

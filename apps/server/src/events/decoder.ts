@@ -156,9 +156,32 @@ function decodePacket(packet: Mesh.MeshPacket, ctx: DecodeContext): DecodeResult
         },
       ]);
     }
+    case Portnums.PortNum.NEIGHBORINFO_APP: {
+      const info = fromBinary(Mesh.NeighborInfoSchema, data.payload);
+      return decoded([
+        {
+          type: "radio.neighbors",
+          payload: {
+            connectionId: ctx.connectionId,
+            reporter: packet.from,
+            time: ctx.now,
+            neighbors: info.neighbors
+              .filter((n) => n.nodeId !== 0 && n.nodeId !== packet.from)
+              .map((n) => ({ num: n.nodeId, snr: round(n.snr, 2) })),
+          },
+        },
+      ]);
+    }
     default:
       return ignore(`port ${enumName(Portnums.PortNum, data.portnum) ?? String(data.portnum)}`);
   }
+}
+
+/** A packet's port name for statistics; `ENCRYPTED` when it couldn't be decoded. */
+export function packetPort(packet: Mesh.MeshPacket): string {
+  if (packet.payloadVariant.case !== "decoded") return "ENCRYPTED";
+  const port = packet.payloadVariant.value.portnum;
+  return enumName(Portnums.PortNum, port) ?? `PORT_${port}`;
 }
 
 /**

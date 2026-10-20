@@ -68,4 +68,4 @@ Charts are hand-built SVG components: no chart dependency, colors from tokens, C
 
 ## 5. Decisions (2026-10-19)
 
-Default theme dark by default; all backend changes, phase by phase; mobile drawer replaces the tab bar; stop after each phase. **O1 and O2 done** (see `progress.md`).
+Default theme dark by default; all backend changes, phase by phase; mobile drawer replaces the tab bar; stop after each phase. **O1, O2 and O3 done** (see `progress.md`).

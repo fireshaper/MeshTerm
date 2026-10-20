@@ -53,6 +53,16 @@ export function useTraffic(connectionId: number | null, window: TrafficWindow) {
   });
 }
 
+/** Observed links between nodes; refreshed every minute (no WS event for them). */
+export function useTopology(connectionId: number | null) {
+  return useQuery({
+    queryKey: queryKeys.topology(connectionId ?? 0),
+    queryFn: () => api.topology(connectionId ?? 0),
+    enabled: connectionId !== null,
+    refetchInterval: TRAFFIC_REFRESH_MS,
+  });
+}
+
 /** The newest activity, kept current by `activity.new`; older pages via `loadOlderActivity`. */
 export function useActivity(connectionId: number | null) {
   return useQuery({

@@ -1,13 +1,15 @@
 import {
   TRAFFIC_BUCKETS,
   type HistoryWindow,
+  type TrafficBucket,
   type NodeHistory,
   type TrafficDTO,
   type TrafficWindow,
 } from "@meshterm/shared";
 import { and, asc, eq, gte, sql } from "drizzle-orm";
 import type { Db } from "../db/database.js";
-import { messages, positions, telemetry } from "../db/schema.js";
+import { messages, packetStats, positions, telemetry } from "../db/schema.js";
+import { packetRows } from "./network.js";
 
 /**
  * Messages in/out per bucket and my node's average reported channel utilization, for
@@ -25,11 +27,13 @@ export function buildTraffic(
   const to = (Math.floor(now / bucketMs) + 1) * bucketMs;
   const from = to - spanMs;
   const count = spanMs / bucketMs;
-  const buckets = Array.from({ length: count }, (_, i) => ({
+  const buckets: TrafficBucket[] = Array.from({ length: count }, (_, i) => ({
     time: from + i * bucketMs,
     messagesIn: 0,
     messagesOut: 0,
-    channelUtil: null as number | null,
+    channelUtil: null,
+    packets: 0,
+    packetsByPort: {},
   }));
   const index = (time: number) => Math.floor((time - from) / bucketMs);
 
@@ -68,7 +72,25 @@ export function buildTraffic(
     }
   }
 
-  return { window, bucketMs, from, to, buckets };
+  const portTotals = new Map<string, number>();
+  const nodeTotals = new Map<number, number>();
+  for (const row of packetRows(db, connectionId, from, to, bucketMs)) {
+    const bucket = buckets[row.bucket];
+    if (!bucket) continue;
+    bucket.packets += row.count;
+    bucket.packetsByPort[row.port] = (bucket.packetsByPort[row.port] ?? 0) + row.count;
+    portTotals.set(row.port, (portTotals.get(row.port) ?? 0) + row.count);
+    nodeTotals.set(row.nodeNum, (nodeTotals.get(row.nodeNum) ?? 0) + row.count);
+  }
+  const ports = [...portTotals]
+    .map(([port, packets]) => ({ port, packets }))
+    .sort((a, b) => b.packets - a.packets || a.port.localeCompare(b.port));
+  const topNodes = [...nodeTotals]
+    .map(([num, packets]) => ({ num, packets }))
+    .sort((a, b) => b.packets - a.packets || a.num - b.num)
+    .slice(0, 5);
+
+  return { window, bucketMs, from, to, buckets, ports, topNodes };
 }
 
 export const HISTORY_SPAN_MS: Record<HistoryWindow, number> = {
@@ -87,6 +109,24 @@ export function nodeHistory(
   now: number,
 ): NodeHistory {
   const since = now - HISTORY_SPAN_MS[window];
+  // Packets heard per hour (24 h) or 6 hours (7 d), every bucket present.
+  const heardBucketMs = window === "24h" ? 3600_000 : 6 * 3600_000;
+  const heardTo = (Math.floor(now / heardBucketMs) + 1) * heardBucketMs;
+  const heardFrom = heardTo - HISTORY_SPAN_MS[window];
+  const heard = Array.from({ length: HISTORY_SPAN_MS[window] / heardBucketMs }, (_, i) => ({
+    time: heardFrom + i * heardBucketMs,
+    packets: 0,
+  }));
+  const counts = db.values<[number, number]>(
+    sql`SELECT ${packetStats.minute}, ${packetStats.count} FROM ${packetStats}
+        WHERE ${packetStats.connectionId} = ${connectionId}
+          AND ${packetStats.nodeNum} = ${nodeNum}
+          AND ${packetStats.minute} >= ${heardFrom} AND ${packetStats.minute} < ${heardTo}`,
+  );
+  for (const [minute, count] of counts) {
+    const bucket = heard[Math.floor((minute - heardFrom) / heardBucketMs)];
+    if (bucket) bucket.packets += count;
+  }
   const newest = <T extends { time: number }>(rows: T[]) => rows.slice(-HISTORY_MAX_POINTS);
   const ofKind = (kind: "device" | "environment") =>
     and(
@@ -143,5 +183,6 @@ export function nodeHistory(
         .orderBy(asc(positions.time))
         .all(),
     ),
+    heard: { bucketMs: heardBucketMs, buckets: heard },
   };
 }

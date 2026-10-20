@@ -7,6 +7,7 @@ import type {
   MeshNode,
   Message,
   NodeHistory,
+  TopologyDTO,
   TrafficDTO,
   TrafficWindow,
 } from "@meshterm/shared";
@@ -72,6 +73,9 @@ export const api = {
 
   nodeHistory: (connectionId: number, num: number, window: HistoryWindow) =>
     request<NodeHistory>(`/api/connections/${connectionId}/nodes/${num}/history?window=${window}`),
+
+  topology: (connectionId: number) =>
+    request<TopologyDTO>(`/api/connections/${connectionId}/topology`),
 
   /** Drops and re-establishes the link to the node (handshake only). */
   reconnect: (connectionId: number) =>

@@ -3,7 +3,7 @@ import type { FromRadio } from "@meshterm/protocol";
 import type { NodeConnection } from "../connection/node-connection.js";
 import type { StateChange } from "../connection/state-machine.js";
 import { silentLogger, type Logger } from "../logger.js";
-import { decodeFromRadio, nodeHeard, type DecodeContext } from "./decoder.js";
+import { decodeFromRadio, nodeHeard, packetPort, type DecodeContext } from "./decoder.js";
 import type { Hub, HubEvents, RadioEvents } from "./events.js";
 
 export interface PipelineOptions {
@@ -33,7 +33,13 @@ export function wireConnection(
   const onFromRadio = (message: FromRadio) => {
     const ctx: DecodeContext = { connectionId, now: now(), newId };
     if (message.payloadVariant.case === "packet") {
-      hub.publish("radio.packet", { connectionId, at: ctx.now });
+      const packet = message.payloadVariant.value;
+      hub.publish("radio.packet", {
+        connectionId,
+        at: ctx.now,
+        from: packet.from,
+        port: packetPort(packet),
+      });
     }
     const heard = nodeHeard(message, ctx);
     if (heard) publish(hub, heard);

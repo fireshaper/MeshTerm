@@ -25,6 +25,7 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
  * - `POST /inject-telemetry` `{from, device: {batteryLevel?, voltage?, channelUtilization?, airUtilTx?, uptimeSeconds?}}`
  *   or `{from, environment: {temperature?, relativeHumidity?, barometricPressure?}}` → `{packetId}`
  * - `POST /inject-position` `{from, lat, lon, altitude?, precisionBits?}` → `{packetId}`
+ * - `POST /inject-neighbors` `{from, neighbors: [{nodeId, snr}]}` → `{packetId}`
  * - `POST /reboot` `{downMs}`
  * - `POST /ack-mode` `{mode: "ack" | "nak" | "silent"}`
  * - `POST /clear-inbound`
@@ -49,6 +50,17 @@ export function startControlServer(node: FakeNode, port: number, host = "127.0.0
             break;
           case "POST /inject-telemetry":
             result = { packetId: node.injectTelemetry(Number(body.from), telemetryFrom(body)) };
+            break;
+          case "POST /inject-neighbors":
+            result = {
+              packetId: node.injectNeighborInfo(
+                Number(body.from),
+                (Array.isArray(body.neighbors) ? (body.neighbors as unknown[]) : []).map((n) => {
+                  const { nodeId, snr } = n as { nodeId?: unknown; snr?: unknown };
+                  return { nodeId: Number(nodeId), snr: Number(snr ?? 0) };
+                }),
+              ),
+            };
             break;
           case "POST /inject-position":
             result = {

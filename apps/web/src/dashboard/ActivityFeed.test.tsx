@@ -34,6 +34,8 @@ const emptyTraffic: TrafficDTO = {
   from: 0,
   to: 1,
   buckets: [],
+  ports: [],
+  topNodes: [],
 };
 
 async function renderFeed(events: ActivityEvent[], nextBefore: number | null = null) {

@@ -259,3 +259,27 @@ test("the traffic chart switches windows", async ({ page }) => {
     "true",
   );
 });
+
+test("the network overview draws reported links and packets show up by type", async ({ page }) => {
+  const RIDGE = 195939070;
+  const TRAIL = 439041101;
+  await node.injectNeighbors(RIDGE, [{ nodeId: TRAIL, snr: -2.25 }]);
+  await openDashboard(page);
+  const map = page.locator("[data-mt=network-map]");
+  await expect(map.locator("[data-mt=network-link][data-mt-variant=reported]")).not.toHaveCount(0);
+  // Every link is either a direct observation or a reported one.
+  const kinds = await map
+    .locator("[data-mt=network-link]")
+    .evaluateAll((links) => links.map((l) => l.getAttribute("data-mt-variant")));
+  expect(kinds.every((k) => k === "direct" || k === "reported")).toBe(true);
+  await map.getByRole("button", { name: /^Trail Walker/ }).click();
+  await expect(
+    page.getByRole("dialog").getByRole("heading", { name: "Trail Walker" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  const traffic = page.locator("[data-mt=panel][data-mt-variant=traffic]");
+  await traffic.getByRole("button", { name: "Packets" }).click();
+  await expect(traffic.getByRole("img", { name: /Neighbor info/ })).toBeVisible();
+  await expect(traffic.locator("[data-mt=busiest-node]").first()).toBeVisible();
+});

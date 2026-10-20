@@ -3,13 +3,16 @@ import {
   ConnectionState,
   HistoryWindow,
   NodeHistory,
+  TopologyDTO,
   TrafficDTO,
   TrafficWindow,
   Uint32,
 } from "@meshterm/shared";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
+import { buildTopology } from "../activity/network.js";
 import { listActivity } from "../activity/recorder.js";
+import { getThresholds } from "../dashboard/dashboard.js";
 import { buildTraffic, nodeHistory } from "../activity/traffic.js";
 import { getConnection, getMyNodeNum, getNode } from "../db/repositories.js";
 import { HttpError } from "./http-error.js";
@@ -77,6 +80,18 @@ export const activityRoutes: FastifyPluginAsyncZod = (app) => {
       requireConnection(id);
       if (!getNode(db, id, num)) throw new HttpError(404, "not_found", `node ${num} not found`);
       return nodeHistory(db, id, num, req.query.window, clock.now());
+    },
+  );
+
+  app.get(
+    "/api/connections/:id/topology",
+    { schema: { params: ConnectionParams, response: { 200: TopologyDTO } } },
+    (req) => {
+      const { id } = req.params;
+      requireConnection(id);
+      // Nodes heard within the stale threshold (24 h by default).
+      const windowMs = getThresholds(db).staleMin * 60_000;
+      return buildTopology(db, id, windowMs, clock.now());
     },
   );
 

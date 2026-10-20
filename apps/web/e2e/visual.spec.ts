@@ -7,7 +7,12 @@
 // which CI also runs in. Update them with `pnpm test:visual:update` (see CLAUDE.md).
 import { expect, test, type Page } from "@playwright/test";
 import { controlClient, ME, RIDGE, TRAIL } from "./control.js";
-import { VISUAL_CONTROL_PORT, VISUAL_DASHBOARD_PORT, VISUAL_PORT } from "./ports.js";
+import {
+  VISUAL_CONTROL_PORT,
+  VISUAL_DASHBOARD_CONTROL_PORT,
+  VISUAL_DASHBOARD_PORT,
+  VISUAL_PORT,
+} from "./ports.js";
 
 const BASE = `http://127.0.0.1:${VISUAL_PORT}`;
 /** A second visual instance on the `dashboard` scenario. */
@@ -114,9 +119,32 @@ test("DM view", async ({ page }) => {
   await expect(page).toHaveScreenshot("dm-view.png", { mask: MASKS(page) });
 });
 
+/** The dashboard instance: one NeighborInfo report, so the network view has a reported link. */
+async function seedDashboard(): Promise<void> {
+  const res = await fetch(`${DASH}/api/connections/1/topology`);
+  const topology = (await res.json()) as { links: { kind: string }[] };
+  if (topology.links.some((l) => l.kind === "reported")) return;
+  await controlClient(VISUAL_DASHBOARD_CONTROL_PORT).injectNeighbors(RIDGE, [
+    { nodeId: 439041101, snr: -2.25 },
+  ]);
+  await expect
+    .poll(async () => {
+      const again = (await (await fetch(`${DASH}/api/connections/1/topology`)).json()) as {
+        links: { kind: string }[];
+      };
+      return again.links.some((l) => l.kind === "reported");
+    })
+    .toBe(true);
+}
+
 test("dashboard", async ({ page }) => {
+  await seedDashboard();
   await ready(page, `${DASH}/dashboard`);
   await expect(page.locator("[data-mt=node-preview]")).toHaveCount(5);
+  // Panels with their own queries: wait until none shows a loading skeleton.
+  await expect(page.locator("[data-mt=chart][data-mt-state=ready]")).toHaveCount(1);
+  await expect(page.locator("[data-mt=network-link][data-mt-variant=reported]")).not.toHaveCount(0);
+  await expect(page.locator("[data-mt=main] [data-mt=skeleton]")).toHaveCount(0);
   await freeze(page);
   await expect(page).toHaveScreenshot("dashboard.png", { mask: MASKS(page) });
 });

@@ -94,6 +94,27 @@ export const HARDWARE_LABELS: Readonly<Record<string, string>> = {
   UNSET: "Unknown",
 };
 
+/** Short names for packet types (`PortNum` names); others show the raw name. */
+export const PORT_LABELS: Readonly<Record<string, string>> = {
+  TEXT_MESSAGE_APP: "Text",
+  POSITION_APP: "Position",
+  NODEINFO_APP: "Node info",
+  TELEMETRY_APP: "Telemetry",
+  ROUTING_APP: "Routing",
+  ADMIN_APP: "Admin",
+  TRACEROUTE_APP: "Traceroute",
+  NEIGHBORINFO_APP: "Neighbor info",
+  RANGE_TEST_APP: "Range test",
+  STORE_FORWARD_APP: "Store & forward",
+  WAYPOINT_APP: "Waypoint",
+  MAP_REPORT_APP: "Map report",
+  ENCRYPTED: "Encrypted",
+};
+
+export function portLabel(port: string): string {
+  return PORT_LABELS[port] ?? port;
+}
+
 export function hardwareLabel(hwModel: string): string {
   return HARDWARE_LABELS[hwModel] ?? hwModel;
 }

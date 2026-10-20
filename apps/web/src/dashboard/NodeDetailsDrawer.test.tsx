@@ -23,6 +23,13 @@ const history = (num: number): NodeHistory => ({
   environment: [],
   positions:
     num === RIDGE ? [{ time: NOW - 3600_000, lat: 47.65, lon: -122.28, altitude: 312 }] : [],
+  heard: {
+    bucketMs: 3600_000,
+    buckets: Array.from({ length: 24 }, (_, i) => ({
+      time: NOW - (24 - i) * 3600_000,
+      packets: i === 23 ? 4 : i === 20 ? 2 : 0,
+    })),
+  },
 });
 
 async function open(num: number, change: (d: DashboardDTO) => void = () => undefined) {

@@ -204,6 +204,49 @@ export const activity = sqliteTable(
   (t) => [index("activity_time_idx").on(t.connectionId, t.time)],
 );
 
+/**
+ * Packets heard per minute, by sending node and port (`TEXT_MESSAGE_APP`, …, or
+ * `ENCRYPTED` for packets we can't decode). Packets from my own node aren't counted.
+ * Kept 7 days.
+ */
+export const packetStats = sqliteTable(
+  "packet_stats",
+  {
+    connectionId: integer("connection_id")
+      .notNull()
+      .references(() => connections.id, { onDelete: "cascade" }),
+    /** Start of the minute (epoch ms). */
+    minute: integer("minute").notNull(),
+    nodeNum: integer("node_num").notNull(),
+    port: text("port").notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.connectionId, t.minute, t.nodeNum, t.port] }),
+    // One node's packets over time (node details).
+    index("packet_stats_node_idx").on(t.connectionId, t.nodeNum, t.minute),
+  ],
+);
+
+/**
+ * Links reported by nodes running the NeighborInfo module: `node_num` heard
+ * `neighbor_num` with `snr`. Each report replaces that node's previous list.
+ */
+export const neighbors = sqliteTable(
+  "neighbors",
+  {
+    connectionId: integer("connection_id")
+      .notNull()
+      .references(() => connections.id, { onDelete: "cascade" }),
+    nodeNum: integer("node_num").notNull(),
+    neighborNum: integer("neighbor_num").notNull(),
+    snr: real("snr"),
+    /** When the report was received. */
+    time: integer("time").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.connectionId, t.nodeNum, t.neighborNum] })],
+);
+
 /** Key/value app settings; `value` is JSON text. */
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),

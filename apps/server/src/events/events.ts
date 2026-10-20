@@ -25,8 +25,18 @@ export interface RadioEvents {
   "radio.channel": { channel: Channel };
   /** An inbound text message, not yet deduplicated. */
   "radio.text": { message: Message };
-  /** Some packet arrived from the node (receive time, epoch ms). */
-  "radio.packet": { connectionId: number; at: number };
+  /**
+   * Some packet arrived from the node (receive time, epoch ms), sent by `from` on
+   * `port` (a `PortNum` name, or `ENCRYPTED` when we can't decode it).
+   */
+  "radio.packet": { connectionId: number; at: number; from: number; port: string };
+  /** A NeighborInfo report: `reporter` heard these nodes (SNR as it measured). */
+  "radio.neighbors": {
+    connectionId: number;
+    reporter: number;
+    time: number;
+    neighbors: { num: number; snr: number | null }[];
+  };
   /** A telemetry report (device or environment), not yet stored. */
   "radio.telemetry": { report: TelemetryReport };
   /** A position report, not yet stored. */

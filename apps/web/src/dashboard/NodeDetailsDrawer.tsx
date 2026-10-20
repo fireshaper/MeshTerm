@@ -144,6 +144,32 @@ function HistoryChart({ connectionId, card }: { connectionId: number; card: Node
             formatTime={(t) => format(t, range === "7d" ? "EEE HH:mm" : "HH:mm")}
             emptyText="No device telemetry stored for this node in this window."
           />
+          {!card.isSelf && (
+            <>
+              <h4 data-mt="detail-subtitle">Packets heard from this node</h4>
+              <TimeChart
+                label={`Packets heard from ${card.longName || card.userId}`}
+                summary={`${data.heard.buckets.reduce((n, b) => n + b.packets, 0)} packets heard in this window.`}
+                times={data.heard.buckets.map((b) => b.time)}
+                from={data.heard.buckets[0]?.time ?? now - span}
+                to={(data.heard.buckets.at(-1)?.time ?? now) + data.heard.bucketMs}
+                bucketMs={data.heard.bucketMs}
+                series={[
+                  {
+                    id: "heard",
+                    label: "Packets heard",
+                    kind: "bar",
+                    axis: "left",
+                    color: "--mt-chart-1",
+                    values: data.heard.buckets.map((b) => b.packets),
+                    format: (v) => `${v} ${v === 1 ? "packet" : "packets"}`,
+                  },
+                ]}
+                formatTime={(t) => format(t, range === "7d" ? "EEE HH:mm" : "HH:mm")}
+                emptyText="MeshTerm hasn't heard packets from this node in this window."
+              />
+            </>
+          )}
           {data.environment.length > 0 && (
             <p data-mt="detail-note">
               {data.environment.length} environment reports stored; latest{" "}
