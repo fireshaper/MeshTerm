@@ -174,3 +174,19 @@ test("nodes table", async ({ page }) => {
   await freeze(page);
   await expect(page).toHaveScreenshot("nodes-table.png", { mask: MASKS(page) });
 });
+
+test("map", async ({ page }) => {
+  await seedDashboard();
+  // A fresh visit: no remembered viewport, so the map fits all nodes.
+  await ready(page, `${DASH}/map`);
+  await expect(page.locator("[data-mt=map-view]")).toHaveAttribute("data-mt-state", "ready");
+  await page.evaluate(
+    `new Promise((resolve) => {
+      const map = window.__meshtermMap;
+      if (map.loaded() && map.areTilesLoaded()) resolve();
+      else map.once("idle", () => resolve());
+    })`,
+  );
+  await freeze(page);
+  await expect(page).toHaveScreenshot("map.png", { mask: MASKS(page) });
+});

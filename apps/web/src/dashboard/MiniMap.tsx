@@ -1,4 +1,5 @@
 import type { CardPosition } from "@meshterm/shared";
+import { Link } from "@tanstack/react-router";
 import { MapPinOff } from "lucide-react";
 import { mosaicFor, tileUrl } from "./geo.js";
 
@@ -9,7 +10,18 @@ const pct = (fraction: number) => `${Number((fraction * 100).toFixed(3))}%`;
  * shifted so the node sits at the center, with a pin and (for coarsened positions)
  * a precision circle. No WebGL, so hundreds of cards are fine.
  */
-export function MiniMap({ position, isSelf }: { position: CardPosition | null; isSelf: boolean }) {
+export function MiniMap({
+  position,
+  isSelf,
+  num,
+  onOpen,
+}: {
+  position: CardPosition | null;
+  isSelf: boolean;
+  /** When given, the map links to the Map page centered on this node. */
+  num?: number;
+  onOpen?: () => void;
+}) {
   if (!position) {
     return (
       <div data-mt="mini-map" data-mt-state="empty">
@@ -55,6 +67,16 @@ export function MiniMap({ position, isSelf }: { position: CardPosition | null; i
         />
         <circle cx="12" cy="10" r="2.5" fill="var(--mt-surface-bg)" />
       </svg>
+      {num !== undefined && (
+        <Link
+          to="/map"
+          search={{ node: num }}
+          data-mt="mini-map-link"
+          aria-label="Open on the map"
+          title="Open on the map"
+          onClick={onOpen}
+        />
+      )}
     </div>
   );
 }

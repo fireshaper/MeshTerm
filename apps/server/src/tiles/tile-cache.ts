@@ -5,6 +5,8 @@ export const DEFAULT_TTL_MS = 30 * 24 * 3600 * 1000;
 export const USER_AGENT =
   "MeshTerm/0.1 (self-hosted Meshtastic client; +https://github.com/fireshaper/MeshTerm)";
 const MAX_ZOOM = 19;
+/** OpenStreetMap's tile policy: keep parallel requests to the tile servers low. */
+export const MAX_UPSTREAM_CONCURRENCY = 2;
 
 export interface TileCacheOptions {
   /** Cache root, e.g. `<data>/tiles`. Tiles live at `<dir>/<z>/<x>/<y>.png`. */
@@ -16,6 +18,8 @@ export interface TileCacheOptions {
   now?: () => number;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  /** Upstream requests in flight at once; more wait in a queue. Default 2. */
+  maxConcurrent?: number;
 }
 
 export interface Tile {
@@ -55,6 +59,8 @@ export class TileCache {
   private readonly ttlMs: number;
   private readonly now: () => number;
   private readonly fetchImpl: typeof fetch;
+  private active = 0;
+  private readonly queue: (() => void)[] = [];
 
   constructor(private readonly options: TileCacheOptions) {
     this.ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
@@ -87,22 +93,50 @@ export class TileCache {
     }
 
     let response: Response;
+    let body: Buffer;
+    await this.slot();
     try {
       response = await this.fetchImpl(this.urlFor(z, x, y), {
         headers: { "user-agent": USER_AGENT, accept: "image/png,image/*" },
         signal: AbortSignal.timeout(this.options.timeoutMs ?? 10_000),
       });
+      if (!response.ok) {
+        return await this.staleOr(entry, file, `tile upstream answered ${response.status}`);
+      }
+      body = Buffer.from(await response.arrayBuffer());
     } catch (err) {
-      return this.staleOr(entry, file, `tile upstream unreachable: ${String(err)}`);
+      return await this.staleOr(entry, file, `tile upstream unreachable: ${String(err)}`);
+    } finally {
+      this.release();
     }
-    if (!response.ok) {
-      return this.staleOr(entry, file, `tile upstream answered ${response.status}`);
-    }
-    const body = Buffer.from(await response.arrayBuffer());
     const contentType = response.headers.get("content-type") ?? "image/png";
-    const ttl = cacheTtl(response.headers.get("cache-control"), this.ttlMs);
+    const ttl = cacheTtl(
+      response.headers.get("cache-control"),
+      this.ttlMs,
+      response.headers.get("expires"),
+      this.now(),
+    );
     if (ttl > 0) await this.store(key, file, body, this.now() + ttl);
     return { body, contentType, source: "miss" };
+  }
+
+  /** Waits until fewer than `maxConcurrent` upstream requests are running. */
+  private slot(): Promise<void> {
+    if (this.active < (this.options.maxConcurrent ?? MAX_UPSTREAM_CONCURRENCY)) {
+      this.active++;
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      this.queue.push(() => {
+        this.active++;
+        resolve();
+      });
+    });
+  }
+
+  private release(): void {
+    this.active--;
+    this.queue.shift()?.();
   }
 
   private async staleOr(entry: Entry | undefined, file: string, message: string): Promise<Tile> {
@@ -176,13 +210,25 @@ function validate(z: number, x: number, y: number): void {
   }
 }
 
-/** Our TTL, shortened by the upstream's `max-age`; 0 for `no-store`/`no-cache`. */
-export function cacheTtl(cacheControl: string | null, ttlMs: number): number {
-  if (!cacheControl) return ttlMs;
-  const directives = cacheControl.toLowerCase();
+/**
+ * Our TTL, shortened by what upstream says: `max-age`, else `Expires` (relative to
+ * `now`); 0 for `no-store`/`no-cache` or an `Expires` in the past.
+ */
+export function cacheTtl(
+  cacheControl: string | null,
+  ttlMs: number,
+  expires: string | null = null,
+  now = Date.now(),
+): number {
+  const directives = (cacheControl ?? "").toLowerCase();
   if (/\bno-store\b|\bno-cache\b/.test(directives)) return 0;
   const maxAge = /\bmax-age=(\d+)/.exec(directives)?.[1];
-  return maxAge === undefined ? ttlMs : Math.min(ttlMs, Number(maxAge) * 1000);
+  if (maxAge !== undefined) return Math.min(ttlMs, Number(maxAge) * 1000);
+  if (expires) {
+    const at = Date.parse(expires);
+    if (!Number.isNaN(at)) return Math.max(0, Math.min(ttlMs, at - now));
+  }
+  return ttlMs;
 }
 
 async function walk(dir: string): Promise<string[]> {

@@ -1056,4 +1056,16 @@
   [data-mt="node-favorite"] [data-mt="favorite-toggle"] {
     padding: 0;
   }
+
+  /* Covers a mini map; opens the Map page centered on the node. */
+  [data-mt="mini-map-link"] {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+  }
+
+  [data-mt="mini-map-link"]:focus-visible {
+    outline-offset: calc(var(--mt-space-1) * -1);
+  }
 }

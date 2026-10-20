@@ -6,7 +6,8 @@ import {
   type ServerMessage,
   type ServerMessageOf,
 } from "@meshterm/shared";
-import type { ActivityPage, DashboardDTO } from "@meshterm/shared";
+import type { ActivityPage, DashboardDTO, MapNodesDTO } from "@meshterm/shared";
+import { applyNodeToMap, applyPositionToMap, applyTelemetryToMap } from "../map/map-data.js";
 import type { QueryClient } from "@tanstack/react-query";
 import {
   applyConnectionState,
@@ -75,7 +76,11 @@ export function applySnapshot(qc: QueryClient, snapshot: ServerMessageOf<"snapsh
   // A later snapshot means the socket reconnected and events may have been missed:
   // reload the dashboard. The first one arrives with the page, which just loaded it.
   if (seenSnapshot.has(qc)) {
-    for (const queryKey of [queryKeys.dashboard(connectionId), queryKeys.activity(connectionId)]) {
+    for (const queryKey of [
+      queryKeys.dashboard(connectionId),
+      queryKeys.activity(connectionId),
+      queryKeys.mapNodes(connectionId),
+    ]) {
       void qc.invalidateQueries({ queryKey }, { cancelRefetch: false });
     }
   }
@@ -94,6 +99,17 @@ function patchDashboard(
   patch: (data: DashboardDTO) => DashboardDTO,
 ): void {
   qc.setQueryData<DashboardDTO>(queryKeys.dashboard(connectionId), (data) =>
+    data ? patch(data) : data,
+  );
+}
+
+/** Patches the cached map data of a connection, if loaded. */
+function patchMap(
+  qc: QueryClient,
+  connectionId: number,
+  patch: (data: MapNodesDTO) => MapNodesDTO,
+): void {
+  qc.setQueryData<MapNodesDTO>(queryKeys.mapNodes(connectionId), (data) =>
     data ? patch(data) : data,
   );
 }
@@ -120,6 +136,7 @@ export function applyServerMessage(
         return next;
       });
       patchDashboard(qc, node.connectionId, (d) => applyNodeUpsert(d, node));
+      patchMap(qc, node.connectionId, (d) => applyNodeToMap(d, node));
       return;
     }
 
@@ -165,12 +182,16 @@ export function applyServerMessage(
     case "telemetry.new": {
       const { telemetry } = message;
       patchDashboard(qc, telemetry.connectionId, (d) => applyTelemetry(d, telemetry));
+      patchMap(qc, telemetry.connectionId, (d) => applyTelemetryToMap(d, telemetry));
       return;
     }
 
     case "position.new": {
       const { position } = message;
       patchDashboard(qc, position.connectionId, (d) => applyPosition(d, position));
+      patchMap(qc, position.connectionId, (d) =>
+        applyPositionToMap(d, position, useLiveStore.getState().myNodeNum),
+      );
       return;
     }
 

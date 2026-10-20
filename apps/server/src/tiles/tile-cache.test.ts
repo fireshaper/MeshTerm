@@ -122,7 +122,67 @@ describe("TileCache", () => {
   });
 });
 
+describe("upstream politeness", () => {
+  it("never has more than 2 upstream requests in flight; the rest queue", async () => {
+    let active = 0;
+    let peak = 0;
+    const release: (() => void)[] = [];
+    const fetchImpl = (() => {
+      active++;
+      peak = Math.max(peak, active);
+      return new Promise<Response>((resolve) => {
+        release.push(() => {
+          active--;
+          resolve(new Response(new Uint8Array(tilePng(1, 0, 0)), { status: 200 }));
+        });
+      });
+    }) as typeof fetch;
+    const tiles = new TileCache({
+      dir,
+      upstream: "http://up/{z}/{x}/{y}.png",
+      maxBytes: 1e8,
+      fetchImpl,
+    });
+    const all = Promise.all([0, 1, 2, 3, 4].map((x) => tiles.get(5, x, 0)));
+    for (let done = 0; done < 5; done++) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(active).toBeLessThanOrEqual(2);
+      release.shift()?.();
+    }
+    await all;
+    expect(peak).toBe(2);
+  });
+
+  it("honours Expires when there is no max-age", async () => {
+    const expires = new Date(now + 60_000).toUTCString();
+    const fetchImpl = (() =>
+      Promise.resolve(
+        new Response(new Uint8Array(tilePng(2, 0, 0)), { status: 200, headers: { expires } }),
+      )) as typeof fetch;
+    const tiles = new TileCache({
+      dir,
+      upstream: "http://up/{z}/{x}/{y}.png",
+      maxBytes: 1e8,
+      fetchImpl,
+      now: () => now,
+    });
+    await tiles.get(2, 0, 0);
+    expect((await tiles.get(2, 0, 0)).source).toBe("hit");
+    now += 61_000;
+    expect((await tiles.get(2, 0, 0)).source).toBe("miss");
+  });
+});
+
 describe("cacheTtl", () => {
+  it("uses Expires only without max-age, and an Expires in the past means don't cache", () => {
+    const t = 1_800_000_000_000;
+    const inAMinute = new Date(t + 60_000).toUTCString();
+    expect(cacheTtl(null, 10 * 60_000, inAMinute, t)).toBe(60_000);
+    expect(cacheTtl("max-age=5", 10 * 60_000, inAMinute, t)).toBe(5_000);
+    expect(cacheTtl(null, 10 * 60_000, new Date(t - 1000).toUTCString(), t)).toBe(0);
+    expect(cacheTtl(null, 10 * 60_000, "not a date", t)).toBe(10 * 60_000);
+  });
+
   it("honours shorter max-age and no-store/no-cache", () => {
     expect(cacheTtl(null, 1000)).toBe(1000);
     expect(cacheTtl("public, max-age=5", 10_000)).toBe(5000);

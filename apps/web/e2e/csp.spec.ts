@@ -22,11 +22,17 @@ test("no Content Security Policy violations on any screen", async ({ page }) => 
     `/dm/${RIDGE}`,
     "/channels/1",
     "/dashboard",
+    // The map page (MapLibre: module worker, canvas, tiles through the proxy).
+    `http://127.0.0.1:${DASHBOARD_PORT}/map`,
     // The dashboard with mini maps (tiles through the proxy).
     `http://127.0.0.1:${DASHBOARD_PORT}/dashboard`,
   ]) {
     await page.goto(path);
-    await expect(page.locator("[data-mt=page-title]")).toBeVisible();
+    // Pages show a title; the map page shows the map (its title is for screen readers).
+    await expect(
+      page.locator("[data-mt=page-title], [data-mt=map-view][data-mt-state=ready]").first(),
+    ).toBeVisible({ timeout: 15_000 });
+    await page.waitForLoadState("networkidle");
   }
   // The layer-order <style> was allowed by hash: the theme still wins over base.
   const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);

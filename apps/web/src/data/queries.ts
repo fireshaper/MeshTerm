@@ -53,6 +53,15 @@ export function useTraffic(connectionId: number | null, window: TrafficWindow) {
   });
 }
 
+/** Every node ever seen with a position (and those without), kept current by WS events. */
+export function useMapNodes(connectionId: number | null) {
+  return useQuery({
+    queryKey: queryKeys.mapNodes(connectionId ?? 0),
+    queryFn: () => api.mapNodes(connectionId ?? 0),
+    enabled: connectionId !== null,
+  });
+}
+
 /** Observed links between nodes; refreshed every minute (no WS event for them). */
 export function useTopology(connectionId: number | null) {
   return useQuery({

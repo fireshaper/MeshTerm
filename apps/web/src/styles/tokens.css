@@ -60,6 +60,17 @@
     --mt-map-marker: var(--mt-accent);
     --mt-map-marker-self: var(--mt-status-error);
 
+    /* Map page (bridged into MapLibre's canvas; see map/map-tokens.ts) */
+    --mt-map-node-online: var(--mt-signal-online);
+    --mt-map-node-recent: var(--mt-signal-recent);
+    --mt-map-node-stale: var(--mt-signal-stale);
+    --mt-map-node-offline: var(--mt-signal-offline);
+    --mt-map-label: var(--mt-text);
+    --mt-map-label-halo: var(--mt-surface-bg);
+    --mt-map-cluster-bg: var(--mt-accent);
+    --mt-map-cluster-text: var(--mt-accent-text);
+    --mt-font-map: var(--mt-font-body);
+
     /* Typography */
     --mt-font-body: system-ui, sans-serif;
     --mt-font-mono: ui-monospace, monospace;

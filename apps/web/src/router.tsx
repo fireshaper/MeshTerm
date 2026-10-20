@@ -3,6 +3,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  lazyRouteComponent,
   redirect,
   type RouterHistory,
 } from "@tanstack/react-router";
@@ -51,9 +52,21 @@ export const dmRoute = createRoute({
   component: DmPage,
 });
 
+/** `/map?node=<num>` opens the map centered on that node. Code-split: MapLibre loads here only. */
+export const mapRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/map",
+  validateSearch: (search: Record<string, unknown>): { node?: number } => {
+    const node = Number(search.node);
+    return Number.isInteger(node) && node > 0 ? { node } : {};
+  },
+  component: lazyRouteComponent(() => import("./map/MapPage.js"), "MapPage"),
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   dashboardRoute,
+  mapRoute,
   channelRoute,
   nodesRoute,
   dmRoute,

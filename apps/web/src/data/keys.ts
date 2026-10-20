@@ -18,6 +18,7 @@ export const queryKeys = {
   dashboard: (connectionId: number) => ["dashboard", connectionId] as const,
   activity: (connectionId: number) => ["activity", connectionId] as const,
   topology: (connectionId: number) => ["topology", connectionId] as const,
+  mapNodes: (connectionId: number) => ["mapNodes", connectionId] as const,
   traffic: (connectionId: number, window: string) => ["traffic", connectionId, window] as const,
   history: (connectionId: number, num: number, window: string) =>
     ["history", connectionId, num, window] as const,

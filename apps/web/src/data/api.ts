@@ -4,6 +4,7 @@ import type {
   ConnectionState,
   DashboardDTO,
   HistoryWindow,
+  MapNodesDTO,
   MeshNode,
   Message,
   NodeHistory,
@@ -73,6 +74,9 @@ export const api = {
 
   nodeHistory: (connectionId: number, num: number, window: HistoryWindow) =>
     request<NodeHistory>(`/api/connections/${connectionId}/nodes/${num}/history?window=${window}`),
+
+  mapNodes: (connectionId: number) =>
+    request<MapNodesDTO>(`/api/connections/${connectionId}/map/nodes`),
 
   topology: (connectionId: number) =>
     request<TopologyDTO>(`/api/connections/${connectionId}/topology`),

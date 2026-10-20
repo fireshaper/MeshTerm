@@ -207,7 +207,7 @@ export const NodeCard = memo(function NodeCard({
         </div>
       </header>
 
-      {comfy && <MiniMap position={card.position} isSelf={card.isSelf} />}
+      {comfy && <MiniMap position={card.position} isSelf={card.isSelf} num={card.num} />}
       {place.length > 0 && <p data-mt="node-place">{place.join(" · ")}</p>}
 
       <dl data-mt="node-card-body">

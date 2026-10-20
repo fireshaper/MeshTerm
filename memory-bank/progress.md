@@ -237,6 +237,19 @@ State: `typecheck`, `lint`, `format:check`, `test` (470), `test:e2e` (70; five o
 
 State: `typecheck`, `lint`, `format:check`, `test` (484), `test:e2e` (72, three full runs green after the visual fix) and `test:gate` (3/3) green locally. Not committed.
 
+## Map view (started 2026-10-20)
+
+- The user pasted the Map View Feature Spec (saved as `memory-bank/map-view-spec.md`). Plan: `memory-bank/map-plan.md`. Its tile proxy reference is MeshTerm's existing `/api/tiles`.
+
+### Phase A: core map page (done 2026-10-20)
+
+- **A1:** tile proxy follows the OSM policy more closely: at most 2 upstream requests at once (queued), `Expires` honoured when there's no `max-age`.
+- **A2:** `GET …/map/nodes`: GeoJSON of every node with a stored position (old and offline included), plus nodes without one and the thresholds.
+- **A3/A4:** `/map` page and "Map" nav item; lazy-loaded MapLibre chunk with a same-origin module worker (CSP unchanged); OSM raster base through the proxy with an attribution no theme can hide; clustered dots colored by status from `--mt-map-*` tokens (self ringed, favorites starred), labels drawn as canvas images; popup with Details → node drawer; zoom, Fit all, My node; fit on first visit, then the remembered viewport; `?node=` deep links (dashboard mini maps link here); "Not on map (N)"; live updates throttled to one `setData` per second.
+- Tests: proxy cap and `Expires`; map nodes route; map cache patches, source building, bounds, viewport storage; e2e (nav, all 5 positioned nodes rendered, popup + Details, not-on-map list, deep link, live move, remembered viewport, mini map link, full screen at 390 px) and the CSP walk now includes `/map`; `/map` visual baselines (win32 + linux).
+
+State: `typecheck`, `lint`, `format:check`, `test` (504), `test:e2e` (90; three of four full runs green, one had a single `toBeVisible` timeout that didn't recur) and `test:gate` (3/3) green locally.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

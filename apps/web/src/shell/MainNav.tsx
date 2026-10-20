@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutGrid, MessagesSquare, Radio, type LucideIcon } from "lucide-react";
+import { LayoutGrid, Map as MapIcon, MessagesSquare, Radio, type LucideIcon } from "lucide-react";
 
 interface MainNavProps {
   /** `sidebar` from 768 px, `drawer` (the mobile menu) below; also the element's data-mt. */
@@ -15,11 +15,15 @@ interface Item {
   label: string;
   Icon: LucideIcon;
   link:
-    { to: "/dashboard" } | { to: "/channels/$index"; params: { index: string } } | { to: "/nodes" };
+    | { to: "/dashboard" }
+    | { to: "/map" }
+    | { to: "/channels/$index"; params: { index: string } }
+    | { to: "/nodes" };
 }
 
 const ITEMS: Item[] = [
   { prefix: "/dashboard", label: "Dashboard", Icon: LayoutGrid, link: { to: "/dashboard" } },
+  { prefix: "/map", label: "Map", Icon: MapIcon, link: { to: "/map" } },
   {
     prefix: "/channels",
     label: "Channels",

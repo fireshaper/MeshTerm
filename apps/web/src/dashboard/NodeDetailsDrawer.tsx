@@ -417,7 +417,7 @@ function Details({
         </Section>
 
         <Section name="location" title="Location">
-          <MiniMap position={position} isSelf={card.isSelf} />
+          <MiniMap position={position} isSelf={card.isSelf} num={card.num} onOpen={close} />
           {position && (
             <dl data-mt="detail-fields">
               <Field name="coordinates" label="Coordinates">

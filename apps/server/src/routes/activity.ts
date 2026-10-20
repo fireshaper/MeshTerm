@@ -2,6 +2,7 @@ import {
   ActivityPage,
   ConnectionState,
   HistoryWindow,
+  MapNodesDTO,
   NodeHistory,
   TopologyDTO,
   TrafficDTO,
@@ -15,6 +16,7 @@ import { listActivity } from "../activity/recorder.js";
 import { getThresholds } from "../dashboard/dashboard.js";
 import { buildTraffic, nodeHistory } from "../activity/traffic.js";
 import { getConnection, getMyNodeNum, getNode } from "../db/repositories.js";
+import { buildMapNodes } from "../map/map-nodes.js";
 import { HttpError } from "./http-error.js";
 
 const ConnectionParams = z.object({ id: z.coerce.number().int().positive() });
@@ -92,6 +94,21 @@ export const activityRoutes: FastifyPluginAsyncZod = (app) => {
       // Nodes heard within the stale threshold (24 h by default).
       const windowMs = getThresholds(db).staleMin * 60_000;
       return buildTopology(db, id, windowMs, clock.now());
+    },
+  );
+
+  app.get(
+    "/api/connections/:id/map/nodes",
+    {
+      schema: {
+        params: ConnectionParams,
+        querystring: z.object({ since: z.coerce.number().int().nonnegative().optional() }),
+        response: { 200: MapNodesDTO },
+      },
+    },
+    (req) => {
+      requireConnection(req.params.id);
+      return buildMapNodes(db, req.params.id, clock.now(), req.query.since ?? null);
     },
   );
 
