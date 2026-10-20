@@ -3,7 +3,13 @@ import type { FromRadio } from "@meshterm/protocol";
 import type { NodeConnection } from "../connection/node-connection.js";
 import type { StateChange } from "../connection/state-machine.js";
 import { silentLogger, type Logger } from "../logger.js";
-import { decodeFromRadio, nodeHeard, packetPort, type DecodeContext } from "./decoder.js";
+import {
+  decodeFromRadio,
+  nodeHeard,
+  packetPort,
+  packetSignal,
+  type DecodeContext,
+} from "./decoder.js";
 import type { Hub, HubEvents, RadioEvents } from "./events.js";
 
 export interface PipelineOptions {
@@ -39,6 +45,7 @@ export function wireConnection(
         at: ctx.now,
         from: packet.from,
         port: packetPort(packet),
+        ...packetSignal(packet, ctx.now),
       });
     }
     const heard = nodeHeard(message, ctx);

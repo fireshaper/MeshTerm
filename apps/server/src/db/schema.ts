@@ -1,3 +1,4 @@
+import { TELEMETRY_KINDS } from "@meshterm/shared";
 import { sql } from "drizzle-orm";
 import {
   index,
@@ -30,6 +31,8 @@ export const connections = sqliteTable("connections", {
   lastPacketAt: integer("last_packet_at"),
   /** LoRa `ModemPreset` name (e.g. `LONG_FAST`) from the handshake; NULL with custom settings. */
   modemPreset: text("modem_preset"),
+  /** Our node's firmware version (`DeviceMetadata.firmware_version`) from the handshake. */
+  firmware: text("firmware"),
   createdAt: integer("created_at").notNull(),
 });
 
@@ -59,6 +62,12 @@ export const nodes = sqliteTable(
     hasPublicKey: integer("has_public_key", { mode: "boolean" }).notNull().default(false),
     /** Ignored in the device's NodeDB. */
     isIgnored: integer("is_ignored", { mode: "boolean" }).notNull().default(false),
+    /** Its PKI public key (hex, 32 bytes); public by design. */
+    publicKey: text("public_key"),
+    /** The last packet from it came through an MQTT gateway. */
+    viaMqtt: integer("via_mqtt", { mode: "boolean" }).notNull().default(false),
+    /** When MeshTerm first stored this node (set by a trigger on insert). */
+    firstSeen: integer("first_seen"),
 
     // Latest values, cached here so the dashboard reads one row per node.
     // History lives in `positions` and `telemetry`; NULL means never reported.
@@ -79,6 +88,28 @@ export const nodes = sqliteTable(
     envTime: integer("env_time"),
   },
   (t) => [primaryKey({ columns: [t.connectionId, t.num] })],
+);
+
+/**
+ * Signal of each packet heard from another node: SNR/RSSI (meaningful when heard
+ * directly, `hops = 0`) and hops. Kept 7 days, like `packet_stats`.
+ */
+export const signalLog = sqliteTable(
+  "signal_log",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    connectionId: integer("connection_id")
+      .notNull()
+      .references(() => connections.id, { onDelete: "cascade" }),
+    nodeNum: integer("node_num").notNull(),
+    /** When the node received it (`rx_time`, else arrival), epoch ms. */
+    time: integer("time").notNull(),
+    snr: real("snr"),
+    rssi: integer("rssi"),
+    hops: integer("hops"),
+    viaMqtt: integer("via_mqtt", { mode: "boolean" }).notNull().default(false),
+  },
+  (t) => [index("signal_log_node_idx").on(t.connectionId, t.nodeNum, t.time)],
 );
 
 /** Position history. Latest per node is also on `nodes`. */
@@ -111,7 +142,7 @@ export const telemetry = sqliteTable(
       .notNull()
       .references(() => connections.id, { onDelete: "cascade" }),
     nodeNum: integer("node_num").notNull(),
-    kind: text("kind", { enum: ["device", "environment"] }).notNull(),
+    kind: text("kind", { enum: TELEMETRY_KINDS }).notNull(),
     time: integer("time").notNull(),
     // device
     batteryLevel: integer("battery_level"),
@@ -123,6 +154,8 @@ export const telemetry = sqliteTable(
     temperature: real("temperature"),
     humidity: real("humidity"),
     pressure: real("pressure"),
+    /** Every numeric field of the report (`TelemetryMetrics`, JSON); NULL on rows before 0009. */
+    metrics: text("metrics", { mode: "json" }).$type<Record<string, number>>(),
   },
   (t) => [
     // Unique: the handshake re-sends the last device metrics on every reconnect.

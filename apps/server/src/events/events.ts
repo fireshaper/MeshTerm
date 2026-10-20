@@ -16,6 +16,10 @@ export type NodeUpdate = { num: number } & Partial<
 > & {
     /** RSSI of the packet, when heard directly. Stored, though not part of `MeshNode`. */
     rssi?: number | null;
+    /** PKI public key (hex), from its User. Stored, not part of `MeshNode`. */
+    publicKey?: string | null;
+    /** Whether this packet came through MQTT. Stored, not part of `MeshNode`. */
+    viaMqtt?: boolean;
   };
 
 /** What the decoder makes of a `FromRadio`, before anything is stored. */
@@ -25,13 +29,26 @@ export interface RadioEvents {
   "radio.channel": { channel: Channel };
   /** Our node's LoRa config: its modem preset name, null when it uses custom settings. */
   "radio.lora": { connectionId: number; modemPreset: string | null };
+  /** Our node's firmware version, from the handshake's DeviceMetadata. */
+  "radio.metadata": { connectionId: number; firmware: string | null };
   /** An inbound text message, not yet deduplicated. */
   "radio.text": { message: Message };
   /**
    * Some packet arrived from the node (receive time, epoch ms), sent by `from` on
    * `port` (a `PortNum` name, or `ENCRYPTED` when we can't decode it).
    */
-  "radio.packet": { connectionId: number; at: number; from: number; port: string };
+  "radio.packet": {
+    connectionId: number;
+    at: number;
+    from: number;
+    port: string;
+    /** When the node received it (`rx_time`, else `at`). */
+    rxTime: number;
+    snr: number | null;
+    rssi: number | null;
+    hops: number | null;
+    viaMqtt: boolean;
+  };
   /** A NeighborInfo report: `reporter` heard these nodes (SNR as it measured). */
   "radio.neighbors": {
     connectionId: number;

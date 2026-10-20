@@ -35,7 +35,17 @@ function node(num: number, lastHeard: number | null, hopsAway: number | null, sn
 }
 
 const packet = (from: number, port: string, at = now) => {
-  hub.publish("radio.packet", { connectionId: 1, at, from, port });
+  hub.publish("radio.packet", {
+    connectionId: 1,
+    at,
+    from,
+    port,
+    rxTime: at,
+    snr: 5,
+    rssi: -80,
+    hops: 0,
+    viaMqtt: false,
+  });
 };
 
 beforeEach(() => {

@@ -35,6 +35,7 @@ describe("migrations", () => {
       "packet_stats",
       "positions",
       "settings",
+      "signal_log",
       "telemetry",
     ]);
     expect(objects("index")).toEqual(

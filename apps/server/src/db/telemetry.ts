@@ -25,7 +25,7 @@ export function recordTelemetry(db: Db, report: TelemetryReport): boolean {
       const d = report.device;
       const { changes } = tx
         .insert(telemetry)
-        .values({ connectionId, nodeNum, kind: "device", time, ...d })
+        .values({ connectionId, nodeNum, kind: "device", time, ...d, metrics: report.metrics })
         .onConflictDoNothing()
         .run();
       tx.update(nodes)
@@ -46,10 +46,18 @@ export function recordTelemetry(db: Db, report: TelemetryReport): boolean {
         .run();
       return changes > 0;
     }
+    if (report.kind === "power" || report.kind === "air_quality") {
+      const { changes } = tx
+        .insert(telemetry)
+        .values({ connectionId, nodeNum, kind: report.kind, time, metrics: report.metrics })
+        .onConflictDoNothing()
+        .run();
+      return changes > 0;
+    }
     const e = report.environment;
     const { changes } = tx
       .insert(telemetry)
-      .values({ connectionId, nodeNum, kind: "environment", time, ...e })
+      .values({ connectionId, nodeNum, kind: "environment", time, ...e, metrics: report.metrics })
       .onConflictDoNothing()
       .run();
     tx.update(nodes)

@@ -64,6 +64,13 @@
       "when": 1792515075015,
       "tag": "0008_conversation_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792518905945,
+      "tag": "0009_node_detail",
+      "breakpoints": true
     }
   ]
 }

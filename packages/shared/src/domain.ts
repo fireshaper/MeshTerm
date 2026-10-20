@@ -127,12 +127,33 @@ export const EnvironmentMetrics = z.object({
 });
 export type EnvironmentMetrics = z.infer<typeof EnvironmentMetrics>;
 
-const TelemetryBase = { connectionId: ConnectionId, nodeNum: Uint32, time: EpochMs };
+/**
+ * Every numeric field a telemetry report carried, by snake_case protobuf field name
+ * (e.g. `battery_level`, `gas_resistance`, `ch1_voltage`, `pm25_standard`).
+ */
+export const TelemetryMetrics = z.record(z.string(), z.number());
+export type TelemetryMetrics = z.infer<typeof TelemetryMetrics>;
+
+export const TELEMETRY_KINDS = ["device", "environment", "power", "air_quality"] as const;
+export const TelemetryKind = z.enum(TELEMETRY_KINDS);
+export type TelemetryKind = z.infer<typeof TelemetryKind>;
+
+const TelemetryBase = {
+  connectionId: ConnectionId,
+  nodeNum: Uint32,
+  time: EpochMs,
+  /** All numeric fields; absent on device/environment reports built from typed values only. */
+  metrics: TelemetryMetrics.optional(),
+};
 
 /** One telemetry report from one node. */
 export const TelemetryReport = z.discriminatedUnion("kind", [
   z.object({ ...TelemetryBase, kind: z.literal("device"), device: DeviceMetrics }),
   z.object({ ...TelemetryBase, kind: z.literal("environment"), environment: EnvironmentMetrics }),
+  /** INA power monitors: `chN_voltage` (V) / `chN_current` (mA). */
+  z.object({ ...TelemetryBase, kind: z.literal("power"), metrics: TelemetryMetrics }),
+  /** Particulate / gas sensors: `pm25_standard` (µg/m³) and friends. */
+  z.object({ ...TelemetryBase, kind: z.literal("air_quality"), metrics: TelemetryMetrics }),
 ]);
 export type TelemetryReport = z.infer<typeof TelemetryReport>;
 

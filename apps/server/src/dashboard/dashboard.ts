@@ -128,23 +128,13 @@ export interface LiveConnectionInfo {
 }
 
 /** The whole dashboard for one connection, from a handful of set-based queries. */
-export function buildDashboard(
-  db: Db,
-  connectionId: number,
-  live: LiveConnectionInfo | null,
-  now: number,
-): DashboardDTO {
-  const thresholds = getThresholds(db);
-  const connection = db
-    .select({ myNodeNum: connections.myNodeNum, lastPacketAt: connections.lastPacketAt })
-    .from(connections)
-    .where(eq(connections.id, connectionId))
-    .get();
-  const myNodeNum = connection?.myNodeNum ?? null;
-  const sparks = batterySparks(db, connectionId, now);
-  const rows = db.select().from(nodes).where(eq(nodes.connectionId, connectionId)).all();
-
-  const cards: NodeCard[] = rows.map((n) => ({
+/** A node row as a dashboard card (the drawer's node detail builds on it). */
+export function toCard(
+  n: typeof nodes.$inferSelect,
+  myNodeNum: number | null,
+  batterySpark: NodeCard["batterySpark"],
+): NodeCard {
+  return {
     num: n.num,
     userId: nodeIdFromNum(n.num),
     longName: n.longName,
@@ -187,8 +177,27 @@ export function buildDashboard(
             pressure: n.pressure,
             time: n.envTime,
           },
-    batterySpark: sparks.get(n.num) ?? [],
-  }));
+    batterySpark,
+  };
+}
+
+export function buildDashboard(
+  db: Db,
+  connectionId: number,
+  live: LiveConnectionInfo | null,
+  now: number,
+): DashboardDTO {
+  const thresholds = getThresholds(db);
+  const connection = db
+    .select({ myNodeNum: connections.myNodeNum, lastPacketAt: connections.lastPacketAt })
+    .from(connections)
+    .where(eq(connections.id, connectionId))
+    .get();
+  const myNodeNum = connection?.myNodeNum ?? null;
+  const sparks = batterySparks(db, connectionId, now);
+  const rows = db.select().from(nodes).where(eq(nodes.connectionId, connectionId)).all();
+
+  const cards = rows.map((n) => toCard(n, myNodeNum, sparks.get(n.num) ?? []));
   cards.sort(
     (a, b) =>
       Number(b.isSelf) - Number(a.isSelf) ||

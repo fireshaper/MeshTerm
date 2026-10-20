@@ -14,6 +14,8 @@ import {
   type DeviceMetrics,
   type EnvironmentMetrics,
   type NodePosition,
+  type TelemetryMetrics,
+  type TelemetryReport,
 } from "@meshterm/shared";
 import type { NodeUpdate, RadioEvent } from "./events.js";
 
@@ -55,6 +57,13 @@ export function decodeFromRadio(message: FromRadio, ctx: DecodeContext): DecodeR
       ]);
     case "packet":
       return decodePacket(v.value, ctx);
+    case "metadata":
+      return decoded([
+        {
+          type: "radio.metadata",
+          payload: { connectionId: ctx.connectionId, firmware: v.value.firmwareVersion || null },
+        },
+      ]);
     case "config": {
       const c = v.value.payloadVariant;
       if (c.case !== "lora") return ignore(`config ${c.case ?? "empty"}`);
@@ -127,25 +136,30 @@ function decodePacket(packet: Mesh.MeshPacket, ctx: DecodeContext): DecodeResult
         time: telemetry.time > 0 ? telemetry.time * 1000 : packetTime(packet, ctx.now),
       };
       const t = telemetry.variant;
-      if (t.case === "deviceMetrics") {
-        return decoded([
-          {
-            type: "radio.telemetry",
-            payload: { report: { ...base, kind: "device", device: deviceMetrics(t.value) } },
-          },
-        ]);
+      const report = (r: TelemetryReport): DecodeResult =>
+        decoded([{ type: "radio.telemetry", payload: { report: r } }]);
+      switch (t.case) {
+        case "deviceMetrics":
+          return report({
+            ...base,
+            kind: "device",
+            device: deviceMetrics(t.value),
+            metrics: numericFields(t.value),
+          });
+        case "environmentMetrics":
+          return report({
+            ...base,
+            kind: "environment",
+            environment: environmentMetrics(t.value),
+            metrics: numericFields(t.value),
+          });
+        case "powerMetrics":
+          return report({ ...base, kind: "power", metrics: numericFields(t.value) });
+        case "airQualityMetrics":
+          return report({ ...base, kind: "air_quality", metrics: numericFields(t.value) });
+        default:
+          return ignore(`telemetry ${t.case ?? "empty"}`);
       }
-      if (t.case === "environmentMetrics") {
-        return decoded([
-          {
-            type: "radio.telemetry",
-            payload: {
-              report: { ...base, kind: "environment", environment: environmentMetrics(t.value) },
-            },
-          },
-        ]);
-      }
-      return ignore(`telemetry ${t.case ?? "empty"}`);
     }
     case Portnums.PortNum.POSITION_APP: {
       const position = toPosition(
@@ -221,7 +235,19 @@ export function nodeHeard(message: FromRadio, ctx: DecodeContext): RadioEvent | 
   if (rxRssi !== null) update.rssi = rxRssi;
   const hops = hopsAway(packet);
   if (hops !== null) update.hopsAway = hops;
+  update.viaMqtt = packet.viaMqtt;
   return { type: "radio.node", payload: { connectionId: ctx.connectionId, update } };
+}
+
+/** What `radio.packet` carries besides the port: when and how the packet was heard. */
+export function packetSignal(packet: Mesh.MeshPacket, now: number) {
+  return {
+    rxTime: packetTime(packet, now),
+    snr: signal(packet).rxSnr,
+    rssi: signal(packet).rxRssi,
+    hops: hopsAway(packet),
+    viaMqtt: packet.viaMqtt,
+  };
 }
 
 /**
@@ -284,6 +310,24 @@ function toPosition(
 const round = (x: number | undefined, places: number): number | null =>
   x === undefined ? null : Math.round(x * 10 ** places) / 10 ** places;
 
+/** `channelUtilization` → `channel_utilization`, `pm25Standard` → `pm25_standard`. */
+export function snakeCase(name: string): string {
+  return name.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+}
+
+/**
+ * Every set, finite numeric field of a telemetry message, by snake_case protobuf name,
+ * so fields added by newer firmware are stored without code changes.
+ */
+export function numericFields(m: object): TelemetryMetrics {
+  const out: TelemetryMetrics = {};
+  for (const [key, value] of Object.entries(m)) {
+    if (key.startsWith("$") || typeof value !== "number" || !Number.isFinite(value)) continue;
+    out[snakeCase(key)] = Math.round(value * 1e4) / 1e4;
+  }
+  return out;
+}
+
 function deviceMetrics(m: Telemetry.DeviceMetrics): DeviceMetrics {
   return {
     batteryLevel: m.batteryLevel ?? null,
@@ -323,6 +367,7 @@ function userFields(user: Mesh.User): Omit<NodeUpdate, "num"> {
     hwModel: enumName(Mesh.HardwareModel, user.hwModel),
     role: enumName(Config.Config_DeviceConfig_Role, user.role),
     hasPublicKey: user.publicKey.length === 32,
+    publicKey: user.publicKey.length === 32 ? Buffer.from(user.publicKey).toString("hex") : null,
   };
 }
 

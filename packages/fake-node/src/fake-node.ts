@@ -14,6 +14,7 @@ import {
   type ToRadio,
 } from "@meshterm/protocol";
 import { BROADCAST_NUM } from "@meshterm/shared";
+import { historyPackets } from "./history.js";
 import { loadScenario, type Scenario, type ScenarioNode } from "./scenario.js";
 
 export interface FakeNodeOptions {
@@ -52,6 +53,8 @@ export interface InjectTextOptions {
   replyId?: number;
   /** A reaction (tapback): `text` is the emoji and `replyId` the target. */
   emoji?: boolean;
+  /** When the node heard it (epoch ms); defaults to now. For backdated history. */
+  rxTimeMs?: number;
 }
 
 export type TelemetryInit = MessageInitShape<typeof Telemetry.TelemetrySchema>;
@@ -261,6 +264,23 @@ export class FakeNode {
   }
 
   /**
+   * Sends 30 days of backdated telemetry for the `dashboard` scenario (see
+   * `historyPackets`), as if MeshTerm had been listening all along. Returns how many.
+   */
+  injectHistory(days = 30): number {
+    const packets = historyPackets(this.now(), days);
+    for (const p of packets) {
+      this.injectTelemetry(p.from, p.telemetry, {
+        rxTimeMs: p.at,
+        hopsAway: p.hopsAway,
+        rxSnr: p.rxSnr,
+        rxRssi: p.rxRssi,
+      });
+    }
+    return packets.length;
+  }
+
+  /**
    * How to answer outgoing text messages from now on; `delayMs` postpones the answer
    * and `nakReason` (a `Routing.Error` name) is the error a NAK carries.
    */
@@ -332,7 +352,8 @@ export class FakeNode {
         to: "to" in target ? target.to : BROADCAST_NUM,
         channel: "channel" in target ? target.channel : 0,
         id,
-        rxTime: this.nowSeconds(),
+        rxTime:
+          options.rxTimeMs === undefined ? this.nowSeconds() : Math.floor(options.rxTimeMs / 1000),
         rxSnr: options.rxSnr ?? 6.25,
         rxRssi: options.rxRssi ?? -72,
         hopStart: HOP_START,

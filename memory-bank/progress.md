@@ -305,6 +305,38 @@ State: `typecheck`, `lint`, `format` and `test` (512) green. `test:e2e`: 90 pass
 
 State: `typecheck`, `lint`, `format:check`, `test` (529), `test:e2e` (98 passed, 3 skipped by viewport) and `test:gate` (3/3) green.
 
+## CR-001 Node detail drawer (started 2026-10-20)
+
+- The user pasted CR-001 (saved as `memory-bank/cr-001-node-drawer.md`). Plan and gap analysis: `memory-bank/cr-001-plan.md`.
+- Messages Phases 3–5 are paused until this CR is done.
+
+### Phase C1: data and API (done 2026-10-20)
+
+- Migration 0009:
+  - `telemetry.metrics`: every numeric field, under snake_case protobuf names.
+  - New telemetry kinds `power` and `air_quality`.
+  - `nodes.public_key`, `via_mqtt` and `first_seen` (insert trigger, backfilled for existing nodes).
+  - `connections.firmware`.
+  - New `signal_log` table (one row per packet, 7 days).
+- Decoder:
+  - All device / environment / power / air-quality fields; local stats and health metrics are still ignored.
+  - Public keys, MQTT, and the firmware version from DeviceMetadata.
+  - `radio.packet` carries rx time, SNR, RSSI, hops and MQTT.
+- API:
+  - `GET …/nodes/:num` (node detail).
+  - `…/telemetry`: raw or bucketed avg/min/max, at most 1 000 points, `powered` and `reboot` series, gaps left open.
+  - `…/signal`: SNR/RSSI from direct packets only, hops and packet rate.
+  - `…/telemetry.csv`.
+- FakeNode:
+  - `historyPackets` and `injectHistory` (control API `POST /inject-history`), on the dashboard scenario: Garden is a battery node every 15 min for 30 d with a 6 h gap and a reboot; Ridge is on external power and heard directly; Trail is an environment sensor; Hill is an INA power monitor; Bike sends no telemetry.
+  - `rxTimeMs` inject option.
+- Tests:
+  - Node detail int test: 13 cases over 8 days of fixture history.
+  - Performance with 300 nodes × 30 d (864 000 rows): one node's 30-day series takes about 33 ms (target < 100 ms); 7 d of signal about 2 ms.
+  - Decoder variants, bucket rules, the history generator, migration tables.
+
+State: `typecheck`, `lint`, `format`, `test` (558), `test:e2e` (98 passed, 3 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

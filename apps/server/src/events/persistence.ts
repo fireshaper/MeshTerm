@@ -5,6 +5,7 @@ import {
   getMyNodeNum,
   getNode,
   insertMessage,
+  setFirmware,
   setModemPreset,
   setMyNodeNum,
   updateMessageStatus,
@@ -32,6 +33,10 @@ export function attachPersistence(
 
     hub.subscribe("radio.lora", ({ connectionId, modemPreset }) => {
       setModemPreset(db, connectionId, modemPreset);
+    }),
+
+    hub.subscribe("radio.metadata", ({ connectionId, firmware }) => {
+      setFirmware(db, connectionId, firmware);
     }),
 
     hub.subscribe("radio.node", ({ connectionId, update }) => {

@@ -100,6 +100,8 @@ function merge<T extends { time: number }>(current: T | null, update: T): T | nu
 }
 
 export function applyTelemetry(data: DashboardDTO, report: TelemetryReport): DashboardDTO {
+  // Power-monitor and air-quality readings aren't on dashboard cards.
+  if (report.kind === "power" || report.kind === "air_quality") return data;
   return patchCard(data, report.nodeNum, (card) => {
     if (report.kind === "environment") {
       const environment = merge(card.environment, { ...report.environment, time: report.time });

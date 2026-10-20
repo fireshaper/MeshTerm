@@ -28,6 +28,7 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
  * - `POST /inject-position` `{from, lat, lon, altitude?, precisionBits?}` → `{packetId}`
  * - `POST /inject-neighbors` `{from, neighbors: [{nodeId, snr}]}` → `{packetId}`
  * - `POST /reboot` `{downMs}`
+ * - `POST /inject-history` `{days?}` → `{packets}`: backdated telemetry (`historyPackets`)
  * - `POST /ack-mode` `{mode: "ack" | "nak" | "silent", reason?}` (`reason`: NAK `Routing.Error` name)
  * - `POST /clear-inbound`
  * - `GET /inbound` → {@link InboundReport}
@@ -78,6 +79,9 @@ export function startControlServer(node: FakeNode, port: number, host = "127.0.0
             break;
           case "POST /reboot":
             void node.reboot(Number(body.downMs ?? 1000));
+            break;
+          case "POST /inject-history":
+            result = { packets: node.injectHistory(Number(body.days ?? 30)) };
             break;
           case "POST /ack-mode":
             node.setAckMode(

@@ -22,6 +22,7 @@ import { attachPersistence } from "./events/persistence.js";
 import { wireConnection } from "./events/pipeline.js";
 import { MessageSender } from "./messaging/sender.js";
 import { activityRoutes } from "./routes/activity.js";
+import { nodeDetailRoutes } from "./routes/node-detail.js";
 import { apiRoutes } from "./routes/api.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { healthRoutes } from "./routes/health.js";
@@ -184,6 +185,7 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   await app.register(apiRoutes);
   await app.register(dashboardRoutes);
   await app.register(activityRoutes);
+  await app.register(nodeDetailRoutes);
   const tiles =
     deps.tiles ??
     new TileCache({

@@ -116,6 +116,7 @@ describe("decoding telemetry and position", () => {
             time: RECORDED_AT_MS - 600_000,
             kind: "environment",
             environment: { temperature: 22.4, humidity: 61, pressure: 1013.2 },
+            metrics: { temperature: 22.4, relative_humidity: 61, barometric_pressure: 1013.2 },
           },
         },
       },
@@ -141,6 +142,7 @@ describe("decoding telemetry and position", () => {
         airUtilTx: null,
         uptimeSeconds: null,
       },
+      metrics: { battery_level: 64, voltage: 3.88 },
     });
   });
 
@@ -166,11 +168,37 @@ describe("decoding telemetry and position", () => {
     expect(decodeFromRadio(noFix, ctx)).toEqual({ events: [], ignored: "position without a fix" });
   });
 
+  it("power-monitor and air-quality reports keep every field under its protobuf name", async () => {
+    const power = await next(() =>
+      node.injectTelemetry(RIDGE, {
+        time: 1_799_999_000,
+        variant: { case: "powerMetrics", value: { ch1Voltage: 12.6, ch1Current: 250 } },
+      }),
+    );
+    expect(ofType(decode(power), "radio.telemetry")[0]?.payload.report).toEqual({
+      connectionId: 1,
+      nodeNum: RIDGE,
+      time: 1_799_999_000_000,
+      kind: "power",
+      metrics: { ch1_voltage: 12.6, ch1_current: 250 },
+    });
+    const air = await next(() =>
+      node.injectTelemetry(RIDGE, {
+        time: 1_799_999_000,
+        variant: { case: "airQualityMetrics", value: { pm25Standard: 12, co2: 640 } },
+      }),
+    );
+    expect(ofType(decode(air), "radio.telemetry")[0]?.payload.report).toMatchObject({
+      kind: "air_quality",
+      metrics: { pm25_standard: 12, co2: 640 },
+    });
+  });
+
   it("other telemetry variants are ignored with a reason", async () => {
     const frame = await next(() =>
-      node.injectTelemetry(RIDGE, { variant: { case: "powerMetrics", value: {} } }),
+      node.injectTelemetry(RIDGE, { variant: { case: "localStats", value: {} } }),
     );
-    expect(decodeFromRadio(frame, ctx)).toEqual({ events: [], ignored: "telemetry powerMetrics" });
+    expect(decodeFromRadio(frame, ctx)).toEqual({ events: [], ignored: "telemetry localStats" });
   });
 
   it("nodeHeard records RSSI alongside SNR", async () => {

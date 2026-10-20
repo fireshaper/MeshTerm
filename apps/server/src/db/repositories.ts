@@ -75,6 +75,10 @@ export function getModemPreset(db: Db, connectionId: number): string | null {
   );
 }
 
+export function setFirmware(db: Db, connectionId: number, firmware: string | null): void {
+  db.update(connections).set({ firmware }).where(eq(connections.id, connectionId)).run();
+}
+
 export function setModemPreset(db: Db, connectionId: number, modemPreset: string | null): void {
   db.update(connections).set({ modemPreset }).where(eq(connections.id, connectionId)).run();
 }

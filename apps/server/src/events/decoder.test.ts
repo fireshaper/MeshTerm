@@ -55,6 +55,7 @@ describe("decodeFromRadio", () => {
           isFavorite: false,
           isIgnored: false,
           hasPublicKey: true,
+          publicKey: "0b30557a9fc4e90e33587da2c7ec11365b80a5caef14395e83a8cdf2173c6186",
         },
       },
     });
@@ -131,6 +132,7 @@ describe("decodeFromRadio", () => {
           hwModel: "TBEAM",
           role: "CLIENT",
           hasPublicKey: false,
+          publicKey: null,
         },
       },
     });
@@ -154,8 +156,15 @@ describe("decodeFromRadio", () => {
     expect(decode(frames.unhandled)).toEqual({ events: [], ignored: "port RANGE_TEST_APP" });
   });
 
-  it("the LoRa config yields the modem preset; other config and metadata yield nothing", () => {
+  it("the LoRa config yields the modem preset, metadata the firmware; other config nothing", () => {
     const lora: RadioEvent[] = [];
+    const meta = frames.handshake.find((m) => m.payloadVariant.case === "metadata");
+    expect(decode(meta ?? frames.unhandled).events).toEqual([
+      {
+        type: "radio.metadata",
+        payload: { connectionId: 1, firmware: expect.any(String) as unknown },
+      },
+    ]);
     for (const m of frames.handshake) {
       const v = m.payloadVariant;
       if (v.case === "config" && v.value.payloadVariant.case === "lora") {
@@ -163,7 +172,7 @@ describe("decodeFromRadio", () => {
         continue;
       }
       const c = v.case;
-      if (c === "config" || c === "moduleConfig" || c === "metadata" || c === "configCompleteId") {
+      if (c === "config" || c === "moduleConfig" || c === "configCompleteId") {
         expect(decode(m).events).toEqual([]);
       }
     }
@@ -179,7 +188,14 @@ describe("nodeHeard", () => {
       type: "radio.node",
       payload: {
         connectionId: 1,
-        update: { num: RIDGE, lastHeard: RECORDED_AT_MS, snr: -2.5, rssi: -101, hopsAway: 1 },
+        update: {
+          num: RIDGE,
+          lastHeard: RECORDED_AT_MS,
+          snr: -2.5,
+          rssi: -101,
+          hopsAway: 1,
+          viaMqtt: false,
+        },
       },
     });
   });

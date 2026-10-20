@@ -2,7 +2,7 @@ import type { TopologyDTO } from "@meshterm/shared";
 import { and, eq, gte, lt, sql } from "drizzle-orm";
 import type { Db } from "../db/database.js";
 import { getMyNodeNum } from "../db/repositories.js";
-import { neighbors, nodes, packetStats } from "../db/schema.js";
+import { neighbors, nodes, packetStats, signalLog } from "../db/schema.js";
 import type { Hub } from "../events/events.js";
 
 export const MINUTE_MS = 60_000;
@@ -11,7 +11,8 @@ export const PACKET_STATS_MAX_AGE_MS = 7 * 24 * 3600_000;
 const PRUNE_EVERY = 500;
 
 /**
- * Counts every packet heard from another node (per minute, node and port) and stores
+ * Counts every packet heard from another node (per minute, node and port), logs its
+ * signal (`signal_log`, same 7-day retention), and stores
  * NeighborInfo reports (each replaces the reporter's previous list). Packets from my
  * own node aren't counted: they weren't received over the air.
  */
@@ -33,8 +34,19 @@ export function attachNetworkStats(
       myNodes.set(connectionId, myNodeNum);
     }),
 
-    hub.subscribe("radio.packet", ({ connectionId, at, from, port }) => {
+    hub.subscribe("radio.packet", ({ connectionId, at, from, port, ...heard }) => {
       if (from === myNode(connectionId) || from === 0) return;
+      db.insert(signalLog)
+        .values({
+          connectionId,
+          nodeNum: from,
+          time: heard.rxTime,
+          snr: heard.snr,
+          rssi: heard.rssi,
+          hops: heard.hops,
+          viaMqtt: heard.viaMqtt,
+        })
+        .run();
       const minute = Math.floor(at / MINUTE_MS) * MINUTE_MS;
       db.insert(packetStats)
         .values({ connectionId, minute, nodeNum: from, port, count: 1 })
@@ -51,6 +63,9 @@ export function attachNetworkStats(
       if (++inserts % PRUNE_EVERY === 0) {
         db.delete(packetStats)
           .where(lt(packetStats.minute, at - maxAgeMs))
+          .run();
+        db.delete(signalLog)
+          .where(lt(signalLog.time, at - maxAgeMs))
           .run();
       }
     }),
