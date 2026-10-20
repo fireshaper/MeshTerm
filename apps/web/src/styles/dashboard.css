@@ -615,47 +615,57 @@
     color: var(--mt-text-muted);
   }
 
-  /* One column; from 1024 px a 2:1 grid: chart | network, favorites | feed, recent | attention. */
+  /*
+   * Below 1024 px: one column, the columns' wrappers dissolve and panels follow
+   * `order` (chart, network, favorites, feed, recent, attention). From 1024 px: two
+   * independent 2:1 columns, each stacking its own panels.
+   */
   [data-mt="dashboard-grid"] {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: var(--mt-space-3);
-    align-items: start;
+  }
+
+  [data-mt="dashboard-column"] {
+    display: contents;
+  }
+
+  [data-mt="dashboard-grid"] [data-mt="panel"][data-mt-variant="traffic"] {
+    order: 1;
+  }
+
+  [data-mt="dashboard-grid"] [data-mt="panel"][data-mt-variant="network"] {
+    order: 2;
+  }
+
+  [data-mt="dashboard-grid"] [data-mt="panel"][data-mt-variant="pinned"] {
+    order: 3;
+  }
+
+  [data-mt="dashboard-grid"] [data-mt="panel"][data-mt-variant="activity"] {
+    order: 4;
+  }
+
+  [data-mt="dashboard-grid"] [data-mt="panel"][data-mt-variant="recent"] {
+    order: 5;
+  }
+
+  [data-mt="dashboard-grid"] [data-mt="panel"][data-mt-variant="attention"] {
+    order: 6;
   }
 
   @media (width >= 1024px) {
     [data-mt="dashboard-grid"] {
+      display: grid;
       grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-      grid-template-areas:
-        "traffic network"
-        "pinned activity"
-        "recent attention";
+      align-items: start;
     }
 
-    [data-mt="dashboard-grid"] > [data-mt-variant="traffic"] {
-      grid-area: traffic;
-    }
-
-    [data-mt="dashboard-grid"] > [data-mt-variant="network"] {
-      grid-area: network;
-      align-self: stretch;
-    }
-
-    [data-mt="dashboard-grid"] > [data-mt-variant="attention"] {
-      grid-area: attention;
-    }
-
-    [data-mt="dashboard-grid"] > [data-mt-variant="pinned"] {
-      grid-area: pinned;
-    }
-
-    [data-mt="dashboard-grid"] > [data-mt-variant="activity"] {
-      grid-area: activity;
-      align-self: stretch;
-    }
-
-    [data-mt="dashboard-grid"] > [data-mt-variant="recent"] {
-      grid-area: recent;
+    [data-mt="dashboard-column"] {
+      display: flex;
+      flex-direction: column;
+      gap: var(--mt-space-3);
+      min-inline-size: 0;
     }
   }
 

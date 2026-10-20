@@ -196,31 +196,38 @@ function DashboardBody({
 
   return (
     <div data-mt="dashboard-grid">
-      <TrafficPanel connectionId={connectionId} cards={nodes} />
-      <NetworkMap connectionId={connectionId} cards={nodes} thresholds={thresholds} />
-      <Panel variant="pinned" title="My node & favorites" count={pinned.length}>
-        <ul data-mt="preview-grid">{pinned.map(preview)}</ul>
-        {favorites.length === 0 && <p data-mt="panel-hint">Star nodes to pin them here.</p>}
-      </Panel>
-      <ActivityFeed connectionId={connectionId} cards={nodes} />
-      <Panel variant="recent" title="Recently active" count={recent.length} actions={viewAll}>
-        {recent.length === 0 ? (
-          <EmptyState title="No other nodes heard recently">
-            Nodes appear here when a packet from them is heard within {thresholds.recentMin / 60} h.
-          </EmptyState>
-        ) : (
-          <ul data-mt="preview-grid">{recent.slice(0, RECENT_PREVIEW_LIMIT).map(preview)}</ul>
-        )}
-      </Panel>
-      <Panel variant="attention" title="Attention needed" count={attention.length}>
-        {attention.length === 0 ? (
-          <EmptyState title="All clear">
-            No low batteries, quiet favorites or busy channel right now.
-          </EmptyState>
-        ) : (
-          <AttentionList items={attention} />
-        )}
-      </Panel>
+      {/* Two independent columns from 1024 px, so a tall panel on one side
+          doesn't leave gaps on the other. Below that, one column in "order". */}
+      <div data-mt="dashboard-column" data-mt-variant="main">
+        <TrafficPanel connectionId={connectionId} cards={nodes} />
+        <Panel variant="pinned" title="My node & favorites" count={pinned.length}>
+          <ul data-mt="preview-grid">{pinned.map(preview)}</ul>
+          {favorites.length === 0 && <p data-mt="panel-hint">Star nodes to pin them here.</p>}
+        </Panel>
+        <Panel variant="recent" title="Recently active" count={recent.length} actions={viewAll}>
+          {recent.length === 0 ? (
+            <EmptyState title="No other nodes heard recently">
+              Nodes appear here when a packet from them is heard within {thresholds.recentMin / 60}{" "}
+              h.
+            </EmptyState>
+          ) : (
+            <ul data-mt="preview-grid">{recent.slice(0, RECENT_PREVIEW_LIMIT).map(preview)}</ul>
+          )}
+        </Panel>
+      </div>
+      <div data-mt="dashboard-column" data-mt-variant="side">
+        <NetworkMap connectionId={connectionId} cards={nodes} thresholds={thresholds} />
+        <ActivityFeed connectionId={connectionId} cards={nodes} />
+        <Panel variant="attention" title="Attention needed" count={attention.length}>
+          {attention.length === 0 ? (
+            <EmptyState title="All clear">
+              No low batteries, quiet favorites or busy channel right now.
+            </EmptyState>
+          ) : (
+            <AttentionList items={attention} />
+          )}
+        </Panel>
+      </div>
     </div>
   );
 }
