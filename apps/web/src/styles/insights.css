@@ -606,17 +606,26 @@
     overflow: visible;
   }
 
+  [data-mt="network-disk"] {
+    fill: var(--mt-surface-sunken);
+    stroke: var(--mt-border-color);
+    stroke-width: 0.6;
+  }
+
   [data-mt="network-ring"] circle {
     fill: none;
     stroke: var(--mt-border-color);
     stroke-dasharray: 2 3;
-    stroke-width: 0.6;
+    stroke-width: 0.5;
   }
 
   [data-mt="network-ring"] text {
     fill: var(--mt-text-muted);
-    font-size: 5.5px;
-    text-anchor: start;
+    font-size: 4.5px;
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: var(--mt-surface-sunken);
+    stroke-width: 1.5;
   }
 
   [data-mt="network-link"] {
@@ -670,8 +679,8 @@
   [data-mt="network-node"] circle,
   [data-mt="network-node"] rect {
     fill: currentcolor;
-    stroke: var(--mt-card-bg);
-    stroke-width: 1.2;
+    stroke: var(--mt-surface-sunken);
+    stroke-width: 0.8;
   }
 
   [data-mt="network-node"]:hover circle,
@@ -682,11 +691,20 @@
     stroke-width: 2;
   }
 
-  [data-mt="network-node"] text {
+  [data-mt="network-node"] text,
+  [data-mt="network-hover-label"] text {
     fill: var(--mt-text);
-    font-size: 6px;
+    font-size: 5px;
     text-anchor: middle;
     pointer-events: none;
+    paint-order: stroke;
+    stroke: var(--mt-surface-sunken);
+    stroke-width: 1.5;
+  }
+
+  [data-mt="network-hover-label"] text {
+    font-size: 6px;
+    font-weight: var(--mt-font-weight-bold);
   }
 
   [data-mt="network-caption"] {

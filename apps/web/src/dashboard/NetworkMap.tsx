@@ -7,7 +7,10 @@ import { useTopology } from "../data/queries.js";
 import { openNodeDetails } from "../data/ui-store.js";
 import { formatAgo, formatDuration } from "./format.js";
 import { signalQuality } from "./insights.js";
-import { layoutTopology, RING_LABELS, RING_RADIUS, type PlacedLink } from "./topology.js";
+import { DISK_RADIUS, layoutTopology, RING_LABELS, type PlacedLink } from "./topology.js";
+
+/** Directly heard nodes keep their names on the disk up to this many (favorites always do). */
+export const LABEL_DIRECT_UP_TO = 12;
 import { nodeStatus } from "./view.js";
 
 const ROUTER_ROLES = new Set(["ROUTER", "ROUTER_LATE", "ROUTER_CLIENT", "REPEATER"]);
@@ -53,6 +56,14 @@ export function NetworkMap({
       );
     }
     const reported = layout.links.filter((l) => l.kind === "reported").length;
+    // Names on the disk only where there's room: directly heard nodes and favorites.
+    // Everyone else shows theirs on hover or focus.
+    const directCount = layout.bands.find((b) => b.ring === "direct")?.count ?? 0;
+    const labeled = (n: { num: number; ring: string }) =>
+      (n.ring === "direct" && directCount <= LABEL_DIRECT_UP_TO) ||
+      (byNum.get(n.num)?.isFavorite ?? false);
+    const shortLabel = (num: number) => byNum.get(num)?.shortName || num.toString(16).slice(-4);
+    const focused = focus === null ? null : (layout.nodes.find((n) => n.num === focus) ?? null);
     const describe = (num: number) => {
       const card = byNum.get(num);
       const node = data.nodes.find((n) => n.num === num);
@@ -87,15 +98,13 @@ export function NetworkMap({
           role="group"
           aria-label={`Network: ${layout.nodes.length} nodes heard in the last ${windowText}, ${layout.links.length - reported} heard directly, ${reported} reported links`}
         >
-          {(["direct", "one", "many"] as const).map((ring) => (
-            <g key={ring} data-mt="network-ring" data-mt-variant={ring} aria-hidden>
-              <circle r={RING_RADIUS[ring]} />
-              {/* At -45°, between the evenly spaced nodes (which start at the top). */}
-              <text
-                x={RING_RADIUS[ring] * Math.SQRT1_2 + 2}
-                y={-RING_RADIUS[ring] * Math.SQRT1_2 - 2}
-              >
-                {RING_LABELS[ring]}
+          <circle data-mt="network-disk" r={DISK_RADIUS} aria-hidden />
+          {layout.bands.map((band) => (
+            <g key={band.ring} data-mt="network-ring" data-mt-variant={band.ring} aria-hidden>
+              {/* Band edges; the outermost is the disk's own edge. */}
+              {band.ring !== "many" && <circle r={band.outer} />}
+              <text x="0" y={-band.inner - 1.5}>
+                {RING_LABELS[band.ring]}
               </text>
             </g>
           ))}
@@ -115,8 +124,10 @@ export function NetworkMap({
           ))}
           {layout.center !== null && (
             <g data-mt="network-node" data-mt-variant="self" transform="translate(0 0)">
-              <circle r="7" />
-              <text y="15">{byNum.get(layout.center)?.shortName ?? "Me"}</text>
+              <circle r={Math.max(5, layout.dot * 1.6)} />
+              <text y={Math.max(5, layout.dot * 1.6) + 7}>
+                {byNum.get(layout.center)?.shortName ?? "Me"}
+              </text>
             </g>
           )}
           {layout.nodes.map((n) => {
@@ -132,6 +143,7 @@ export function NetworkMap({
                   n.ring,
                   router ? "router" : null,
                   card?.isFavorite ? "favorite" : null,
+                  labeled(n) ? "labeled" : null,
                 ]
                   .filter(Boolean)
                   .join(" ")}
@@ -159,14 +171,30 @@ export function NetworkMap({
                 }}
               >
                 {router ? (
-                  <rect x="-4" y="-4" width="8" height="8" transform="rotate(45)" />
+                  <rect
+                    x={-layout.dot * 0.9}
+                    y={-layout.dot * 0.9}
+                    width={layout.dot * 1.8}
+                    height={layout.dot * 1.8}
+                    transform="rotate(45)"
+                  />
                 ) : (
-                  <circle r="4.5" />
+                  <circle r={layout.dot} />
                 )}
-                <text y="11">{card?.shortName ?? n.num.toString(16).slice(-4)}</text>
+                {labeled(n) && <text y={layout.dot + 6}>{shortLabel(n.num)}</text>}
               </g>
             );
           })}
+          {/* The hovered or focused node's name, drawn last so no dot covers it. */}
+          {focused && !labeled(focused) && (
+            <g
+              data-mt="network-hover-label"
+              transform={`translate(${focused.x} ${focused.y})`}
+              aria-hidden
+            >
+              <text y={layout.dot + 6}>{shortLabel(focused.num)}</text>
+            </g>
+          )}
         </svg>
         <figcaption data-mt="network-caption">
           <span data-mt="network-focus" aria-live="polite">
