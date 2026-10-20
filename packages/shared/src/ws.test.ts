@@ -28,6 +28,7 @@ const serverMessages: ServerMessage[] = [
     messageId: fixtures.outboundMessage.id,
     status: "acked",
     errorReason: null,
+    relayed: false,
   },
   { type: "error", code: "invalid_message", message: "Expected a subscribe message" },
 ];

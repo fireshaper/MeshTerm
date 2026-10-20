@@ -6,6 +6,7 @@ import type { NodeConnection } from "../connection/node-connection.js";
 import type { Db } from "../db/database.js";
 import {
   getConnection,
+  getHopLimit,
   getMessage,
   getMyNodeNum,
   insertMessage,
@@ -28,6 +29,9 @@ export interface SenderDeps {
   logger?: Logger;
   newId?: () => string;
 }
+
+/** Meshtastic's default hop limit, for a node whose LoRa config we haven't seen. */
+export const DEFAULT_HOP_LIMIT = 3;
 
 /** Statuses that a later event may still change. */
 const PENDING: ReadonlySet<MessageStatus> = new Set(["queued", "sent"]);
@@ -86,6 +90,7 @@ export class MessageSender {
       hopStart: null,
       hopLimit: null,
       errorReason: null,
+      relayed: false,
     });
     hub.publish("message.new", { message });
 
@@ -98,6 +103,8 @@ export class MessageSender {
             to,
             channel: channelIndex,
             wantAck: true,
+            // Unset means 0: direct neighbors only, never relayed. Use the node's own setting.
+            hopLimit: getHopLimit(db, connectionId) ?? DEFAULT_HOP_LIMIT,
             payloadVariant: {
               case: "decoded",
               value: {
@@ -118,7 +125,8 @@ export class MessageSender {
     const cancel = clock.setTimer(this.deps.ackTimeoutMs, () => {
       this.timers.delete(cancel);
       const current = getMessage(db, message.id);
-      if (current?.status && PENDING.has(current.status)) {
+      // Relayed but unconfirmed DMs stay `sent`: they did go out over the mesh.
+      if (current?.status && PENDING.has(current.status) && !current.relayed) {
         this.logger.info({ messageId: message.id }, "no routing reply; message failed");
         this.setStatus(current, "failed");
       }
@@ -149,6 +157,7 @@ export class MessageSender {
       messageId: message.id,
       status,
       errorReason: null,
+      relayed: message.relayed,
     });
   }
 }

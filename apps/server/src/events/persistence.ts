@@ -4,8 +4,10 @@ import {
   findOutboundByPacketId,
   getMyNodeNum,
   getNode,
+  markRelayed,
   insertMessage,
   setFirmware,
+  setHopLimit,
   setModemPreset,
   setMyNodeNum,
   updateMessageStatus,
@@ -31,8 +33,9 @@ export function attachPersistence(
       setMyNodeNum(db, connectionId, myNodeNum);
     }),
 
-    hub.subscribe("radio.lora", ({ connectionId, modemPreset }) => {
+    hub.subscribe("radio.lora", ({ connectionId, modemPreset, hopLimit }) => {
       setModemPreset(db, connectionId, modemPreset);
+      setHopLimit(db, connectionId, hopLimit);
     }),
 
     hub.subscribe("radio.metadata", ({ connectionId, firmware }) => {
@@ -80,14 +83,30 @@ export function attachPersistence(
       hub.publish("message.new", { message });
     }),
 
-    hub.subscribe("radio.routing", ({ connectionId, requestId, status, error }) => {
+    hub.subscribe("radio.routing", ({ connectionId, from, requestId, status, error }) => {
       const message = findOutboundByPacketId(db, connectionId, requestId);
       if (!message) {
         logger.debug({ connectionId, requestId, status }, "routing reply for an unknown packet");
         return;
       }
       // An ACK is final: a late error for the same packet (e.g. a duplicate) doesn't undo it.
-      if (message.status === "acked" || message.status === status) return;
+      if (message.status === "acked") return;
+      // A DM is delivered only when its recipient ACKs it. An ACK from anyone else (our
+      // own node hearing it rebroadcast: an implicit ACK) only means the mesh relayed it.
+      if (status === "acked" && message.peer !== null && from !== message.peer) {
+        if (message.relayed) return;
+        markRelayed(db, message.id);
+        logger.info({ connectionId, messageId: message.id, from }, "DM relayed, not yet confirmed");
+        hub.publish("message.status", {
+          connectionId,
+          messageId: message.id,
+          status: message.status ?? "sent",
+          errorReason: null,
+          relayed: true,
+        });
+        return;
+      }
+      if (message.status === status) return;
       updateMessageStatus(db, message.id, status, error);
       if (error) logger.info({ connectionId, messageId: message.id, error }, "message failed");
       hub.publish("message.status", {
@@ -95,6 +114,7 @@ export function attachPersistence(
         messageId: message.id,
         status,
         errorReason: error,
+        relayed: message.relayed,
       });
     }),
   ];

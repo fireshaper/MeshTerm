@@ -56,6 +56,7 @@ export const fixtures = {
     hopStart: null,
     hopLimit: null,
     errorReason: null,
+    relayed: false,
   } satisfies Message,
 
   outboundMessage: {
@@ -79,5 +80,6 @@ export const fixtures = {
     hopStart: null,
     hopLimit: null,
     errorReason: null,
+    relayed: false,
   } satisfies Message,
 };

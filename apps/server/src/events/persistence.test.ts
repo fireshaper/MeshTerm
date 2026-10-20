@@ -131,18 +131,20 @@ describe("attachPersistence", () => {
     insertMessage(handle.db, out);
     hub.publish("radio.routing", {
       connectionId: 1,
+      from: out.toNum,
       requestId: out.packetId,
       status: "acked",
       error: null,
     });
     expect(getMessage(handle.db, out.id)?.status).toBe("acked");
     expect(ofType("message.status")).toEqual([
-      { connectionId: 1, messageId: out.id, status: "acked", errorReason: null },
+      { connectionId: 1, messageId: out.id, status: "acked", errorReason: null, relayed: false },
     ]);
 
     // A late error after the ACK changes nothing.
     hub.publish("radio.routing", {
       connectionId: 1,
+      from: out.toNum,
       requestId: out.packetId,
       status: "failed",
       error: "MAX_RETRANSMIT",
@@ -151,8 +153,46 @@ describe("attachPersistence", () => {
     expect(ofType("message.status")).toHaveLength(1);
   });
 
+  it("a DM is acked only by its recipient; our own node's implicit ACK means relayed", () => {
+    const me = fixtures.inboundMessage.toNum;
+    const peer = 0x0badcafe;
+    const dm = {
+      ...fixtures.outboundMessage,
+      id: randomUUID(),
+      packetId: 4242,
+      toNum: peer,
+      peer,
+      status: "sent" as const,
+    };
+    insertMessage(handle.db, dm);
+    const reply = (from: number) => {
+      hub.publish("radio.routing", {
+        connectionId: 1,
+        from,
+        requestId: dm.packetId,
+        status: "acked",
+        error: null,
+      });
+    };
+    reply(me);
+    expect(getMessage(handle.db, dm.id)).toMatchObject({ status: "sent", relayed: true });
+    reply(me); // the same news again: nothing new
+    reply(peer);
+    expect(getMessage(handle.db, dm.id)).toMatchObject({ status: "acked", relayed: true });
+    expect(ofType("message.status")).toEqual([
+      { connectionId: 1, messageId: dm.id, status: "sent", errorReason: null, relayed: true },
+      { connectionId: 1, messageId: dm.id, status: "acked", errorReason: null, relayed: true },
+    ]);
+  });
+
   it("ignores routing replies for packets we didn't send", () => {
-    hub.publish("radio.routing", { connectionId: 1, requestId: 999, status: "acked", error: null });
+    hub.publish("radio.routing", {
+      connectionId: 1,
+      from: 1,
+      requestId: 999,
+      status: "acked",
+      error: null,
+    });
     expect(ofType("message.status")).toEqual([]);
   });
 });

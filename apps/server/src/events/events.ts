@@ -28,7 +28,11 @@ export interface RadioEvents {
   "radio.node": { connectionId: number; update: NodeUpdate };
   "radio.channel": { channel: Channel };
   /** Our node's LoRa config: its modem preset name, null when it uses custom settings. */
-  "radio.lora": { connectionId: number; modemPreset: string | null };
+  /**
+   * Our node's LoRa config: its modem preset name (null with custom settings) and its
+   * hop limit (null when unset), which outgoing packets use.
+   */
+  "radio.lora": { connectionId: number; modemPreset: string | null; hopLimit: number | null };
   /** Our node's firmware version, from the handshake's DeviceMetadata. */
   "radio.metadata": { connectionId: number; firmware: string | null };
   /** An inbound text message, not yet deduplicated. */
@@ -63,6 +67,8 @@ export interface RadioEvents {
   /** A routing reply to one of our packets: `acked`, or `failed` with the error name. */
   "radio.routing": {
     connectionId: number;
+    /** Who sent the reply: the DM's recipient for a real ACK, our own node for an implicit one. */
+    from: number;
     requestId: number;
     status: "acked" | "failed";
     error: string | null;

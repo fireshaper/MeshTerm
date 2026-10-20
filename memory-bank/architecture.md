@@ -252,20 +252,21 @@ Migrations: `0000_base_schema`, `0001_message_dedupe`, `0002_connection_my_node_
 
 ### `connections`
 
-| Column           | Type                         | Notes                                                                                                |
-| ---------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `id`             | INTEGER PK AUTOINCREMENT     |                                                                                                      |
-| `name`           | TEXT NOT NULL                |                                                                                                      |
-| `host`           | TEXT NOT NULL                |                                                                                                      |
-| `port`           | INTEGER NOT NULL             |                                                                                                      |
-| `transport`      | TEXT NOT NULL DEFAULT 'tcp'  | `tcp`                                                                                                |
-| `enabled`        | INTEGER NOT NULL DEFAULT 1   | boolean                                                                                              |
-| `source`         | TEXT NOT NULL DEFAULT 'user' | `env` = seeded from `MESHTERM_NODE_HOST/PORT` and kept in sync; `user` = added in the UI             |
-| `created_at`     | INTEGER NOT NULL             |                                                                                                      |
-| `my_node_num`    | INTEGER                      | our node's number from the last handshake; NULL before the first                                     |
-| `last_packet_at` | INTEGER                      | when the last packet of any kind arrived (no packet log yet)                                         |
-| `modem_preset`   | TEXT                         | LoRa `ModemPreset` name from the handshake (e.g. `LONG_FAST`); NULL with custom LoRa settings (0008) |
-| `firmware`       | TEXT                         | our node's `DeviceMetadata.firmware_version` from the handshake (0009)                               |
+| Column           | Type                         | Notes                                                                                                   |
+| ---------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `id`             | INTEGER PK AUTOINCREMENT     |                                                                                                         |
+| `name`           | TEXT NOT NULL                |                                                                                                         |
+| `host`           | TEXT NOT NULL                |                                                                                                         |
+| `port`           | INTEGER NOT NULL             |                                                                                                         |
+| `transport`      | TEXT NOT NULL DEFAULT 'tcp'  | `tcp`                                                                                                   |
+| `enabled`        | INTEGER NOT NULL DEFAULT 1   | boolean                                                                                                 |
+| `source`         | TEXT NOT NULL DEFAULT 'user' | `env` = seeded from `MESHTERM_NODE_HOST/PORT` and kept in sync; `user` = added in the UI                |
+| `created_at`     | INTEGER NOT NULL             |                                                                                                         |
+| `my_node_num`    | INTEGER                      | our node's number from the last handshake; NULL before the first                                        |
+| `last_packet_at` | INTEGER                      | when the last packet of any kind arrived (no packet log yet)                                            |
+| `modem_preset`   | TEXT                         | LoRa `ModemPreset` name from the handshake (e.g. `LONG_FAST`); NULL with custom LoRa settings (0008)    |
+| `firmware`       | TEXT                         | our node's `DeviceMetadata.firmware_version` from the handshake (0009)                                  |
+| `hop_limit`      | INTEGER                      | our node's `Config.LoRaConfig.hop_limit` from the handshake; outgoing packets use it (default 3) (0010) |
 
 ### `nodes` — PK (`connection_id`, `num`)
 
@@ -327,6 +328,7 @@ Migrations: `0000_base_schema`, `0001_message_dedupe`, `0002_connection_my_node_
 | `emoji`                  | INTEGER NOT NULL DEFAULT 0 | boolean; a reaction (tapback) to `reply_id`, `text` is the emoji                                                                                                                                |
 | `hop_start`, `hop_limit` | INTEGER                    | NULL when the packet had no `hop_start`                                                                                                                                                         |
 | `error_reason`           | TEXT                       | `Routing.Error` name of a NAK (e.g. `NO_RESPONSE`); NULL otherwise and on ACK timeout                                                                                                           |
+| `relayed`                | INTEGER NOT NULL DEFAULT 0 | boolean; outgoing DM heard rebroadcast (implicit ACK from our own node) without the recipient's ACK; status stays `sent` and the ACK timeout doesn't fail it (0010)                             |
 
 Indexes: `messages_time_idx` (`connection_id`, `rx_time`, `direction`) for counts over time, `messages_channel_idx` (`connection_id`, `channel_index`, `rx_time`) **WHERE `peer` IS NULL**, `messages_peer_idx` (`connection_id`, `peer`, `rx_time`), **unique** `messages_dedupe_idx` (`connection_id`, `from_num`, `packet_id`).
 

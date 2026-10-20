@@ -83,6 +83,25 @@ export function setModemPreset(db: Db, connectionId: number, modemPreset: string
   db.update(connections).set({ modemPreset }).where(eq(connections.id, connectionId)).run();
 }
 
+export function setHopLimit(db: Db, connectionId: number, hopLimit: number | null): void {
+  db.update(connections).set({ hopLimit }).where(eq(connections.id, connectionId)).run();
+}
+
+export function getHopLimit(db: Db, connectionId: number): number | null {
+  return (
+    db
+      .select({ hopLimit: connections.hopLimit })
+      .from(connections)
+      .where(eq(connections.id, connectionId))
+      .get()?.hopLimit ?? null
+  );
+}
+
+/** An outgoing DM was heard relayed (implicit ACK); its status stays as it is. */
+export function markRelayed(db: Db, id: string): void {
+  db.update(messages).set({ relayed: true }).where(eq(messages.id, id)).run();
+}
+
 // ---------------------------------------------------------------------- nodes
 
 type NodeRow = typeof nodes.$inferSelect;

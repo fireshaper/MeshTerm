@@ -188,17 +188,22 @@ export function applyServerMessage(
     }
 
     case "message.status": {
-      const { connectionId, messageId, status, errorReason } = message;
+      const { connectionId, messageId, status, errorReason, relayed } = message;
       qc.setQueriesData<ConversationData>(
         { queryKey: queryKeys.allMessages(connectionId) },
         (data) => {
           if (!data) return data;
           const i = data.messages.findIndex((m) => m.id === messageId);
           const current = data.messages[i];
-          if (!current || (current.status === status && current.errorReason === errorReason))
+          if (
+            !current ||
+            (current.status === status &&
+              current.errorReason === errorReason &&
+              current.relayed === relayed)
+          )
             return data;
           const messages = [...data.messages];
-          messages[i] = { ...current, status, errorReason };
+          messages[i] = { ...current, status, errorReason, relayed };
           return { ...data, messages };
         },
       );

@@ -103,6 +103,11 @@ export const Message = z.object({
   hopLimit: z.number().int().nonnegative().nullable(),
   /** `Routing.Error` name (e.g. `NO_RESPONSE`) when an outgoing message failed; null on timeout. */
   errorReason: z.string().nullable(),
+  /**
+   * Outgoing DM: our node heard it relayed (an implicit ACK) but the recipient hasn't
+   * confirmed it; `status` stays `sent`.
+   */
+  relayed: z.boolean(),
 });
 export type Message = z.infer<typeof Message>;
 

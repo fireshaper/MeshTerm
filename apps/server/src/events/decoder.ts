@@ -70,8 +70,9 @@ export function decodeFromRadio(message: FromRadio, ctx: DecodeContext): DecodeR
       const modemPreset = c.value.usePreset
         ? enumName(Config.Config_LoRaConfig_ModemPreset, c.value.modemPreset)
         : null;
+      const hopLimit = c.value.hopLimit > 0 ? c.value.hopLimit : null;
       return decoded([
-        { type: "radio.lora", payload: { connectionId: ctx.connectionId, modemPreset } },
+        { type: "radio.lora", payload: { connectionId: ctx.connectionId, modemPreset, hopLimit } },
       ]);
     }
     default:
@@ -111,6 +112,7 @@ function decodePacket(packet: Mesh.MeshPacket, ctx: DecodeContext): DecodeResult
               hopStart: packet.hopStart === 0 ? null : packet.hopStart,
               hopLimit: packet.hopStart === 0 ? null : packet.hopLimit,
               errorReason: null,
+              relayed: false,
             },
           },
         },
@@ -182,6 +184,7 @@ function decodePacket(packet: Mesh.MeshPacket, ctx: DecodeContext): DecodeResult
           type: "radio.routing",
           payload: {
             connectionId: ctx.connectionId,
+            from: packet.from,
             requestId: data.requestId,
             status: reason === Mesh.Routing_Error.NONE ? "acked" : "failed",
             error:

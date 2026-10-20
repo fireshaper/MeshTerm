@@ -403,6 +403,18 @@ State: `typecheck`, `lint`, `format:check`, `test` (569), `test:e2e` (110 passed
 
 State: `typecheck`, `lint`, `format`, `test` (577), `test:e2e` (125 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
 
+## Fix: sent messages didn't reach the other side (2026-10-20)
+
+- The user reported that sending showed an acknowledgement but the recipient never got the message.
+- **Cause 1:** outgoing packets never set `hop_limit`. Unset means 0: direct neighbors only, so nothing was relayed. MeshTerm now sends with the node's configured LoRa hop limit, stored from the handshake (`connections.hop_limit`), or 3 if unknown.
+- **Cause 2:** any routing ACK marked a message acknowledged, including the implicit ACK our own node sends when it hears a packet rebroadcast.
+  - Now a DM is `acked` only when the recipient's ACK arrives (`from` = the DM's peer).
+  - An implicit ACK sets `relayed`, and the status stays `sent`, shown as "Relayed, not confirmed". It doesn't fail on the ACK timeout.
+  - Broadcasts keep treating any ACK as acked (an implicit ACK is all a broadcast gets).
+- Migration 0010 adds `connections.hop_limit` and `messages.relayed`. `message.status` carries `relayed`.
+- FakeNode gained ack mode `implicit`.
+- Tests: the hop limit on the transmitted packet; implicit-only ACK → relayed, sent, no timeout failure; recipient ACK after an implicit one → acked.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

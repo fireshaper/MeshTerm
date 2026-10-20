@@ -11,6 +11,10 @@ export const STATUS_LABELS: Record<MessageStatus, string> = {
   failed: "Failed",
 };
 
+/** A DM our node heard rebroadcast, without an ACK from its recipient (yet). */
+export const RELAYED_HINT =
+  "The mesh relayed it, but the recipient hasn't confirmed it. It may still arrive, or it may not reach them.";
+
 export function senderName(fromNum: number, nodes: ReadonlyMap<number, MeshNode>): string {
   const node = nodes.get(fromNum);
   return node?.shortName || node?.longName || nodeIdFromNum(fromNum);
@@ -52,8 +56,13 @@ export const MessageItem = memo(function MessageItem({ message, sender, now }: M
       </header>
       <p data-mt="message-text">{text}</p>
       {direction === "out" && status && (
-        <span data-mt="message-status" data-mt-state={status}>
-          {STATUS_LABELS[status]}
+        <span
+          data-mt="message-status"
+          data-mt-state={status}
+          data-mt-variant={message.relayed && status === "sent" ? "relayed" : undefined}
+          title={message.relayed && status === "sent" ? RELAYED_HINT : undefined}
+        >
+          {message.relayed && status === "sent" ? "Relayed, not confirmed" : STATUS_LABELS[status]}
         </span>
       )}
     </article>

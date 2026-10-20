@@ -141,14 +141,26 @@ describe("decodeFromRadio", () => {
   it("a routing ACK becomes acked for its request id", () => {
     expect(only(decode(frames.ack).events)).toEqual({
       type: "radio.routing",
-      payload: { connectionId: 1, requestId: 0x1111, status: "acked", error: null },
+      payload: {
+        connectionId: 1,
+        from: expect.any(Number) as unknown,
+        requestId: 0x1111,
+        status: "acked",
+        error: null,
+      },
     });
   });
 
   it("a routing error becomes failed with the error name", () => {
     expect(only(decode(frames.nak).events)).toEqual({
       type: "radio.routing",
-      payload: { connectionId: 1, requestId: 0x2222, status: "failed", error: "MAX_RETRANSMIT" },
+      payload: {
+        connectionId: 1,
+        from: expect.any(Number) as unknown,
+        requestId: 0x2222,
+        status: "failed",
+        error: "MAX_RETRANSMIT",
+      },
     });
   });
 
@@ -177,7 +189,7 @@ describe("decodeFromRadio", () => {
       }
     }
     expect(lora).toEqual([
-      { type: "radio.lora", payload: { connectionId: 1, modemPreset: "LONG_FAST" } },
+      { type: "radio.lora", payload: { connectionId: 1, modemPreset: "LONG_FAST", hopLimit: 3 } },
     ]);
   });
 });

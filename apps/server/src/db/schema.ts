@@ -31,6 +31,8 @@ export const connections = sqliteTable("connections", {
   lastPacketAt: integer("last_packet_at"),
   /** LoRa `ModemPreset` name (e.g. `LONG_FAST`) from the handshake; NULL with custom settings. */
   modemPreset: text("modem_preset"),
+  /** Our node's configured LoRa hop limit (`Config.LoRaConfig.hop_limit`); outgoing packets use it. */
+  hopLimit: integer("hop_limit"),
   /** Our node's firmware version (`DeviceMetadata.firmware_version`) from the handshake. */
   firmware: text("firmware"),
   createdAt: integer("created_at").notNull(),
@@ -214,6 +216,11 @@ export const messages = sqliteTable(
     hopLimit: integer("hop_limit"),
     /** `Routing.Error` name when an outgoing message failed (NULL on timeout). */
     errorReason: text("error_reason"),
+    /**
+     * Outgoing DM: our node heard it relayed (an implicit ACK), but the recipient hasn't
+     * confirmed it. Status stays `sent`; it doesn't fail on the ACK timeout.
+     */
+    relayed: integer("relayed", { mode: "boolean" }).notNull().default(false),
   },
   (t) => [
     index("messages_channel_idx")

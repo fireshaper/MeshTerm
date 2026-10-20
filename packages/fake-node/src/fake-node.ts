@@ -28,7 +28,12 @@ export interface FakeNodeOptions {
 }
 
 /** How FakeNode answers outgoing text: routing ACK, routing error (NAK), or nothing. */
-export type AckMode = "ack" | "nak" | "silent";
+/**
+ * How outgoing texts are answered: `ack` (by the DM's recipient; our own node for a
+ * broadcast), `implicit` (our own node heard it relayed, the recipient never confirms),
+ * `nak` (an error) or `silent` (nothing).
+ */
+export type AckMode = "ack" | "implicit" | "nak" | "silent";
 
 /**
  * How FakeNode ends its handshake reply: echo the nonce (real behavior), answer
@@ -418,12 +423,13 @@ export class FakeNode {
     const data = packet.payloadVariant.case === "decoded" ? packet.payloadVariant.value : null;
     if (data?.portnum !== Portnums.PortNum.TEXT_MESSAGE_APP || this.ackMode === "silent") return;
 
-    const errorReason = this.ackMode === "ack" ? Mesh.Routing_Error.NONE : this.nakReason;
+    const errorReason = this.ackMode === "nak" ? this.nakReason : Mesh.Routing_Error.NONE;
     const reply: FromRadioVariant = {
       case: "packet",
       value: {
         // A DM is acked by its recipient; a broadcast by our own node (implicit ACK).
-        from: packet.to === BROADCAST_NUM ? this.myNodeNum : packet.to,
+        from:
+          packet.to === BROADCAST_NUM || this.ackMode === "implicit" ? this.myNodeNum : packet.to,
         to: this.myNodeNum,
         channel: packet.channel,
         id: this.newPacketId(),

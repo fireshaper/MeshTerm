@@ -138,6 +138,7 @@ describe("applyServerMessage", () => {
       messageId: out.id,
       status: "acked",
       errorReason: null,
+      relayed: false,
     });
     expect(conversation(channel0)?.messages.find((m) => m.id === out.id)?.status).toBe("acked");
 
@@ -148,6 +149,7 @@ describe("applyServerMessage", () => {
       messageId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
       status: "failed",
       errorReason: "NO_RESPONSE",
+      relayed: false,
     });
     expect(conversation(channel0)).toBe(before);
   });

@@ -63,6 +63,8 @@ export const MessageStatusMessage = z.object({
   status: MessageStatus,
   /** Why it failed (`Routing.Error` name); null otherwise or on timeout. */
   errorReason: z.string().nullable(),
+  /** The message was relayed by the mesh, without the recipient's ACK (yet). */
+  relayed: z.boolean(),
 });
 
 export const TelemetryNewMessage = z.object({

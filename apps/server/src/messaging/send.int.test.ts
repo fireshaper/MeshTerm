@@ -59,7 +59,28 @@ describe("POST /api/connections/:id/messages", () => {
       e.message.payloadVariant.case === "packet" ? [e.message.payloadVariant.value] : [],
     );
     expect(sent).toHaveLength(1);
-    expect(sent[0]).toMatchObject({ id: message.packetId, to: RIDGE, wantAck: true });
+    // The hop limit from the node's LoRa config (3 in the scenario): unset would mean
+    // "direct neighbors only", so nothing would relay it.
+    expect(sent[0]).toMatchObject({ id: message.packetId, to: RIDGE, wantAck: true, hopLimit: 3 });
+  });
+
+  it("implicit ACK only: the DM stays sent, marked relayed, and doesn't fail on timeout", async () => {
+    await setup({ MESHTERM_ACK_TIMEOUT_MS: "300" });
+    t.node.setAckMode("implicit");
+    const { message } = (await post({ text: "relayed only", to: RIDGE })).json<{
+      message: Message;
+    }>();
+    await ws.waitFor(() =>
+      ws.messages.some(
+        (m) => m.type === "message.status" && m.messageId === message.id && m.relayed,
+      ),
+    );
+    await new Promise((r) => setTimeout(r, 500));
+    expect(getMessage(t.app.meshterm.db, message.id)).toMatchObject({
+      status: "sent",
+      relayed: true,
+    });
+    expect(statusTrail(message.id)).toEqual(["queued", "sent", "sent"]);
   });
 
   it("nak: the client sees failed", async () => {
