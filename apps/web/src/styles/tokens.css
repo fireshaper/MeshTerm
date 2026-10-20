@@ -10,6 +10,8 @@
     --mt-surface-bg: Canvas;
     --mt-surface-raised: Canvas;
     --mt-surface-sunken: Canvas;
+    --mt-surface-elevated: var(--mt-surface-raised);
+    --mt-sidebar-bg: var(--mt-surface-raised);
     --mt-border-color: GrayText;
 
     /* Text */
@@ -41,6 +43,8 @@
     --mt-battery-low: var(--mt-status-warn);
     --mt-battery-critical: var(--mt-status-error);
     --mt-chart-1: var(--mt-accent);
+    --mt-chart-2: var(--mt-status-ok);
+    --mt-shadow-popover: none;
 
     /* How recently a node was heard */
     --mt-signal-online: var(--mt-status-ok);
@@ -56,9 +60,12 @@
     /* Typography */
     --mt-font-body: system-ui, sans-serif;
     --mt-font-mono: ui-monospace, monospace;
+    --mt-font-size-xs: 0.75rem;
     --mt-font-size-sm: 0.875rem;
     --mt-font-size-md: 1rem;
     --mt-font-size-lg: 1.25rem;
+    --mt-font-size-xl: 1.625rem;
+    --mt-font-weight-medium: 500;
     --mt-font-weight-bold: 600;
     --mt-line-height: 1.5;
 
@@ -78,6 +85,8 @@
     --mt-header-height: 3rem;
     --mt-tab-bar-height: 3.5rem;
     --mt-sidebar-width: 14rem;
+    --mt-sidebar-collapsed-width: 4rem;
+    --mt-drawer-width: min(18rem, 85vw);
 
     /* Motion */
     --mt-duration-fast: 120ms;

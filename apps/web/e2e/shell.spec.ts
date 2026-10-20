@@ -6,20 +6,20 @@ const hasHorizontalScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
 
 test.describe("app shell", () => {
-  test("shows the tab bar below 768 px and the sidebar from 768 px, with no horizontal scroll", async ({
+  test("shows a menu button below 768 px and the sidebar from 768 px, with no horizontal scroll", async ({
     page,
   }) => {
     await page.goto("/channels/0");
     const width = page.viewportSize()?.width ?? 0;
     const sidebar = page.locator("[data-mt=sidebar]");
-    const tabBar = page.locator("[data-mt=tab-bar]");
+    const menu = page.getByRole("button", { name: "Open navigation" });
 
     if (width < SIDEBAR_MIN_WIDTH) {
-      await expect(tabBar).toBeVisible();
+      await expect(menu).toBeVisible();
       await expect(sidebar).toBeHidden();
     } else {
       await expect(sidebar).toBeVisible();
-      await expect(tabBar).toBeHidden();
+      await expect(menu).toBeHidden();
     }
     await expect(page.locator("[data-mt=header] [data-mt=status-pill]")).toBeVisible();
     expect(await hasHorizontalScroll(page)).toBe(false);
@@ -45,19 +45,40 @@ test.describe("app shell", () => {
 
   test("navigates between sections with the visible navigation", async ({ page }) => {
     await page.goto("/channels/0");
-    // Only one of the two navs is visible at any width.
+    const narrow = (page.viewportSize()?.width ?? 0) < SIDEBAR_MIN_WIDTH;
     const nav = page.getByRole("navigation", { name: "Main" });
-    await expect(nav).toHaveCount(1);
+    /** Below 768 px the navigation lives in the drawer. */
+    const go = async (name: string) => {
+      if (narrow) await page.getByRole("button", { name: "Open navigation" }).click();
+      await expect(nav).toHaveCount(1);
+      await nav.getByRole("link", { name }).click();
+    };
 
-    await nav.getByRole("link", { name: "Nodes" }).click();
+    await go("Nodes");
     await expect(page).toHaveURL(/\/nodes$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nodes");
-    await expect(nav.getByRole("link", { name: "Nodes" })).toHaveAttribute(
-      "data-mt-state",
-      "active",
-    );
+    // The drawer closes after choosing a page.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
 
-    await nav.getByRole("link", { name: "Channels" }).click();
+    await go("Channels");
     await expect(page).toHaveURL(/\/channels\/0$/);
+    if (!narrow) {
+      await expect(nav.getByRole("link", { name: "Channels" })).toHaveAttribute(
+        "data-mt-state",
+        "active",
+      );
+    }
+  });
+
+  test("the sidebar collapses to icons and stays collapsed after a reload", async ({ page }) => {
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "the sidebar is expanded from 1024 px");
+    await page.goto("/channels/0");
+    const label = page.locator("[data-mt=sidebar] [data-mt=nav-label]").first();
+    await expect(label).toBeVisible();
+    await page.getByRole("button", { name: "Collapse sidebar" }).click();
+    await expect(label).toBeHidden();
+    await page.reload();
+    await expect(page.locator("[data-mt=app-shell]")).toHaveAttribute("data-mt-state", "collapsed");
+    await expect(label).toBeHidden();
   });
 });

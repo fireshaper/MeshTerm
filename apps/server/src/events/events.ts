@@ -48,6 +48,7 @@ export interface PublicEvents {
   "message.status": Payload<ServerMessageOf<"message.status">>;
   "telemetry.new": Payload<ServerMessageOf<"telemetry.new">>;
   "position.new": Payload<ServerMessageOf<"position.new">>;
+  "activity.new": Payload<ServerMessageOf<"activity.new">>;
   /** Not in the WS protocol yet; snapshots carry channels. */
   "channel.upsert": { channel: Channel };
 }

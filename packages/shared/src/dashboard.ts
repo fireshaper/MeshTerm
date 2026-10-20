@@ -45,7 +45,13 @@ export const DashboardSummary = z.object({
   channelUtil: z.number().nullable(),
   airUtilTx: z.number().nullable(),
   messages24h: z.number().int().nonnegative(),
+  /** `messages24h` split: received and sent. */
+  messagesIn24h: z.number().int().nonnegative(),
+  messagesOut24h: z.number().int().nonnegative(),
   lastPacketAt: EpochMs.nullable(),
+  /** My node's reported channel utilization and air util TX, 30-min averages over 24 h. */
+  channelUtilSpark: z.array(z.tuple([EpochMs, z.number()])).max(48),
+  airUtilTxSpark: z.array(z.tuple([EpochMs, z.number()])).max(48),
 });
 export type DashboardSummary = z.infer<typeof DashboardSummary>;
 

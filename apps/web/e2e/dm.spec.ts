@@ -9,15 +9,15 @@ test.describe("nodes and direct messages", () => {
   test("the node list shows the scenario's nodes with my node marked", async ({ page }) => {
     // Order depends on what earlier specs made the mesh hear (sorting is unit-tested).
     await page.goto("/nodes");
-    const rows = page.locator("[data-mt=node-row]");
-    await expect(rows).toHaveCount(4);
-    const shortNames = await rows.locator("[data-mt=node-short-name]").allTextContents();
+    const cards = page.locator("[data-mt=node-card]");
+    await expect(cards).toHaveCount(4);
+    const shortNames = await cards.locator("[data-mt=node-short-name]").allTextContents();
     expect(shortNames.sort()).toEqual(["GAR", "MTB", "RDG", "TRL"]);
-    await expect(page.locator(`[data-mt=node-row][data-node-num="${ME}"]`)).toHaveAttribute(
-      "data-mt-state",
-      "self",
+    await expect(page.locator(`[data-mt=node-card][data-node-num="${ME}"]`)).toHaveAttribute(
+      "data-mt-variant",
+      /(^| )self( |$)/,
     );
-    await expect(page.locator("[data-mt=node-row][data-mt-state=self]")).toHaveCount(1);
+    await expect(page.locator("[data-mt=node-card][data-mt-variant~=self]")).toHaveCount(1);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
@@ -29,7 +29,10 @@ test.describe("nodes and direct messages", () => {
     page,
   }, info) => {
     await page.goto("/nodes");
-    await page.getByRole("link", { name: "Ridge Repeater" }).click();
+    await page
+      .locator(`[data-mt=node-card][data-node-num="${RIDGE}"]`)
+      .getByRole("button", { name: "Message" })
+      .click();
     await expect(page).toHaveURL(new RegExp(`/dm/${RIDGE}$`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Direct messages with Ridge Repeater",

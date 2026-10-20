@@ -10,6 +10,7 @@ import {
 } from "fastify-type-provider-zod";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { join } from "node:path";
+import { attachActivity } from "./activity/recorder.js";
 import { systemClock, type Clock, type Random } from "./clock.js";
 import { NodeConnection } from "./connection/node-connection.js";
 import { openDataDirDatabase, type DatabaseHandle, type Db } from "./db/database.js";
@@ -19,6 +20,7 @@ import { Hub } from "./events/events.js";
 import { attachPersistence } from "./events/persistence.js";
 import { wireConnection } from "./events/pipeline.js";
 import { MessageSender } from "./messaging/sender.js";
+import { activityRoutes } from "./routes/activity.js";
 import { apiRoutes } from "./routes/api.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { healthRoutes } from "./routes/health.js";
@@ -108,6 +110,8 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
 
   const hub = new Hub(app.log);
   attachPersistence(hub, handle.db, app.log, () => clock.now());
+  // After persistence: the feed reads what was stored.
+  attachActivity(hub, handle.db, { now: () => clock.now() });
 
   const createTransport =
     deps.createTransport ??
@@ -177,6 +181,7 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   await app.register(healthRoutes);
   await app.register(apiRoutes);
   await app.register(dashboardRoutes);
+  await app.register(activityRoutes);
   const tiles =
     deps.tiles ??
     new TileCache({

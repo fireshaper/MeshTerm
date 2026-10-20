@@ -154,7 +154,13 @@ export function applyMessage(data: DashboardDTO, message: Message): DashboardDTO
       : data.summary.lastPacketAt;
   return {
     ...data,
-    summary: { ...data.summary, messages24h: data.summary.messages24h + 1, lastPacketAt },
+    summary: {
+      ...data.summary,
+      messages24h: data.summary.messages24h + 1,
+      messagesIn24h: data.summary.messagesIn24h + (inbound ? 1 : 0),
+      messagesOut24h: data.summary.messagesOut24h + (inbound ? 0 : 1),
+      lastPacketAt,
+    },
   };
 }
 

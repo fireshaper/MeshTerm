@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { resetUiStore, useUiStore } from "../data/ui-store.js";
 import { byDataMt, expectDataMt } from "../test/data-mt.js";
 import { scenarioDashboard } from "../test/scenario.js";
 import { NodeCard, UPDATE_FLASH_MS, type NodeCardProps } from "./NodeCard.js";
@@ -178,15 +179,22 @@ describe("NodeCard", () => {
     expect(article()).toHaveAttribute("data-mt-state", "online");
   });
 
-  it("keyboard: Enter opens the DM, f toggles favorite", async () => {
-    const { article, router, onFavorite } = renderCard(byShort("GAR"));
+  it("keyboard: Enter opens the details drawer, f toggles favorite", async () => {
+    resetUiStore();
+    const { article, onFavorite } = renderCard(byShort("GAR"));
     await screen.findByRole("article");
     fireEvent.keyDown(article(), { key: "f" });
     expect(onFavorite).toHaveBeenCalledWith(1584361601, true);
     fireEvent.keyDown(article(), { key: "Enter" });
-    await vi.waitFor(() => {
-      expect(router.state.location.pathname).toBe("/dm/1584361601");
-    });
+    expect(useUiStore.getState().selectedNode).toBe(1584361601);
+  });
+
+  it("the Details button opens the drawer, also on my own card", async () => {
+    resetUiStore();
+    renderCard(self);
+    await screen.findByRole("article");
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    expect(useUiStore.getState().selectedNode).toBe(self.num);
   });
 
   it("keys typed on the card's buttons don't trigger card shortcuts", async () => {

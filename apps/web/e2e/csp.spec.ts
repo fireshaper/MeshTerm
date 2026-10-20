@@ -30,6 +30,6 @@ test("no Content Security Policy violations on any screen", async ({ page }) => 
   }
   // The layer-order <style> was allowed by hash: the theme still wins over base.
   const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-  expect(bg).toBe("rgb(255, 255, 255)");
+  expect(bg).toBe("rgb(11, 16, 24)");
   expect(violations).toEqual([]);
 });

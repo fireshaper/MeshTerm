@@ -10,6 +10,8 @@ import { controlClient, ME, RIDGE, TRAIL } from "./control.js";
 import { VISUAL_CONTROL_PORT, VISUAL_DASHBOARD_PORT, VISUAL_PORT } from "./ports.js";
 
 const BASE = `http://127.0.0.1:${VISUAL_PORT}`;
+/** A second visual instance on the `dashboard` scenario. */
+const DASH = `http://127.0.0.1:${VISUAL_DASHBOARD_PORT}`;
 const node = controlClient(VISUAL_CONTROL_PORT);
 
 const CHANNEL = [
@@ -54,25 +56,50 @@ test.beforeAll(async () => {
   await seed();
 });
 
-const MASKS = (page: Page) => [
-  page.locator("[data-mt=message-time]"),
-  page.locator("[data-mt=node-last-heard]"),
+/** Everything whose text depends on the time (or on FakeNode's random port). */
+const VOLATILE = [
+  "[data-mt=message-time]",
+  "[data-mt=main] time",
+  "[data-mt=stale-note]",
+  "[data-mt=metric-card-secondary]",
+  "[data-mt=attention-text]",
+  "[data-mt=chart-times]",
+  "[data-mt=connection-link]",
 ];
 
+const MASKS = (page: Page) => VOLATILE.map((selector) => page.locator(selector));
+
 async function ready(page: Page, path: string): Promise<void> {
+  // A controllable clock, so relative times can be frozen before the screenshot.
+  await page.clock.install();
   await page.goto(path);
   await expect(page.locator("[data-mt=status-pill]")).toHaveAttribute("data-mt-state", "connected");
+}
+
+/**
+ * Stops the page's timers and replaces time-dependent text with a fixed placeholder.
+ * Masks hide the pixels, but a text that changes width ("45 s ago" → "2 min ago")
+ * would still move the layout around it.
+ */
+async function freeze(page: Page): Promise<void> {
+  const now = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(now + 1_000);
+  await page.evaluate((selectors) => {
+    for (const el of document.querySelectorAll(selectors.join(","))) el.textContent = "········";
+  }, VOLATILE);
 }
 
 test("channel view", async ({ page }) => {
   await ready(page, "/channels/0");
   await expect(page.locator("[data-mt=message]")).toHaveCount(2);
+  await freeze(page);
   await expect(page).toHaveScreenshot("channel-view.png", { mask: MASKS(page) });
 });
 
 test("node list", async ({ page }) => {
   await ready(page, "/nodes");
-  await expect(page.locator("[data-mt=node-row]")).toHaveCount(4);
+  await expect(page.locator("[data-mt=node-card]")).toHaveCount(4);
+  await freeze(page);
   await expect(page).toHaveScreenshot("node-list.png", { mask: MASKS(page) });
 });
 
@@ -83,13 +110,20 @@ test("DM view", async ({ page }) => {
     "data-mt-state",
     "acked",
   );
+  await freeze(page);
   await expect(page).toHaveScreenshot("dm-view.png", { mask: MASKS(page) });
 });
 
 test("dashboard", async ({ page }) => {
-  // Its own instance on the `dashboard` scenario; map tiles come from the fake tile server.
-  await page.goto(`http://127.0.0.1:${VISUAL_DASHBOARD_PORT}/dashboard`);
-  await expect(page.locator("[data-mt=status-pill]")).toHaveAttribute("data-mt-state", "connected");
+  await ready(page, `${DASH}/dashboard`);
+  await expect(page.locator("[data-mt=node-preview]")).toHaveCount(5);
+  await freeze(page);
+  await expect(page).toHaveScreenshot("dashboard.png", { mask: MASKS(page) });
+});
+
+test("nodes with mini maps", async ({ page }) => {
+  // The dashboard scenario has positions; map tiles come from the fake tile server.
+  await ready(page, `${DASH}/nodes`);
   await expect(page.locator("[data-mt=node-card]")).toHaveCount(7);
   // Every tile in view has loaded (lazy ones below the fold don't matter).
   await expect
@@ -101,13 +135,14 @@ test("dashboard", async ({ page }) => {
       ),
     )
     .toBe(true);
-  await expect(page).toHaveScreenshot("dashboard.png", {
-    mask: [
-      page.locator("[data-mt=node-card] time"),
-      page.locator("[data-mt=status-tile][data-mt-variant=connection] [data-mt=status-tile-value]"),
-      page.locator(
-        "[data-mt=status-tile][data-mt-variant=last-packet] [data-mt=status-tile-value]",
-      ),
-    ],
-  });
+  await freeze(page);
+  await expect(page).toHaveScreenshot("nodes-cards.png", { mask: MASKS(page) });
+});
+
+test("nodes table", async ({ page }) => {
+  await ready(page, `${DASH}/nodes`);
+  await page.getByRole("button", { name: "Table" }).click();
+  await expect(page.locator("[data-mt=node-row]")).toHaveCount(7);
+  await freeze(page);
+  await expect(page).toHaveScreenshot("nodes-table.png", { mask: MASKS(page) });
 });

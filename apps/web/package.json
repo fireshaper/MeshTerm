@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@meshterm/shared": "workspace:*",
+    "@radix-ui/react-dialog": "1.2.0",
     "@tanstack/react-query": "5.104.4",
     "@tanstack/react-router": "1.170.45",
     "@tanstack/react-virtual": "3.14.21",

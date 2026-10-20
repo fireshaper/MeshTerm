@@ -207,6 +207,28 @@ State: `typecheck`, `lint`, `format:check`, `test` (358) and `test:e2e` (41) are
 
 State: `typecheck`, `lint`, `format:check`, `test`, `test:e2e` and `test:gate` green locally: `test` 425 (61 files), `test:e2e` 55 Playwright (incl. CSP, dashboard, 8 visual baselines), `test:gate` 3/3. Not committed yet: waiting for the user.
 
+## Dashboard UI/UX overhaul (started 2026-10-19)
+
+- The user pasted a "Dashboard UI/UX Overhaul" change request. Plan: `memory-bank/overhaul-plan.md` (data-support matrix, backend changes B1–B7, component map, phases O1–O3). Agreed: Default theme **dark by default** (spec palette; light values kept for a future switcher); **all backend changes, phase by phase**; the mobile **tab bar is replaced by a drawer**; build O1 and stop.
+
+### Phase O1: Visual foundation (done 2026-10-19)
+
+- **B1:** the dashboard DTO adds `messagesIn24h`/`messagesOut24h` and my node's 24 h `channelUtilSpark`/`airUtilTxSpark` (30-min averages, from stored telemetry only).
+- **Theme and shell:** dark Default palette and new tokens; header with brand, connection indicator (device name, `TCP host:port`, status pill); collapsible sidebar (icons-only on tablets by default, remembered); mobile navigation drawer (Radix Dialog, focus trap, Escape) replacing the bottom tab bar.
+- **Dashboard:** page header with last packet; six KPI cards (nodes active/known, messages in/out, channel util and air TX with usage bars and recorded trends, local power with trend, connection with duration and last packet); 12-column grid with _My node & favorites_ previews, _Attention needed_ (low batteries, quiet favorites, busy channel) and _Recently active_ previews linking to the Nodes page; skeleton loading, empty and error states. Unknown values say "Unknown"; stale readings show their age; status wording is "heard", never "offline".
+- **Nodes page:** the full inventory (moved from the dashboard): search, filters (activity, role, power), sort, Cards/Table view, density, column picker; all remembered.
+- Tests: insights, KPI states and Unknown handling, previews, attention, live updates without remount, Nodes page filters/table/columns/persistence, drawer and sidebar collapse; e2e at 390/768/1024/1440 px with no horizontal scroll; visual baselines regenerated (dashboard, nodes cards, nodes table, channel, node list, DM × 2 widths × win32/linux; the FakeNode port is masked).
+
+State: `typecheck`, `lint`, `format:check`, `test` (438), `test:e2e` (62) and `test:gate` (3/3) green locally. One full e2e run had a single screenshot mismatch that didn't recur in the next three runs. Not committed.
+
+### Phase O2: Dashboard intelligence (done 2026-10-19)
+
+- **Server (B2, B4, B5, B6):** `activity` table (migration 0005, plus `messages_time_idx`) and recorder: messages, new nodes, nodes heard again after a long quiet, power state changes, connection lost/restored — never every packet; 7-day / 2 000-row ring buffer; WS `activity.new`. `GET …/events`, `GET …/traffic?window=` (messages in/out + my node's channel util per bucket, stored data only), `GET …/nodes/:num/history?window=`, `POST …/reconnect` (handshake only, 6/min). 11 new server tests incl. FakeNode integration (reconnect transmits nothing but the handshake).
+- **Web:** `TimeChart` (SVG bars + lines, gaps for missing data, tooltip by pointer or arrow keys); _Network activity_ panel with 1 h/6 h/24 h/7 d; _Recent activity_ feed (live, linked, own scroll, load older); node details drawer (Radix Dialog) opened from cards, previews, table rows, feed and keyboard (Enter); Reconnect button with toasts; InfoTips explaining Meshtastic metrics; dashboard grid: chart | attention, favorites | feed, recent.
+- Tests: TimeChart, activity feed (phrasing, live, cache bound), drawer (fields, Unknown/Not available, stale ages, close), reconnect/traffic UI; e2e: live feed, drawer, reconnect with no transmits, traffic window. Visual tests now pause the page clock and replace time-dependent text before screenshots (layout shifts from changing text widths had caused intermittent mismatches); all baselines regenerated.
+
+State: `typecheck`, `lint`, `format:check`, `test` (470), `test:e2e` (70; five of six full runs green, one run had a single `toBeVisible` timeout, since given more time) and `test:gate` (3/3) green locally. Not committed.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

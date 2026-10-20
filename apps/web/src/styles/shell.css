@@ -1,7 +1,9 @@
 /*
  * App shell layout. Selectors are the public data-mt hooks, so themes can target
- * the same elements. Below 768 px: header, content, bottom tab bar. From 768 px:
- * header across the top, sidebar on the left.
+ * the same elements. Below 768 px: header (with a menu button opening the
+ * navigation drawer) and content. From 768 px: header across the top and a sidebar,
+ * icons-only from 768 to 1023 px unless the user expands it (data-mt-state on
+ * app-shell: auto / expanded / collapsed).
  */
 @layer base {
   [data-mt="app-shell"] {
@@ -9,25 +11,91 @@
     grid-template:
       "header" var(--mt-header-height)
       "main" 1fr
-      "tab-bar" var(--mt-tab-bar-height)
       / minmax(0, 1fr);
     height: 100dvh;
+    background: var(--mt-surface-bg);
   }
 
   [data-mt="header"] {
     grid-area: header;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: var(--mt-space-2);
     padding-inline: var(--mt-space-3);
-    background: var(--mt-surface-raised);
+    background: var(--mt-sidebar-bg);
     border-bottom: var(--mt-border-width) solid var(--mt-border-color);
   }
 
   [data-mt="brand"] {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mt-space-2);
     font-weight: var(--mt-font-weight-bold);
-    font-size: var(--mt-font-size-lg);
+    font-size: var(--mt-font-size-md);
+    letter-spacing: 0.01em;
+  }
+
+  [data-mt="brand-icon"] {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+    padding: 0.2rem;
+    border-radius: var(--mt-radius-sm);
+    background: var(--mt-accent);
+    color: var(--mt-accent-text);
+  }
+
+  [data-mt="icon"] {
+    inline-size: 1.25em;
+    block-size: 1.25em;
+    flex: none;
+  }
+
+  [data-mt="menu-button"],
+  [data-mt="icon-button"],
+  [data-mt="sidebar-toggle"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--mt-space-1);
+    border: none;
+    border-radius: var(--mt-radius-sm);
+    background: none;
+    color: var(--mt-text-muted);
+    cursor: pointer;
+  }
+
+  [data-mt="menu-button"]:hover,
+  [data-mt="icon-button"]:hover,
+  [data-mt="sidebar-toggle"]:hover {
+    background: var(--mt-surface-elevated);
+    color: var(--mt-text);
+  }
+
+  [data-mt="connection-indicator"] {
+    display: flex;
+    align-items: center;
+    gap: var(--mt-space-3);
+    margin-inline-start: auto;
+    min-inline-size: 0;
+  }
+
+  [data-mt="connection-device"] {
+    display: none;
+    flex-direction: column;
+    align-items: flex-end;
+    min-inline-size: 0;
+    line-height: 1.2;
+  }
+
+  [data-mt="connection-device-name"] {
+    font-size: var(--mt-font-size-sm);
+    font-weight: var(--mt-font-weight-medium);
+  }
+
+  [data-mt="connection-link"] {
+    font-family: var(--mt-font-mono);
+    font-size: var(--mt-font-size-xs);
+    color: var(--mt-text-muted);
   }
 
   [data-mt="status-pill"] {
@@ -39,11 +107,13 @@
     border: var(--mt-border-width) solid var(--mt-border-color);
     font-size: var(--mt-font-size-sm);
     color: var(--mt-text-muted);
+    white-space: nowrap;
   }
 
   [data-mt="status-dot"] {
     inline-size: var(--mt-space-2);
     block-size: var(--mt-space-2);
+    flex: none;
     border-radius: 50%;
     background: currentcolor;
   }
@@ -55,28 +125,61 @@
     padding: var(--mt-space-3);
   }
 
-  [data-mt="sidebar"],
-  [data-mt="tab-bar"] {
-    display: flex;
-    background: var(--mt-surface-raised);
-  }
+  /* Sidebar (768 px and up) */
 
   [data-mt="sidebar"] {
     display: none;
     grid-area: sidebar;
     flex-direction: column;
-    gap: var(--mt-space-1);
+    gap: var(--mt-space-2);
     padding: var(--mt-space-2);
+    background: var(--mt-sidebar-bg);
     border-right: var(--mt-border-width) solid var(--mt-border-color);
+    min-block-size: 0;
+    overflow: hidden auto;
   }
 
-  [data-mt="tab-bar"] {
-    grid-area: tab-bar;
-    justify-content: space-around;
+  [data-mt="sidebar-nav"],
+  [data-mt="drawer-nav"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-1);
+  }
+
+  [data-mt="sidebar-footer"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-2);
+    align-items: flex-start;
+    margin-block-start: auto;
+    padding-block-start: var(--mt-space-2);
     border-top: var(--mt-border-width) solid var(--mt-border-color);
   }
 
+  [data-mt="nav-footer"] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding-inline: var(--mt-space-2);
+    min-inline-size: 0;
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="nav-footer-device"],
+  [data-mt="nav-footer-link"] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  [data-mt="nav-footer-link"] {
+    font-family: var(--mt-font-mono);
+    font-size: var(--mt-font-size-xs);
+    color: var(--mt-text-muted);
+  }
+
   [data-mt="nav-item"] {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--mt-space-2);
@@ -84,29 +187,78 @@
     border-radius: var(--mt-radius-md);
     color: var(--mt-text-muted);
     text-decoration: none;
-    transition: background-color var(--mt-duration-fast) var(--mt-easing);
+    white-space: nowrap;
+    transition:
+      background-color var(--mt-duration-fast) var(--mt-easing),
+      color var(--mt-duration-fast) var(--mt-easing);
+  }
+
+  [data-mt="nav-item"]:hover {
+    background: var(--mt-surface-elevated);
+    color: var(--mt-text);
   }
 
   [data-mt="nav-item"][data-mt-state="active"] {
+    color: var(--mt-text);
+    background: var(--mt-surface-elevated);
+  }
+
+  [data-mt="nav-item"][data-mt-state="active"]::before {
+    content: "";
+    position: absolute;
+    inset-block: var(--mt-space-2);
+    inset-inline-start: 0;
+    inline-size: calc(var(--mt-border-width) * 3);
+    border-radius: var(--mt-radius-sm);
+    background: var(--mt-accent);
+  }
+
+  [data-mt="nav-item"][data-mt-state="active"] [data-mt="icon"] {
     color: var(--mt-accent);
-    background: var(--mt-surface-sunken);
   }
 
-  [data-mt="tab-bar"] [data-mt="nav-item"] {
-    flex: 1;
+  /* Drawer (below 768 px) */
+
+  [data-mt="drawer-overlay"] {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, var(--mt-surface-bg) 70%, transparent);
+  }
+
+  [data-mt="nav-drawer"] {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 0;
-    font-size: var(--mt-font-size-sm);
+    gap: var(--mt-space-3);
+    inline-size: var(--mt-drawer-width);
+    padding: var(--mt-space-3);
+    background: var(--mt-sidebar-bg);
+    border-right: var(--mt-border-width) solid var(--mt-border-color);
+    box-shadow: var(--mt-shadow-popover);
+    color: var(--mt-text);
   }
 
-  [data-mt="icon"] {
-    inline-size: 1.25em;
-    block-size: 1.25em;
+  [data-mt="nav-drawer"] [data-mt="nav-footer"] {
+    margin-block-start: auto;
+  }
+
+  [data-mt="nav-drawer-header"] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
   [data-mt="page-title"] {
     font-size: var(--mt-font-size-lg);
+    font-weight: var(--mt-font-weight-bold);
+  }
+
+  @media (width >= 640px) {
+    [data-mt="connection-device"] {
+      display: flex;
+    }
   }
 
   @media (width >= 768px) {
@@ -121,8 +273,52 @@
       display: flex;
     }
 
-    [data-mt="tab-bar"] {
+    [data-mt="menu-button"] {
       display: none;
+    }
+
+    [data-mt="main"] {
+      padding: var(--mt-space-4);
+    }
+
+    /* Icons only: collapsed by the user. */
+    [data-mt="app-shell"][data-mt-state="collapsed"] {
+      grid-template-columns: var(--mt-sidebar-collapsed-width) minmax(0, 1fr);
+    }
+
+    [data-mt="app-shell"][data-mt-state="collapsed"] [data-mt="nav-label"],
+    [data-mt="app-shell"][data-mt-state="collapsed"] [data-mt="sidebar"] [data-mt="nav-footer"] {
+      display: none;
+    }
+
+    [data-mt="app-shell"][data-mt-state="collapsed"] [data-mt="sidebar"] [data-mt="nav-item"] {
+      justify-content: center;
+      padding-inline: 0;
+    }
+
+    [data-mt="app-shell"][data-mt-state="collapsed"] [data-mt="sidebar-footer"] {
+      align-items: center;
+    }
+  }
+
+  /* Icons only on tablets, until the user picks. */
+  @media (width >= 768px) and (width < 1024px) {
+    [data-mt="app-shell"][data-mt-state="auto"] {
+      grid-template-columns: var(--mt-sidebar-collapsed-width) minmax(0, 1fr);
+    }
+
+    [data-mt="app-shell"][data-mt-state="auto"] [data-mt="nav-label"],
+    [data-mt="app-shell"][data-mt-state="auto"] [data-mt="sidebar"] [data-mt="nav-footer"] {
+      display: none;
+    }
+
+    [data-mt="app-shell"][data-mt-state="auto"] [data-mt="sidebar"] [data-mt="nav-item"] {
+      justify-content: center;
+      padding-inline: 0;
+    }
+
+    [data-mt="app-shell"][data-mt-state="auto"] [data-mt="sidebar-footer"] {
+      align-items: center;
     }
   }
 }

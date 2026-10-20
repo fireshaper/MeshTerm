@@ -5,7 +5,13 @@ import { recordTelemetry } from "../db/telemetry.js";
 import { openTestDatabase } from "../db/test-db.js";
 import { settings } from "../db/schema.js";
 import { startTestApp, type TestApp } from "../test-app.js";
-import { batterySparks, getThresholds, setThresholds, SPARK_BUCKET_MS } from "./dashboard.js";
+import {
+  batterySparks,
+  utilSparks,
+  getThresholds,
+  setThresholds,
+  SPARK_BUCKET_MS,
+} from "./dashboard.js";
 
 const ME = 0xa1b2c3d4;
 const RIDGE = 0x0badcafe;
@@ -61,7 +67,12 @@ describe("GET /api/connections/:id/dashboard (dashboard scenario)", () => {
       channelUtil: 12.5,
       airUtilTx: 3.2,
       messages24h: 0,
+      messagesIn24h: 0,
+      messagesOut24h: 0,
     });
+    // The handshake's NodeInfo carries my node's device metrics: one util point each.
+    expect(summary.channelUtilSpark.map(([, v]) => v)).toEqual([12.5]);
+    expect(summary.airUtilTxSpark.map(([, v]) => v)).toEqual([3.2]);
     expect(summary.connectedSince).toBeGreaterThan(T - 10_000);
     expect(summary.lastPacketAt).not.toBeNull();
     expect(thresholds).toEqual(DEFAULT_DASHBOARD_THRESHOLDS);
@@ -145,7 +156,7 @@ describe("GET /api/connections/:id/dashboard (dashboard scenario)", () => {
   it("counts messages from the last 24 hours", async () => {
     t.node.injectText(RIDGE, { channel: 0 }, "hello dashboard");
     const dto = await waitForDashboard((d) => d.summary.messages24h > 0);
-    expect(dto.summary.messages24h).toBe(1);
+    expect(dto.summary).toMatchObject({ messages24h: 1, messagesIn24h: 1, messagesOut24h: 0 });
   });
 
   it("returns 404 for an unknown connection", async () => {
@@ -186,6 +197,39 @@ describe("batterySparks", () => {
     );
     // A full bucket holds 50, 51 and 52 → average 51.
     expect(spark.slice(1, -1).every(([, level]) => level === 51)).toBe(true);
+    handle.close();
+  });
+});
+
+describe("utilSparks", () => {
+  it("averages one node's channel util and air util TX, skipping missing values", () => {
+    const handle = openTestDatabase();
+    const now = 1_800_000_000_000;
+    const t0 = Math.floor(now / SPARK_BUCKET_MS) * SPARK_BUCKET_MS;
+    const report = (
+      nodeNum: number,
+      time: number,
+      channelUtil: number | null,
+      airUtilTx: number | null,
+    ) => ({
+      connectionId: 1,
+      nodeNum,
+      time,
+      kind: "device" as const,
+      device: { batteryLevel: null, voltage: null, channelUtil, airUtilTx, uptimeSeconds: null },
+    });
+    recordTelemetry(handle.db, report(ME, t0 - SPARK_BUCKET_MS + 1000, 10, 1));
+    recordTelemetry(handle.db, report(ME, t0 - SPARK_BUCKET_MS + 2000, 20, null));
+    recordTelemetry(handle.db, report(ME, t0 + 1000, null, 4.444));
+    recordTelemetry(handle.db, report(RIDGE, t0 + 1000, 99, 99)); // another node
+    recordTelemetry(handle.db, report(ME, now - 25 * 3600_000, 50, 50)); // too old
+    expect(utilSparks(handle.db, 1, ME, now)).toEqual({
+      channelUtil: [[t0 - SPARK_BUCKET_MS, 15]],
+      airUtilTx: [
+        [t0 - SPARK_BUCKET_MS, 1],
+        [t0, 4.44],
+      ],
+    });
     handle.close();
   });
 });

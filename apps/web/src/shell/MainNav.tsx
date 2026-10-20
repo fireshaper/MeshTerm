@@ -1,47 +1,56 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutGrid, MessagesSquare, Radio } from "lucide-react";
+import { LayoutGrid, MessagesSquare, Radio, type LucideIcon } from "lucide-react";
 
 interface MainNavProps {
-  /** `sidebar` at 768 px and up, `tab-bar` below; also the element's data-mt. */
-  variant: "sidebar" | "tab-bar";
+  /** `sidebar` from 768 px, `drawer` (the mobile menu) below; also the element's data-mt. */
+  variant: "sidebar" | "drawer";
+  /** Called after a link is chosen, e.g. to close the drawer. */
+  onNavigate?: () => void;
 }
 
 const ICON = { "aria-hidden": true, focusable: false } as const;
 
-export function MainNav({ variant }: MainNavProps) {
+interface Item {
+  prefix: string;
+  label: string;
+  Icon: LucideIcon;
+  link:
+    { to: "/dashboard" } | { to: "/channels/$index"; params: { index: string } } | { to: "/nodes" };
+}
+
+const ITEMS: Item[] = [
+  { prefix: "/dashboard", label: "Dashboard", Icon: LayoutGrid, link: { to: "/dashboard" } },
+  {
+    prefix: "/channels",
+    label: "Channels",
+    Icon: MessagesSquare,
+    link: { to: "/channels/$index", params: { index: "0" } },
+  },
+  { prefix: "/nodes", label: "Nodes", Icon: Radio, link: { to: "/nodes" } },
+];
+
+export function MainNav({ variant, onNavigate }: MainNavProps) {
   const { pathname } = useLocation();
-  const state = (prefix: string) => (pathname.startsWith(prefix) ? "active" : "inactive");
 
   return (
-    <nav data-mt={variant} aria-label="Main">
-      <Link
-        to="/dashboard"
-        data-mt="nav-item"
-        data-mt-state={state("/dashboard")}
-        aria-current={state("/dashboard") === "active" ? "page" : undefined}
-      >
-        <LayoutGrid data-mt="icon" {...ICON} />
-        <span data-mt="nav-label">Dashboard</span>
-      </Link>
-      <Link
-        to="/channels/$index"
-        params={{ index: "0" }}
-        data-mt="nav-item"
-        data-mt-state={state("/channels")}
-        aria-current={state("/channels") === "active" ? "page" : undefined}
-      >
-        <MessagesSquare data-mt="icon" {...ICON} />
-        <span data-mt="nav-label">Channels</span>
-      </Link>
-      <Link
-        to="/nodes"
-        data-mt="nav-item"
-        data-mt-state={state("/nodes")}
-        aria-current={state("/nodes") === "active" ? "page" : undefined}
-      >
-        <Radio data-mt="icon" {...ICON} />
-        <span data-mt="nav-label">Nodes</span>
-      </Link>
+    <nav data-mt={variant === "sidebar" ? "sidebar-nav" : "drawer-nav"} aria-label="Main">
+      {ITEMS.map(({ prefix, label, Icon, link }) => {
+        const active = pathname.startsWith(prefix);
+        return (
+          <Link
+            key={prefix}
+            {...link}
+            data-mt="nav-item"
+            data-mt-state={active ? "active" : "inactive"}
+            aria-current={active ? "page" : undefined}
+            title={label}
+            onClick={onNavigate}
+          >
+            <Icon data-mt="icon" {...ICON} />
+            <span data-mt="nav-label">{label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

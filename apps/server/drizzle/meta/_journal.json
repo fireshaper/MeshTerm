@@ -36,6 +36,13 @@
       "when": 1792439621708,
       "tag": "0004_dashboard_api",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792461413265,
+      "tag": "0005_activity_log",
+      "breakpoints": true
     }
   ]
 }

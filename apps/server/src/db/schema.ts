@@ -167,7 +167,41 @@ export const messages = sqliteTable(
     index("messages_peer_idx").on(t.connectionId, t.peer, t.rxTime),
     // A rebroadcast of a packet we already have is the same (sender, packet id).
     uniqueIndex("messages_dedupe_idx").on(t.connectionId, t.fromNum, t.packetId),
+    // Message counts over time (dashboard KPIs and the traffic chart).
+    index("messages_time_idx").on(t.connectionId, t.rxTime, t.direction),
   ],
+);
+
+export const ACTIVITY_KINDS = [
+  "message.in",
+  "message.out",
+  "node.new",
+  "node.back",
+  "power.changed",
+  "connection.lost",
+  "connection.restored",
+] as const;
+
+/**
+ * The activity feed: notable events, a ring buffer (7 days, at most 2 000 rows per
+ * connection). `value` and `detail` depend on `kind`: quiet time or downtime in ms,
+ * battery level, a disconnect reason, a message preview.
+ */
+export const activity = sqliteTable(
+  "activity",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    connectionId: integer("connection_id")
+      .notNull()
+      .references(() => connections.id, { onDelete: "cascade" }),
+    time: integer("time").notNull(),
+    kind: text("kind", { enum: ACTIVITY_KINDS }).notNull(),
+    nodeNum: integer("node_num"),
+    messageId: text("message_id"),
+    value: real("value"),
+    detail: text("detail"),
+  },
+  (t) => [index("activity_time_idx").on(t.connectionId, t.time)],
 );
 
 /** Key/value app settings; `value` is JSON text. */

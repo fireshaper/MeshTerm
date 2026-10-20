@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_PREFS, PREFS_KEY, readPrefs, useDashboardPrefs } from "./prefs.js";
+import { DEFAULT_PREFS, PREFS_KEY, readPrefs, useNodePrefs } from "./prefs.js";
 
 beforeEach(() => {
   localStorage.clear();
@@ -10,21 +10,31 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("dashboard prefs", () => {
+describe("node page prefs", () => {
   it("persist across remounts", () => {
-    const first = renderHook(() => useDashboardPrefs());
+    const first = renderHook(() => useNodePrefs());
     act(() => {
       first.result.current[1]({ filter: "online", sort: "battery" });
     });
     act(() => {
-      first.result.current[1]({ density: "compact" });
+      first.result.current[1]({
+        density: "compact",
+        view: "table",
+        role: "ROUTER",
+        power: "low",
+        columns: ["id"],
+      });
     });
     first.unmount();
-    const second = renderHook(() => useDashboardPrefs());
+    const second = renderHook(() => useNodePrefs());
     expect(second.result.current[0]).toEqual({
       filter: "online",
       sort: "battery",
       density: "compact",
+      view: "table",
+      role: "ROUTER",
+      power: "low",
+      columns: ["id"],
     });
   });
 
@@ -42,7 +52,7 @@ describe("dashboard prefs", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new DOMException("blocked", "SecurityError");
     });
-    const { result } = renderHook(() => useDashboardPrefs());
+    const { result } = renderHook(() => useNodePrefs());
     expect(result.current[0]).toEqual(DEFAULT_PREFS);
     act(() => {
       result.current[1]({ filter: "favorites" });

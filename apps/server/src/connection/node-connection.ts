@@ -140,6 +140,22 @@ export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
     this.transport.send(message);
   }
 
+  /**
+   * Drops the current link (if any) and connects again right away, with the backoff
+   * reset: a user-requested retry. Sends nothing but the usual handshake.
+   */
+  async reconnect(): Promise<void> {
+    this.cancelRetry?.();
+    this.cancelRetry = null;
+    this.failures = 0;
+    const closing = this.teardownLink();
+    const active =
+      this.state === "connecting" || this.state === "configuring" || this.state === "connected";
+    if (active) this.machine.transition("reconnecting", "reconnect requested");
+    await closing;
+    void this.attempt("reconnect requested");
+  }
+
   /** Drops the link, cancels any pending retry, and goes to `disconnected`. */
   async stop(): Promise<void> {
     this.cancelRetry?.();

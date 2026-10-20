@@ -1,4 +1,15 @@
-import type { Channel, ConnectionState, DashboardDTO, MeshNode, Message } from "@meshterm/shared";
+import type {
+  ActivityPage,
+  Channel,
+  ConnectionState,
+  DashboardDTO,
+  HistoryWindow,
+  MeshNode,
+  Message,
+  NodeHistory,
+  TrafficDTO,
+  TrafficWindow,
+} from "@meshterm/shared";
 import type { Conversation } from "./keys.js";
 
 /** `GET /api/connections` row. */
@@ -49,6 +60,24 @@ export const api = {
 
   dashboard: (connectionId: number) =>
     request<DashboardDTO>(`/api/connections/${connectionId}/dashboard`),
+
+  /** Activity feed, newest first; `before` pages back. */
+  events: (connectionId: number, before?: number | null) =>
+    request<ActivityPage>(
+      `/api/connections/${connectionId}/events?limit=50${before ? `&before=${before}` : ""}`,
+    ),
+
+  traffic: (connectionId: number, window: TrafficWindow) =>
+    request<TrafficDTO>(`/api/connections/${connectionId}/traffic?window=${window}`),
+
+  nodeHistory: (connectionId: number, num: number, window: HistoryWindow) =>
+    request<NodeHistory>(`/api/connections/${connectionId}/nodes/${num}/history?window=${window}`),
+
+  /** Drops and re-establishes the link to the node (handshake only). */
+  reconnect: (connectionId: number) =>
+    request<{ state: ConnectionState }>(`/api/connections/${connectionId}/reconnect`, {
+      method: "POST",
+    }),
 
   /** Local favorite flag; the server answers with the node and a `node.upsert`. */
   setFavorite: (connectionId: number, num: number, favorite: boolean) =>

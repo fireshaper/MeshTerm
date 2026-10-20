@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ActivityEvent } from "./activity.js";
 import {
   Channel,
   ChannelIndex,
@@ -78,6 +79,11 @@ export const ErrorMessage = z.object({
   message: z.string(),
 });
 
+export const ActivityNewMessage = z.object({
+  type: z.literal("activity.new"),
+  activity: ActivityEvent,
+});
+
 export const ServerMessage = z.discriminatedUnion("type", [
   SnapshotMessage,
   ConnectionStateMessage,
@@ -86,6 +92,7 @@ export const ServerMessage = z.discriminatedUnion("type", [
   MessageStatusMessage,
   TelemetryNewMessage,
   PositionNewMessage,
+  ActivityNewMessage,
   ErrorMessage,
 ]);
 export type ServerMessage = z.infer<typeof ServerMessage>;

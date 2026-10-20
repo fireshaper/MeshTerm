@@ -6,7 +6,7 @@ import {
   type ServerMessage,
   type ServerMessageOf,
 } from "@meshterm/shared";
-import type { DashboardDTO } from "@meshterm/shared";
+import type { ActivityPage, DashboardDTO } from "@meshterm/shared";
 import type { QueryClient } from "@tanstack/react-query";
 import {
   applyConnectionState,
@@ -75,15 +75,17 @@ export function applySnapshot(qc: QueryClient, snapshot: ServerMessageOf<"snapsh
   // A later snapshot means the socket reconnected and events may have been missed:
   // reload the dashboard. The first one arrives with the page, which just loaded it.
   if (seenSnapshot.has(qc)) {
-    void qc.invalidateQueries(
-      { queryKey: queryKeys.dashboard(connectionId) },
-      { cancelRefetch: false },
-    );
+    for (const queryKey of [queryKeys.dashboard(connectionId), queryKeys.activity(connectionId)]) {
+      void qc.invalidateQueries({ queryKey }, { cancelRefetch: false });
+    }
   }
   seenSnapshot.add(qc);
 }
 
 const seenSnapshot = new WeakSet<QueryClient>();
+
+/** Feed events kept in the cache; older ones are reloaded on demand. */
+export const ACTIVITY_CACHE_LIMIT = 200;
 
 /** Patches the cached dashboard of a connection, if one is cached. */
 function patchDashboard(
@@ -169,6 +171,20 @@ export function applyServerMessage(
     case "position.new": {
       const { position } = message;
       patchDashboard(qc, position.connectionId, (d) => applyPosition(d, position));
+      return;
+    }
+
+    case "activity.new": {
+      const { activity } = message;
+      qc.setQueryData<ActivityPage>(queryKeys.activity(activity.connectionId), (data) => {
+        if (!data || data.events.some((e) => e.id === activity.id)) return data;
+        // Newest first; keep the cached list bounded.
+        const all = [activity, ...data.events];
+        if (all.length <= ACTIVITY_CACHE_LIMIT) return { ...data, events: all };
+        const events = all.slice(0, ACTIVITY_CACHE_LIMIT);
+        // Dropped the oldest: "load older" continues from what's kept.
+        return { events, nextBefore: events.at(-1)?.id ?? null };
+      });
       return;
     }
 

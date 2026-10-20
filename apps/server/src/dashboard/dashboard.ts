@@ -55,6 +55,14 @@ export function batterySparks(
           AND ${telemetry.time} >= ${now - SPARK_WINDOW_MS}
           AND ${telemetry.batteryLevel} IS NOT NULL`,
   );
+  return bucketSparks(rows, Math.round);
+}
+
+/** `[node, time, value]` rows → per-node 30-min bucket averages, newest 48. */
+function bucketSparks(
+  rows: readonly [number, number, number][],
+  roundValue: (x: number) => number,
+): Map<number, SparkPoint[]> {
   // node → bucket → [sum, count]
   const sums = new Map<number, Map<number, [number, number]>>();
   for (const [nodeNum, time, level] of rows) {
@@ -78,12 +86,39 @@ export function batterySparks(
       .sort(([a], [b]) => a - b)
       .map(([bucket, [sum, count]]): SparkPoint => [
         bucket * SPARK_BUCKET_MS,
-        Math.round(sum / count),
+        roundValue(sum / count),
       ]);
     // A window that straddles 49 bucket boundaries keeps the newest 48.
     sparks.set(nodeNum, points.slice(-48));
   }
   return sparks;
+}
+
+/** One node's channel utilization and air util TX over the last 24 h (30-min averages). */
+export function utilSparks(
+  db: Db,
+  connectionId: number,
+  nodeNum: number,
+  now: number,
+): { channelUtil: SparkPoint[]; airUtilTx: SparkPoint[] } {
+  const rows = db.values<[number, number | null, number | null]>(
+    sql`SELECT ${telemetry.time}, ${telemetry.channelUtil}, ${telemetry.airUtilTx}
+        FROM ${telemetry}
+        WHERE ${telemetry.connectionId} = ${connectionId}
+          AND ${telemetry.nodeNum} = ${nodeNum}
+          AND ${telemetry.kind} = 'device'
+          AND ${telemetry.time} >= ${now - SPARK_WINDOW_MS}`,
+  );
+  const round2 = (x: number) => Math.round(x * 100) / 100;
+  const series = (pick: (r: [number, number | null, number | null]) => number | null) =>
+    bucketSparks(
+      rows.flatMap((r): [number, number, number][] => {
+        const v = pick(r);
+        return v === null ? [] : [[nodeNum, r[0], v]];
+      }),
+      round2,
+    ).get(nodeNum) ?? [];
+  return { channelUtil: series((r) => r[1]), airUtilTx: series((r) => r[2]) };
 }
 
 export interface LiveConnectionInfo {
@@ -163,12 +198,18 @@ export function buildDashboard(
 
   const self = cards.find((c) => c.isSelf);
   const onlineSince = now - thresholds.onlineMin * 60_000;
-  const messages24h =
-    db
-      .select({ n: sql<number>`count(*)` })
-      .from(messages)
-      .where(and(eq(messages.connectionId, connectionId), gte(messages.rxTime, now - 86_400_000)))
-      .get()?.n ?? 0;
+  const counts = db
+    .select({ direction: messages.direction, n: sql<number>`count(*)` })
+    .from(messages)
+    .where(and(eq(messages.connectionId, connectionId), gte(messages.rxTime, now - 86_400_000)))
+    .groupBy(messages.direction)
+    .all();
+  const messagesIn24h = counts.find((c) => c.direction === "in")?.n ?? 0;
+  const messagesOut24h = counts.find((c) => c.direction === "out")?.n ?? 0;
+  const util =
+    myNodeNum === null
+      ? { channelUtil: [], airUtilTx: [] }
+      : utilSparks(db, connectionId, myNodeNum, now);
 
   return {
     summary: {
@@ -181,8 +222,12 @@ export function buildDashboard(
       myBattery: self?.device?.batteryLevel ?? null,
       channelUtil: self?.device?.channelUtil ?? null,
       airUtilTx: self?.device?.airUtilTx ?? null,
-      messages24h,
+      messages24h: messagesIn24h + messagesOut24h,
+      messagesIn24h,
+      messagesOut24h,
       lastPacketAt: connection?.lastPacketAt ?? null,
+      channelUtilSpark: util.channelUtil,
+      airUtilTxSpark: util.airUtilTx,
     },
     thresholds,
     nodes: cards,

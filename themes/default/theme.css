@@ -1,14 +1,64 @@
 /*
- * Default theme: neutral light and dark. The reference value for every --mt-* token;
- * other themes override what they need inside @layer theme, never with !important.
+ * Default theme: dark-first network-monitoring palette, with a light variant on
+ * :root[data-mt-scheme="light"] for a future theme switcher. The reference value for
+ * every --mt-* token; other themes override what they need inside @layer theme,
+ * never with !important.
  */
 @layer theme {
   :root {
-    color-scheme: light dark;
+    color-scheme: dark;
 
-    --mt-surface-bg: #fff;
-    --mt-surface-raised: #f6f7f9;
+    --mt-surface-bg: #0b1018;
+    --mt-surface-raised: #161f2c;
+    --mt-surface-elevated: #1d2938;
+    --mt-surface-sunken: #0e141e;
+    --mt-sidebar-bg: #111823;
+    --mt-border-color: #2a3545;
+
+    --mt-text: #e8eef5;
+    --mt-text-muted: #93a2b7;
+    --mt-text-inverse: #0b1018;
+
+    --mt-accent: #55a8ff;
+    --mt-accent-text: #0b1018;
+    --mt-status-ok: #35d49a;
+    --mt-status-warn: #f5b84b;
+    --mt-status-error: #f16d79;
+    --mt-status-info: #55a8ff;
+
+    --mt-bubble-in-bg: #1d2938;
+    --mt-bubble-in-text: #e8eef5;
+    --mt-bubble-out-bg: #2b6fbf;
+    --mt-bubble-out-text: #fff;
+
+    --mt-card-bg: #161f2c;
+    --mt-card-border: #2a3545;
+    --mt-card-radius: 0.625rem;
+    --mt-card-shadow: none;
+    --mt-card-self-accent: #55a8ff;
+    --mt-battery-low: #f5b84b;
+    --mt-battery-critical: #f16d79;
+    --mt-chart-1: #55a8ff;
+    --mt-chart-2: #35d49a;
+
+    --mt-signal-online: #35d49a;
+    --mt-signal-recent: #55a8ff;
+    --mt-signal-stale: #f5b84b;
+    --mt-signal-offline: #5b6878;
+
+    --mt-map-marker: #55a8ff;
+    --mt-map-marker-self: #f16d79;
+    --mt-shadow-popover: 0 8px 24px #0006;
+  }
+
+  :root[data-mt-scheme="light"] {
+    color-scheme: light;
+
+    --mt-surface-bg: #f4f6f9;
+    --mt-surface-raised: #fff;
+    --mt-surface-elevated: #fff;
     --mt-surface-sunken: #eceef2;
+    --mt-sidebar-bg: #fff;
     --mt-border-color: #d5d9e0;
 
     --mt-text: #1b1f27;
@@ -29,12 +79,12 @@
 
     --mt-card-bg: #fff;
     --mt-card-border: #d5d9e0;
-    --mt-card-radius: 0.75rem;
-    --mt-card-shadow: 0 1px 2px #1b1f2714, 0 2px 8px #1b1f270d;
+    --mt-card-shadow: 0 1px 2px #1b1f2714;
     --mt-card-self-accent: #2563eb;
     --mt-battery-low: #b45309;
     --mt-battery-critical: #b91c1c;
     --mt-chart-1: #2563eb;
+    --mt-chart-2: #15803d;
 
     --mt-signal-online: #16a34a;
     --mt-signal-recent: #2563eb;
@@ -43,46 +93,6 @@
 
     --mt-map-marker: #2563eb;
     --mt-map-marker-self: #db2777;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --mt-surface-bg: #12151b;
-      --mt-surface-raised: #1b1f27;
-      --mt-surface-sunken: #0c0e12;
-      --mt-border-color: #2e3440;
-
-      --mt-text: #e6e9ef;
-      --mt-text-muted: #9aa3b2;
-      --mt-text-inverse: #12151b;
-
-      --mt-accent: #60a5fa;
-      --mt-accent-text: #0c0e12;
-      --mt-status-ok: #4ade80;
-      --mt-status-warn: #fbbf24;
-      --mt-status-error: #f87171;
-      --mt-status-info: #60a5fa;
-
-      --mt-bubble-in-bg: #252a34;
-      --mt-bubble-in-text: #e6e9ef;
-      --mt-bubble-out-bg: #2563eb;
-      --mt-bubble-out-text: #fff;
-
-      --mt-card-bg: #1b1f27;
-      --mt-card-border: #2e3440;
-      --mt-card-shadow: none;
-      --mt-card-self-accent: #60a5fa;
-      --mt-battery-low: #fbbf24;
-      --mt-battery-critical: #f87171;
-      --mt-chart-1: #60a5fa;
-
-      --mt-signal-online: #4ade80;
-      --mt-signal-recent: #60a5fa;
-      --mt-signal-stale: #fbbf24;
-      --mt-signal-offline: #6b7280;
-
-      --mt-map-marker: #60a5fa;
-      --mt-map-marker-self: #f472b6;
-    }
+    --mt-shadow-popover: 0 8px 24px #1b1f2729;
   }
 }

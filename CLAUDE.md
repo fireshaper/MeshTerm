@@ -50,7 +50,7 @@ pnpm --filter @meshterm/server test  # one package's tests
 pnpm test:e2e                        # build the SPA, then Playwright (desktop 1280 px + mobile 390 px)
 pnpm --filter @meshterm/web exec playwright install chromium   # once per machine
 pnpm test:gate                       # base-app gate spec, three runs in a row
-pnpm test:visual                     # visual baselines (dashboard, channel, nodes, DM × 1280/390 px)
+pnpm test:visual                     # visual baselines (dashboard, nodes cards/table, channel, node list, DM × 1280/390 px)
 pnpm test:visual:update              # rewrite this platform's baselines after an intended UI change
 pnpm test:visual:linux               # rewrite the Linux (CI) baselines in the Playwright Docker image
 
@@ -116,5 +116,5 @@ The built-in themes are Default (the reference for every token), Cyberpunk and R
 ## Testing rules
 
 - CI runs against `FakeNode`, a TCP server that speaks the real framing and replays recorded `FromRadio` frames. `meshtasticd` in simulator mode is optional for integration tests.
-- Playwright visual regression covers every main screen × every built-in theme (dashboard, channel, node list, DM × 390/1280 px, Default theme). Baselines are per platform. **After an intended UI change, update both**: `pnpm test:visual:update` (your OS) and `pnpm test:visual:linux` (CI), and look at the new PNGs before committing.
+- Playwright visual regression covers every main screen × every built-in theme (dashboard, nodes cards and table, channel, node list, DM × 390/1280 px, Default theme). Baselines are per platform. **After an intended UI change, update both**: `pnpm test:visual:update` (your OS) and `pnpm test:visual:linux` (CI), and look at the new PNGs before committing.
 - **Never transmit on the mesh** during startup, tests or migrations, apart from the config handshake and heartbeats.

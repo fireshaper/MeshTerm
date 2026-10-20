@@ -148,6 +148,11 @@ function toServerMessage(
         connectionId: event.payload.position.connectionId,
         message: { type: "position.new", ...event.payload },
       };
+    case "activity.new":
+      return {
+        connectionId: event.payload.activity.connectionId,
+        message: { type: "activity.new", ...event.payload },
+      };
     default:
       return null;
   }

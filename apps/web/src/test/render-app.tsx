@@ -5,12 +5,15 @@ import { App } from "../App.js";
 import { queryKeys, type ConversationData } from "../data/keys.js";
 import { createQueryClient } from "../data/queries.js";
 import { resetLiveStore, useLiveStore } from "../data/store.js";
+import { resetUiStore } from "../data/ui-store.js";
 import { createTestRouter } from "../router.js";
 
 export interface Seed {
   channels?: Channel[];
   nodes?: MeshNode[];
   dashboard?: DashboardDTO;
+  /** Any other cached query, e.g. `[queryKeys.traffic(1, "24h"), data]`. */
+  queries?: [readonly unknown[], unknown][];
   conversations?: [ReturnType<typeof queryKeys.messages>, ConversationData][];
   myNodeNum?: number | null;
   nodeState?: Parameters<ReturnType<typeof useLiveStore.getState>["setNodeState"]>[0];
@@ -19,6 +22,7 @@ export interface Seed {
 /** The whole app at `path` with no live socket: connection 1, cache seeded as a snapshot would. */
 export async function renderApp(path: string, seed: Seed = {}) {
   resetLiveStore();
+  resetUiStore();
   const store = useLiveStore.getState();
   store.setConnectionId(1);
   store.setSocketStatus("open");
@@ -27,8 +31,22 @@ export async function renderApp(path: string, seed: Seed = {}) {
 
   const queryClient: QueryClient = createQueryClient();
   if (seed.channels) queryClient.setQueryData(queryKeys.channels(1), seed.channels);
-  if (seed.nodes) queryClient.setQueryData(queryKeys.nodes(1), seed.nodes);
+  // What LiveConnection and the snapshot would have loaded: the connection list and nodes.
+  queryClient.setQueryData(queryKeys.connections, [
+    {
+      id: 1,
+      name: "Test node",
+      host: "192.0.2.1",
+      port: 4403,
+      transport: "tcp",
+      enabled: true,
+      state: seed.nodeState ?? "connected",
+      myNodeNum: seed.myNodeNum ?? null,
+    },
+  ]);
+  queryClient.setQueryData(queryKeys.nodes(1), seed.nodes ?? []);
   if (seed.dashboard) queryClient.setQueryData(queryKeys.dashboard(1), seed.dashboard);
+  for (const [key, data] of seed.queries ?? []) queryClient.setQueryData(key, data);
   for (const [key, data] of seed.conversations ?? []) queryClient.setQueryData(key, data);
 
   const router = createTestRouter(path);

@@ -1,6 +1,7 @@
 import type { CardPosition, DashboardThresholds, NodeCard as NodeCardData } from "@meshterm/shared";
 import { useNavigate } from "@tanstack/react-router";
-import { MessageSquare, Star } from "lucide-react";
+import { MessageSquare, PanelRightOpen, Star } from "lucide-react";
+import { openNodeDetails } from "../data/ui-store.js";
 import { memo, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { BatteryMeter, Sparkline } from "./BatteryMeter.js";
 import {
@@ -13,17 +14,11 @@ import {
 import { bearingDegrees, cardinal, formatDistance, haversineMeters } from "./geo.js";
 import { hardwareLabel, roleLabel } from "./labels.js";
 import { MiniMap } from "./MiniMap.js";
-import { nodeStatus, type Density, type NodeStatus } from "./view.js";
+import { STATUS_LABELS } from "./insights.js";
+import { nodeStatus, type Density } from "./view.js";
 
 /** How long a card shows `data-mt-state="updated"` after new data arrives. */
 export const UPDATE_FLASH_MS = 1500;
-
-const STATUS_LABELS: Record<NodeStatus, string> = {
-  online: "Online",
-  recent: "Recently heard",
-  stale: "Stale",
-  offline: "Offline",
-};
 
 export interface NodeCardProps {
   card: NodeCardData;
@@ -36,10 +31,10 @@ export interface NodeCardProps {
 }
 
 /** When any of these move, the card has new data and flashes. */
-const freshness = (c: NodeCardData) =>
+export const freshness = (c: NodeCardData) =>
   [c.lastHeard, c.device?.time, c.environment?.time, c.position?.time].join("|");
 
-function useUpdateFlash(signature: string): boolean {
+export function useUpdateFlash(signature: string): boolean {
   const [flashing, setFlashing] = useState(false);
   const previous = useRef(signature);
   useEffect(() => {
@@ -102,7 +97,7 @@ function signalText(card: NodeCardData): string | null {
 
 const hops = (n: number) => (n === 1 ? "hop" : "hops");
 
-/** One node at a glance. Focusable: Enter opens the DM, `f` toggles favorite. */
+/** One node at a glance. Focusable: Enter opens the details drawer, `f` toggles favorite. */
 export const NodeCard = memo(function NodeCard({
   card,
   origin,
@@ -138,7 +133,7 @@ export const NodeCard = memo(function NodeCard({
     if (e.target !== e.currentTarget || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.key === "Enter") {
       e.preventDefault();
-      openDm();
+      openNodeDetails(card.num);
     } else if (e.key === "f" || e.key === "F") {
       e.preventDefault();
       toggleFavorite();
@@ -274,14 +269,25 @@ export const NodeCard = memo(function NodeCard({
         )}
       </dl>
 
-      {!card.isSelf && (
-        <footer data-mt="node-card-actions">
+      <footer data-mt="node-card-actions">
+        <button
+          type="button"
+          data-mt="button"
+          data-mt-variant="details"
+          onClick={() => {
+            openNodeDetails(card.num);
+          }}
+        >
+          <PanelRightOpen data-mt="icon" aria-hidden focusable={false} />
+          Details
+        </button>
+        {!card.isSelf && (
           <button type="button" data-mt="button" data-mt-variant="message" onClick={openDm}>
             <MessageSquare data-mt="icon" aria-hidden focusable={false} />
             Message
           </button>
-        </footer>
-      )}
+        )}
+      </footer>
     </article>
   );
 });

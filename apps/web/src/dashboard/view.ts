@@ -43,7 +43,7 @@ export const FILTERS = ["all", "online", "favorites", "position"] as const;
 export type Filter = (typeof FILTERS)[number];
 export const FILTER_LABELS: Record<Filter, string> = {
   all: "All",
-  online: "Online",
+  online: "Heard recently",
   favorites: "Favorites",
   position: "Has position",
 };
@@ -58,6 +58,32 @@ export const SORT_LABELS: Record<Sort, string> = {
   hops: "Hops",
   snr: "SNR",
 };
+
+export const POWER_FILTERS = ["any", "battery", "external", "low", "unknown"] as const;
+export type PowerFilter = (typeof POWER_FILTERS)[number];
+export const POWER_LABELS: Record<PowerFilter, string> = {
+  any: "Any power",
+  battery: "On battery",
+  external: "External power",
+  low: "Low battery",
+  unknown: "Power unknown",
+};
+
+export type PowerClass = Exclude<PowerFilter, "any">;
+
+/** For the power filter: low (< 20 %) is also on battery. */
+export function powerClass(card: NodeCard): PowerClass {
+  const state = batteryState(card.device?.batteryLevel ?? null);
+  if (state === "unknown") return "unknown";
+  if (state === "powered") return "external";
+  return state === "low" || state === "critical" ? "low" : "battery";
+}
+
+export function matchesPower(card: NodeCard, filter: PowerFilter): boolean {
+  if (filter === "any") return true;
+  const cls = powerClass(card);
+  return filter === "battery" ? cls === "battery" || cls === "low" : cls === filter;
+}
 
 export const DENSITIES = ["comfy", "compact"] as const;
 export type Density = (typeof DENSITIES)[number];
@@ -144,6 +170,9 @@ export interface Sections {
 export interface ViewOptions {
   query: string;
   filter: Filter;
+  /** A role enum name, or null for all roles. */
+  role?: string | null;
+  power?: PowerFilter;
   sort: Sort;
   now: number;
   thresholds: DashboardThresholds;
@@ -157,7 +186,9 @@ export function arrangeCards(cards: readonly NodeCard[], options: ViewOptions): 
     .filter(
       (c) =>
         matchesSearch(c, options.query) &&
-        matchesFilter(c, options.filter, options.now, options.thresholds),
+        matchesFilter(c, options.filter, options.now, options.thresholds) &&
+        (options.role == null || c.role === options.role) &&
+        matchesPower(c, options.power ?? "any"),
     )
     .sort(compareCards(options.sort, origin));
   return {

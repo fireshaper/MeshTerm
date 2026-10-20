@@ -25,6 +25,7 @@ describe("migrations", () => {
     migrateDatabase(handle.db);
     expect(objects("table")).toEqual([
       "__drizzle_migrations",
+      "activity",
       "channels",
       "connections",
       "messages",
@@ -34,7 +35,13 @@ describe("migrations", () => {
       "telemetry",
     ]);
     expect(objects("index")).toEqual(
-      expect.arrayContaining(["messages_channel_idx", "messages_dedupe_idx", "messages_peer_idx"]),
+      expect.arrayContaining([
+        "messages_channel_idx",
+        "messages_dedupe_idx",
+        "messages_peer_idx",
+        "messages_time_idx",
+        "activity_time_idx",
+      ]),
     );
   });
 

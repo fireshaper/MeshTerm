@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { App } from "./App.js";
@@ -20,9 +20,49 @@ describe("<App /> shell", () => {
     expectDataMt(byDataMt("header"), "header");
     expectDataMt(byDataMt("status-pill"), "status-pill", { state: "unknown" });
     expectDataMt(byDataMt("main"), "main");
-    // Both navigations exist; CSS decides which one shows.
+    // The sidebar (≥ 768 px) and the drawer's menu button (< 768 px); CSS shows one.
     expectDataMt(byDataMt("sidebar"), "sidebar");
-    expectDataMt(byDataMt("tab-bar"), "tab-bar");
+    expectDataMt(byDataMt("menu-button"), "menu-button");
+    expectDataMt(byDataMt("app-shell"), "app-shell", { state: "auto" });
+  });
+
+  it("opens the navigation drawer, which closes after choosing a page", async () => {
+    const user = userEvent.setup();
+    const router = await renderAt("/channels/0");
+    await user.click(screen.getByRole("button", { name: "Open navigation" }));
+    const drawer = await screen.findByRole("dialog");
+    expectDataMt(drawer, "nav-drawer");
+    await user.click(within(drawer).getByRole("link", { name: "Nodes" }));
+    await act(() => router.load());
+    expect(router.state.location.pathname).toBe("/nodes");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("the drawer closes with Escape", async () => {
+    const user = userEvent.setup();
+    await renderAt("/channels/0");
+    await user.click(screen.getByRole("button", { name: "Open navigation" }));
+    await screen.findByRole("dialog");
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("collapses and expands the sidebar, and remembers the choice", async () => {
+    localStorage.clear();
+    const user = userEvent.setup();
+    const first = render(<App router={createTestRouter("/channels/0")} live={false} />);
+    await screen.findByRole("heading", { level: 1 });
+    // jsdom matches no media query: auto reads as collapsed, so the toggle expands.
+    await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
+    expectDataMt(byDataMt("app-shell"), "app-shell", { state: "expanded" });
+    await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
+    expectDataMt(byDataMt("app-shell"), "app-shell", { state: "collapsed" });
+    first.unmount();
+    render(<App router={createTestRouter("/channels/0")} live={false} />);
+    await screen.findByRole("heading", { level: 1 });
+    expectDataMt(byDataMt("app-shell"), "app-shell", { state: "collapsed" });
+    expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
+    localStorage.clear();
   });
 
   it("redirects / to the dashboard", async () => {
