@@ -65,6 +65,20 @@ export function setMyNodeNum(db: Db, connectionId: number, myNodeNum: number): v
   db.update(connections).set({ myNodeNum }).where(eq(connections.id, connectionId)).run();
 }
 
+export function getModemPreset(db: Db, connectionId: number): string | null {
+  return (
+    db
+      .select({ modemPreset: connections.modemPreset })
+      .from(connections)
+      .where(eq(connections.id, connectionId))
+      .get()?.modemPreset ?? null
+  );
+}
+
+export function setModemPreset(db: Db, connectionId: number, modemPreset: string | null): void {
+  db.update(connections).set({ modemPreset }).where(eq(connections.id, connectionId)).run();
+}
+
 // ---------------------------------------------------------------------- nodes
 
 type NodeRow = typeof nodes.$inferSelect;
@@ -83,6 +97,8 @@ function toMeshNode(row: NodeRow): MeshNode {
     snr: row.snr,
     hopsAway: row.hopsAway,
     isFavorite: row.favoriteOverride ?? row.isFavorite,
+    hasPublicKey: row.hasPublicKey,
+    isIgnored: row.isIgnored,
   };
 }
 
@@ -123,12 +139,13 @@ export function upsertChannel(db: Db, channel: Channel): void {
     channelIndex: channel.index,
     name: channel.name,
     role: channel.role,
+    encryption: channel.encryption,
   };
   db.insert(channels)
     .values(row)
     .onConflictDoUpdate({
       target: [channels.connectionId, channels.channelIndex],
-      set: { name: row.name, role: row.role },
+      set: { name: row.name, role: row.role, encryption: row.encryption },
     })
     .run();
 }

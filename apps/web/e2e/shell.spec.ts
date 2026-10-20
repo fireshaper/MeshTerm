@@ -9,7 +9,7 @@ test.describe("app shell", () => {
   test("shows a menu button below 768 px and the sidebar from 768 px, with no horizontal scroll", async ({
     page,
   }) => {
-    await page.goto("/channels/0");
+    await page.goto("/messages/channel/0");
     const width = page.viewportSize()?.width ?? 0;
     const sidebar = page.locator("[data-mt=sidebar]");
     const menu = page.getByRole("button", { name: "Open navigation" });
@@ -26,10 +26,10 @@ test.describe("app shell", () => {
   });
 
   for (const [path, title] of [
-    ["/channels/0", "Channel 0"],
-    ["/channels/1", "Channel 1"],
+    ["/messages/channel/0", "Messages"],
+    ["/messages/channel/1", "Messages"],
     ["/nodes", "Nodes"],
-    ["/dm/195939070", "Direct messages with Ridge Repeater"],
+    ["/messages/dm/!0badcafe", "Messages"],
   ] as const) {
     test(`renders ${path} on a direct load, without horizontal scroll`, async ({ page }) => {
       await page.goto(path);
@@ -44,7 +44,7 @@ test.describe("app shell", () => {
   });
 
   test("navigates between sections with the visible navigation", async ({ page }) => {
-    await page.goto("/channels/0");
+    await page.goto("/messages/channel/0");
     const narrow = (page.viewportSize()?.width ?? 0) < SIDEBAR_MIN_WIDTH;
     const nav = page.getByRole("navigation", { name: "Main" });
     /** Below 768 px the navigation lives in the drawer. */
@@ -60,10 +60,10 @@ test.describe("app shell", () => {
     // The drawer closes after choosing a page.
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
-    await go("Channels");
-    await expect(page).toHaveURL(/\/channels\/0$/);
+    await go("Messages");
+    await expect(page).toHaveURL(/\/messages(\/channel\/\d)?$/);
     if (!narrow) {
-      await expect(nav.getByRole("link", { name: "Channels" })).toHaveAttribute(
+      await expect(nav.getByRole("link", { name: "Messages" })).toHaveAttribute(
         "data-mt-state",
         "active",
       );
@@ -72,7 +72,7 @@ test.describe("app shell", () => {
 
   test("the sidebar collapses to icons and stays collapsed after a reload", async ({ page }) => {
     test.skip((page.viewportSize()?.width ?? 0) < 1024, "the sidebar is expanded from 1024 px");
-    await page.goto("/channels/0");
+    await page.goto("/messages/channel/0");
     const label = page.locator("[data-mt=sidebar] [data-mt=nav-label]").first();
     await expect(label).toBeVisible();
     await page.getByRole("button", { name: "Collapse sidebar" }).click();

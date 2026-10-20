@@ -1,4 +1,5 @@
 import {
+  nodeIdFromNum,
   HISTORY_WINDOWS,
   type HistoryWindow,
   type NodeCard,
@@ -272,8 +273,8 @@ function Details({
       {!card.isSelf && (
         <div data-mt="node-drawer-actions">
           <Link
-            to="/dm/$nodeNum"
-            params={{ nodeNum: String(card.num) }}
+            to="/messages/dm/$nodeId"
+            params={{ nodeId: nodeIdFromNum(card.num) }}
             data-mt="button"
             data-mt-variant="message"
             onClick={close}

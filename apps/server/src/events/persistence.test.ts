@@ -52,6 +52,8 @@ describe("mergeNode", () => {
       snr: null,
       hopsAway: null,
       isFavorite: false,
+      hasPublicKey: false,
+      isIgnored: false,
     });
   });
 

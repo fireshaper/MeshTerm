@@ -12,7 +12,7 @@ Checked against the spec's five causes:
 4. **PKI:** the node hands us decoded packets, so they aren't skipped. But `pki_encrypted`, `via_mqtt`, `reply_id`, `emoji`, hops and the NAK reason aren't stored.
 5. **Expectation:** we only get DMs addressed to our node. Correct, no change.
 
-## Phase 1: ingest and data model
+## Phase 1: ingest and data model (done 2026-10-20)
 
 - Migration 0007:
   - `messages` gains `pki_encrypted`, `via_mqtt`, `reply_id`, `emoji`, `hop_start`, `hop_limit` and `error_reason`.
@@ -30,7 +30,7 @@ Checked against the spec's five causes:
   - A duplicate is deduped.
   - A NAK reason is stored.
 
-## Phase 2: two-pane Messages view
+## Phase 2: two-pane Messages view (done 2026-10-20)
 
 - `GET …/conversations`: channels plus DMs, last message preview, unread count, muted/favorite.
 - Routes:

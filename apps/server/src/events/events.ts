@@ -23,6 +23,8 @@ export interface RadioEvents {
   "radio.myInfo": { connectionId: number; myNodeNum: number };
   "radio.node": { connectionId: number; update: NodeUpdate };
   "radio.channel": { channel: Channel };
+  /** Our node's LoRa config: its modem preset name, null when it uses custom settings. */
+  "radio.lora": { connectionId: number; modemPreset: string | null };
   /** An inbound text message, not yet deduplicated. */
   "radio.text": { message: Message };
   /**

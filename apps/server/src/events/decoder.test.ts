@@ -53,6 +53,8 @@ describe("decodeFromRadio", () => {
           snr: 7.25,
           hopsAway: 0,
           isFavorite: false,
+          isIgnored: false,
+          hasPublicKey: true,
         },
       },
     });
@@ -64,11 +66,21 @@ describe("decodeFromRadio", () => {
     expect(events).toEqual([
       {
         type: "radio.channel",
-        payload: { channel: { connectionId: 1, index: 0, name: "", role: "PRIMARY" } },
+        payload: {
+          channel: { connectionId: 1, index: 0, name: "", role: "PRIMARY", encryption: "default" },
+        },
       },
       {
         type: "radio.channel",
-        payload: { channel: { connectionId: 1, index: 1, name: "Friends", role: "SECONDARY" } },
+        payload: {
+          channel: {
+            connectionId: 1,
+            index: 1,
+            name: "Friends",
+            role: "SECONDARY",
+            encryption: "custom",
+          },
+        },
       },
     ]);
     expect(JSON.stringify(events)).not.toMatch(/psk/i);
@@ -118,6 +130,7 @@ describe("decodeFromRadio", () => {
           shortName: "NEW",
           hwModel: "TBEAM",
           role: "CLIENT",
+          hasPublicKey: false,
         },
       },
     });
@@ -141,13 +154,22 @@ describe("decodeFromRadio", () => {
     expect(decode(frames.unhandled)).toEqual({ events: [], ignored: "port RANGE_TEST_APP" });
   });
 
-  it("config, metadata and config_complete_id yield no events", () => {
+  it("the LoRa config yields the modem preset; other config and metadata yield nothing", () => {
+    const lora: RadioEvent[] = [];
     for (const m of frames.handshake) {
-      const c = m.payloadVariant.case;
+      const v = m.payloadVariant;
+      if (v.case === "config" && v.value.payloadVariant.case === "lora") {
+        lora.push(...decode(m).events);
+        continue;
+      }
+      const c = v.case;
       if (c === "config" || c === "moduleConfig" || c === "metadata" || c === "configCompleteId") {
         expect(decode(m).events).toEqual([]);
       }
     }
+    expect(lora).toEqual([
+      { type: "radio.lora", payload: { connectionId: 1, modemPreset: "LONG_FAST" } },
+    ]);
   });
 });
 

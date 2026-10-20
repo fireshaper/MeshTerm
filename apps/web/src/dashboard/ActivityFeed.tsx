@@ -1,4 +1,10 @@
-import type { ActivityEvent, ActivityKind, NodeCard } from "@meshterm/shared";
+import {
+  channelDisplayName,
+  nodeIdFromNum,
+  type ActivityEvent,
+  type ActivityKind,
+  type NodeCard,
+} from "@meshterm/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
@@ -14,7 +20,6 @@ import {
 import { useState } from "react";
 import { EmptyState, Panel } from "../components/Panel.js";
 import { useNow } from "../components/useNow.js";
-import { channelLabel } from "../components/ChannelTabs.js";
 import { loadOlderActivity, useActivity, useChannels } from "../data/queries.js";
 import { openNodeDetails } from "../data/ui-store.js";
 import { formatAbsolute, formatAgo, formatDuration } from "./format.js";
@@ -116,7 +121,7 @@ function ActivityItem({
         <Source event={event} cards={cards} />
         {isMessage && event.value !== null ? (
           <Link
-            to="/channels/$index"
+            to="/messages/channel/$index"
             params={{ index: String(event.value) }}
             data-mt="activity-text"
           >
@@ -124,8 +129,8 @@ function ActivityItem({
           </Link>
         ) : isMessage && event.nodeNum !== null ? (
           <Link
-            to="/dm/$nodeNum"
-            params={{ nodeNum: String(event.nodeNum) }}
+            to="/messages/dm/$nodeId"
+            params={{ nodeId: nodeIdFromNum(event.nodeNum) }}
             data-mt="activity-text"
           >
             {text}
@@ -161,7 +166,7 @@ export function ActivityFeed({
   const { data: channels } = useChannels(connectionId);
   const channelName = (index: number) => {
     const channel = channels?.find((c) => c.index === index);
-    return channel ? channelLabel(channel) : `channel ${index}`;
+    return channel ? channelDisplayName(channel, null) : `channel ${index}`;
   };
 
   return (

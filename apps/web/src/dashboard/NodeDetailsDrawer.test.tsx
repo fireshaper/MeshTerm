@@ -85,7 +85,7 @@ describe("<NodeDetailsDrawer />", () => {
     expect(dialog).toHaveTextContent("see you at the ridge");
     expect(within(dialog).getByRole("link", { name: "Send a direct message" })).toHaveAttribute(
       "href",
-      `/dm/${RIDGE}`,
+      "/messages/dm/!0badcafe",
     );
   });
 

@@ -349,25 +349,3 @@
     font-size: var(--mt-font-size-sm);
   }
 }
-
-@layer base {
-  [data-mt="channel-tabs"] {
-    display: flex;
-    gap: var(--mt-space-1);
-    overflow-x: auto;
-    border-bottom: var(--mt-border-width) solid var(--mt-border-color);
-  }
-
-  [data-mt="channel-tab"] {
-    padding: var(--mt-space-2) var(--mt-space-3);
-    color: var(--mt-text-muted);
-    text-decoration: none;
-    white-space: nowrap;
-    border-bottom: var(--mt-border-width) solid transparent;
-  }
-
-  [data-mt="channel-tab"][data-mt-state="active"] {
-    color: var(--mt-accent);
-    border-bottom-color: var(--mt-accent);
-  }
-}

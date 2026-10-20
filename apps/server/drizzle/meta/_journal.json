@@ -57,6 +57,13 @@
       "when": 1792513727546,
       "tag": "0007_messages_overhaul",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792515075015,
+      "tag": "0008_conversation_metadata",
+      "breakpoints": true
     }
   ]
 }

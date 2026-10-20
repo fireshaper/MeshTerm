@@ -4,6 +4,7 @@ import { Channel as ChannelPb, Config, Mesh } from "@meshterm/protocol";
 import {
   DEFAULT_DASHBOARD_THRESHOLDS,
   nodeIdFromNum,
+  pskKind,
   type Channel,
   type DashboardDTO,
   type MeshNode,
@@ -21,6 +22,7 @@ export function scenarioChannels(name = "default", connectionId = 1): Channel[] 
     index: c.index,
     name: c.settings?.name ?? "",
     role: (enumName(ChannelPb.Channel_Role, c.role) ?? "DISABLED") as Channel["role"],
+    encryption: pskKind(c.settings?.psk),
   }));
 }
 
@@ -38,6 +40,8 @@ export function scenarioNodes(name = "default", nowMs = Date.now(), connectionId
     snr: info.lastHeard > 0 || lastHeardAgoS !== null ? info.snr : null,
     hopsAway: info.hopsAway ?? null,
     isFavorite: info.isFavorite,
+    hasPublicKey: (info.user?.publicKey.length ?? 0) === 32,
+    isIgnored: info.isIgnored,
   }));
 }
 

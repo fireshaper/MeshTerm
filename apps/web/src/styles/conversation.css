@@ -1,14 +1,5 @@
 /* Conversation: tabs, virtualized message list and composer. Tokens only. */
 @layer base {
-  [data-mt="channel-view"],
-  [data-mt="dm-view"] {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mt-space-2);
-    block-size: 100%;
-    min-block-size: 0;
-  }
-
   [data-mt="conversation"] {
     display: flex;
     flex: 1;
@@ -193,8 +184,7 @@
     background: var(--mt-surface-sunken);
   }
 
-  [data-mt="node-self-badge"],
-  [data-mt="dm-peer-id"] {
+  [data-mt="node-self-badge"] {
     color: var(--mt-text-muted);
     font-weight: normal;
   }

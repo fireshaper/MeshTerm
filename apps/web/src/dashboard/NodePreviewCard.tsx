@@ -1,4 +1,9 @@
-import type { CardPosition, DashboardThresholds, NodeCard } from "@meshterm/shared";
+import {
+  nodeIdFromNum,
+  type CardPosition,
+  type DashboardThresholds,
+  type NodeCard,
+} from "@meshterm/shared";
 import { Link } from "@tanstack/react-router";
 import { MessageSquare, PanelRightOpen, Star } from "lucide-react";
 import { openNodeDetails } from "../data/ui-store.js";
@@ -177,8 +182,8 @@ export const NodePreviewCard = memo(function NodePreviewCard({
         </button>
         {!card.isSelf && (
           <Link
-            to="/dm/$nodeNum"
-            params={{ nodeNum: String(card.num) }}
+            to="/messages/dm/$nodeId"
+            params={{ nodeId: nodeIdFromNum(card.num) }}
             data-mt="button"
             data-mt-variant="message"
           >

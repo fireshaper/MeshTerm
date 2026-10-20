@@ -33,10 +33,8 @@ test.describe("nodes and direct messages", () => {
       .locator(`[data-mt=node-card][data-node-num="${RIDGE}"]`)
       .getByRole("button", { name: "Message" })
       .click();
-    await expect(page).toHaveURL(new RegExp(`/dm/${RIDGE}$`));
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Direct messages with Ridge Repeater",
-    );
+    await expect(page).toHaveURL(/\/messages\/dm\/!0badcafe$/);
+    await expect(page.locator("[data-mt=thread-title]")).toHaveText("Ridge Repeater");
 
     await fakeNode.clearInbound();
     const outText = `dm to ridge ${info.project.name} ${Date.now()}`;
@@ -55,9 +53,11 @@ test.describe("nodes and direct messages", () => {
       page.locator("[data-mt=message][data-mt-variant=in]", { hasText: reply }),
     ).toBeVisible();
 
-    await page.goto("/channels/0");
+    await page.goto("/messages/channel/0");
     await expect(page.locator("[data-mt=message-list]")).toBeVisible();
-    await expect(page.getByText(reply)).toHaveCount(0);
-    await expect(page.getByText(outText)).toHaveCount(0);
+    // (The conversation list may preview the DM; the channel thread must not show it.)
+    const thread = page.locator("[data-mt=message-list]");
+    await expect(thread.getByText(reply)).toHaveCount(0);
+    await expect(thread.getByText(outText)).toHaveCount(0);
   });
 });

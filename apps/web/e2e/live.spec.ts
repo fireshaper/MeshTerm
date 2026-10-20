@@ -3,7 +3,7 @@ import { fakeNode } from "./control.js";
 
 test.describe("live connection state", () => {
   test("the status pill follows a node reboot: reconnecting, then connected", async ({ page }) => {
-    await page.goto("/channels/0");
+    await page.goto("/messages/channel/0");
     const pill = page.locator("[data-mt=status-pill]");
     await expect(pill).toHaveAttribute("data-mt-state", "connected");
     await expect(pill).toHaveText("Connected");

@@ -113,7 +113,7 @@ describe("migration 0003 (dashboard data)", () => {
       .run(m.id, m.packetId, m.fromNum, m.toNum, m.peer, m.text, m.rxTime);
 
     migrateDatabase(handle.db);
-    expect(listNodes(handle.db, 1)).toEqual([fixtures.node]);
+    expect(listNodes(handle.db, 1)).toEqual([{ ...fixtures.node, hasPublicKey: false }]);
     expect(handle.sqlite.prepare("SELECT count(*) AS n FROM messages").get()).toEqual({ n: 1 });
     expect(handle.sqlite.prepare("SELECT lat, battery_level FROM nodes").get()).toEqual({
       lat: null,

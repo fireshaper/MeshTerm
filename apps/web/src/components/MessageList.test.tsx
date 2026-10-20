@@ -37,7 +37,7 @@ afterEach(() => {
 
 describe("<MessageList />", () => {
   it("virtualizes: 5,000 messages render fewer than 100 elements", async () => {
-    await renderApp("/channels/0", {
+    await renderApp("/messages/channel/0", {
       ...seedBase(),
       conversations: [[channel0, { messages: channelMessages(5_000), cursor: null }]],
     });
@@ -48,7 +48,7 @@ describe("<MessageList />", () => {
 
   it("shows sender short name, text, relative time and in/out hooks", async () => {
     const inbound = channelMessages(1)[0] as Message;
-    await renderApp("/channels/0", {
+    await renderApp("/messages/channel/0", {
       ...seedBase(),
       conversations: [[channel0, { messages: [inbound], cursor: null }]],
     });
@@ -68,7 +68,7 @@ describe("<MessageList />", () => {
       rxTime: NOW,
       status: "sent",
     };
-    const { queryClient } = await renderApp("/channels/0", {
+    const { queryClient } = await renderApp("/messages/channel/0", {
       ...seedBase(),
       conversations: [[channel0, { messages: [out], cursor: null }]],
     });
@@ -99,7 +99,7 @@ describe("<MessageList />", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const { queryClient } = await renderApp("/channels/0", {
+    const { queryClient } = await renderApp("/messages/channel/0", {
       ...seedBase(),
       conversations: [[channel0, { messages: page, cursor }]],
     });
@@ -127,7 +127,7 @@ describe("<MessageList />", () => {
   });
 
   it("shows an empty state", async () => {
-    await renderApp("/channels/0", {
+    await renderApp("/messages/channel/0", {
       ...seedBase(),
       conversations: [[channel0, { messages: [], cursor: null }]],
     });

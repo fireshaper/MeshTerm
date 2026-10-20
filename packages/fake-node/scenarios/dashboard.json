@@ -44,7 +44,8 @@
         "longName": "Ridge Repeater",
         "shortName": "RDG",
         "hwModel": "RAK4631",
-        "role": "ROUTER"
+        "role": "ROUTER",
+        "publicKey": "CzBVep/E6Q4zWH2ix+wRNluApcrvFDleg6jN8hc8YYY="
       },
       "position": { "latitudeI": 476500000, "longitudeI": -1222800000, "altitude": 312 },
       "deviceMetrics": {

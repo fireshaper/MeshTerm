@@ -99,6 +99,7 @@
     --mt-header-height: 3rem;
     --mt-tab-bar-height: 3.5rem;
     --mt-sidebar-width: 14rem;
+    --mt-conversation-list-width: 20rem;
     --mt-sidebar-collapsed-width: 4rem;
     --mt-drawer-width: min(18rem, 85vw);
 

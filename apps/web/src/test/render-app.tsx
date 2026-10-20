@@ -1,4 +1,10 @@
-import type { Channel, DashboardDTO, MeshNode } from "@meshterm/shared";
+import {
+  channelDisplayName,
+  type Channel,
+  type ConversationsDTO,
+  type DashboardDTO,
+  type MeshNode,
+} from "@meshterm/shared";
 import type { QueryClient } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { App } from "../App.js";
@@ -15,6 +21,8 @@ export interface Seed {
   /** Any other cached query, e.g. `[queryKeys.traffic(1, "24h"), data]`. */
   queries?: [readonly unknown[], unknown][];
   conversations?: [ReturnType<typeof queryKeys.messages>, ConversationData][];
+  /** The conversation list; by default the seeded channels (preset LongFast) and no DMs. */
+  conversationList?: ConversationsDTO;
   myNodeNum?: number | null;
   nodeState?: Parameters<ReturnType<typeof useLiveStore.getState>["setNodeState"]>[0];
 }
@@ -46,6 +54,21 @@ export async function renderApp(path: string, seed: Seed = {}) {
   ]);
   queryClient.setQueryData(queryKeys.nodes(1), seed.nodes ?? []);
   if (seed.dashboard) queryClient.setQueryData(queryKeys.dashboard(1), seed.dashboard);
+  queryClient.setQueryData<ConversationsDTO>(
+    queryKeys.conversations(1),
+    seed.conversationList ?? {
+      channels: (seed.channels ?? [])
+        .filter((c) => c.role !== "DISABLED")
+        .map((c) => ({
+          index: c.index,
+          name: channelDisplayName(c, "LONG_FAST"),
+          role: c.role,
+          encryption: c.encryption,
+          lastMessage: null,
+        })),
+      dms: [],
+    },
+  );
   for (const [key, data] of seed.queries ?? []) queryClient.setQueryData(key, data);
   for (const [key, data] of seed.conversations ?? []) queryClient.setQueryData(key, data);
 

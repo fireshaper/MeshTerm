@@ -275,6 +275,36 @@ State: `typecheck`, `lint`, `format:check`, `test` (504), `test:e2e` (90; three 
 
 State: `typecheck`, `lint`, `format` and `test` (512) green. `test:e2e`: 90 passed. The first run had one `toHaveAttribute` timeout that passed on the rerun.
 
+### Phase 2: two-pane Messages view (done 2026-10-20)
+
+- Data (migration 0008):
+  - `connections.modem_preset` from the LoRa config.
+  - `channels.encryption` (`none`/`default`/`custom`, derived from the PSK, which is still never stored).
+  - `nodes.has_public_key` and `nodes.is_ignored`.
+- Shared:
+  - `ConversationsDTO` and `MessagePreview`.
+  - `channelDisplayName` (an unnamed primary is named after its preset, e.g. "LongFast"), `pskKind`, `nodeNumFromId`.
+- API: `GET …/conversations` builds the whole list in one call.
+- Web:
+  - `/messages` with `channel/:index` and `dm/:nodeId` (`!hex`); the old `/channels/:i` and `/dm/:num` redirect there.
+  - The nav item is now "Messages". All "Message" buttons open the new DM route.
+  - Conversation list: search, Channels and Direct messages sections, DM rows with status, preview and a PKI lock. It updates live.
+  - New DM picker with warnings for nodes not heard in 24 h or without a public key.
+  - Thread headers:
+    - Channel: role plus an Encrypted / default-key / Unencrypted badge.
+    - DM: status, names, id, last seen, hops, End-to-end / Channel key badge, and ⓘ for the node drawer.
+  - Layout: two panes from 768 px. On phones the list and the thread replace each other, with a Back button.
+  - The last conversation is remembered.
+- Removed: `ChannelTabs`, `ChannelPage` and `DmPage`, and the hooks `channel-view`, `dm-view`, `channel-tabs`, `channel-tab` and `dm-peer-id` (a breaking change for themes; no built-in theme used them).
+- Tests:
+  - Conversations route, and the handshake metadata (encryption kinds, public keys, no PSK).
+  - List helpers, cache patches, and the Messages page (sections, search, DM header, picker, phone list).
+  - e2e `messages.spec.ts`: a DM from a new node shows live under Direct messages; New → picker → thread; old links redirect; phone list → thread → back; desktop remembers the last conversation.
+  - Existing specs moved to the new routes.
+  - Channel and DM visual baselines updated (win32 and linux).
+
+State: `typecheck`, `lint`, `format:check`, `test` (529), `test:e2e` (98 passed, 3 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

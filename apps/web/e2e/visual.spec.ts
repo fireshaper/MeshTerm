@@ -70,6 +70,7 @@ const VOLATILE = [
   "[data-mt=attention-text]",
   "[data-mt=chart-times]",
   "[data-mt=connection-link]",
+  "[data-mt=thread-details]",
 ];
 
 const MASKS = (page: Page) => VOLATILE.map((selector) => page.locator(selector));
@@ -95,7 +96,7 @@ async function freeze(page: Page): Promise<void> {
 }
 
 test("channel view", async ({ page }) => {
-  await ready(page, "/channels/0");
+  await ready(page, "/messages/channel/0");
   await expect(page.locator("[data-mt=message]")).toHaveCount(2);
   await freeze(page);
   await expect(page).toHaveScreenshot("channel-view.png", { mask: MASKS(page) });
@@ -109,7 +110,7 @@ test("node list", async ({ page }) => {
 });
 
 test("DM view", async ({ page }) => {
-  await ready(page, `/dm/${RIDGE}`);
+  await ready(page, "/messages/dm/!0badcafe");
   await expect(page.locator("[data-mt=message]")).toHaveCount(2);
   await expect(page.locator("[data-mt=message][data-mt-variant=out]")).toHaveAttribute(
     "data-mt-state",

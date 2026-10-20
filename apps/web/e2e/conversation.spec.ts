@@ -6,7 +6,7 @@ test.describe("channel conversation", () => {
     await fakeNode.setAckMode("ack");
     // Inject only once the page's socket is subscribed (see socketSubscribed).
     const subscribed = socketSubscribed(page);
-    await page.goto("/channels/0");
+    await page.goto("/messages/channel/0");
     await subscribed;
     await expect(page.locator("[data-mt=status-pill]")).toHaveAttribute(
       "data-mt-state",
@@ -14,12 +14,19 @@ test.describe("channel conversation", () => {
     );
   });
 
-  test("shows tabs for the scenario's two channels", async ({ page }) => {
-    const tabs = page.locator("[data-mt=channel-tab]");
-    await expect(tabs).toHaveText(["Primary", "Friends"]);
-    await tabs.nth(1).click();
-    await expect(page).toHaveURL(/\/channels\/1$/);
-    await expect(tabs.nth(1)).toHaveAttribute("data-mt-state", "active");
+  test("lists the scenario's two channels; choosing one opens it", async ({ page }) => {
+    // Below 768 px the thread replaces the list: go back to it first.
+    if ((page.viewportSize()?.width ?? 0) < 768) {
+      await page.getByRole("link", { name: "Back to conversations" }).click();
+    }
+    const rows = page.locator("[data-mt=conversation-row][data-mt-variant=channel]");
+    await expect(rows.locator("[data-mt=conversation-name]")).toHaveText(["#LongFast", "#Friends"]);
+    await rows.nth(1).click();
+    await expect(page).toHaveURL(/\/messages\/channel\/1$/);
+    await expect(page.getByRole("heading", { level: 2, name: "#Friends" })).toBeVisible();
+    if ((page.viewportSize()?.width ?? 0) >= 768) {
+      await expect(rows.nth(1)).toHaveAttribute("data-mt-state", "active");
+    }
   });
 
   test("a message from the mesh appears live", async ({ page }, info) => {

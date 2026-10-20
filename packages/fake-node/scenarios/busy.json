@@ -36,7 +36,8 @@
         "longName": "Ridge Repeater",
         "shortName": "RDG",
         "hwModel": "RAK4631",
-        "role": "ROUTER"
+        "role": "ROUTER",
+        "publicKey": "CzBVep/E6Q4zWH2ix+wRNluApcrvFDleg6jN8hc8YYY="
       },
       "snr": 7.25,
       "hopsAway": 0,

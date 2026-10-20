@@ -5,6 +5,7 @@ import {
   getMyNodeNum,
   getNode,
   insertMessage,
+  setModemPreset,
   setMyNodeNum,
   updateMessageStatus,
   upsertChannel,
@@ -27,6 +28,10 @@ export function attachPersistence(
   const offs = [
     hub.subscribe("radio.myInfo", ({ connectionId, myNodeNum }) => {
       setMyNodeNum(db, connectionId, myNodeNum);
+    }),
+
+    hub.subscribe("radio.lora", ({ connectionId, modemPreset }) => {
+      setModemPreset(db, connectionId, modemPreset);
     }),
 
     hub.subscribe("radio.node", ({ connectionId, update }) => {
@@ -132,6 +137,8 @@ export function mergeNode(
     snr: null,
     hopsAway: null,
     isFavorite: false,
+    hasPublicKey: false,
+    isIgnored: false,
   };
   const { lastHeard, snr, hopsAway, ...rest } = update;
   // exactOptionalPropertyTypes: absent fields are missing keys, never `undefined`.

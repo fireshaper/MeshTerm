@@ -14,22 +14,13 @@ interface Item {
   prefix: string;
   label: string;
   Icon: LucideIcon;
-  link:
-    | { to: "/dashboard" }
-    | { to: "/map" }
-    | { to: "/channels/$index"; params: { index: string } }
-    | { to: "/nodes" };
+  link: { to: "/dashboard" } | { to: "/map" } | { to: "/messages" } | { to: "/nodes" };
 }
 
 const ITEMS: Item[] = [
   { prefix: "/dashboard", label: "Dashboard", Icon: LayoutGrid, link: { to: "/dashboard" } },
   { prefix: "/map", label: "Map", Icon: MapIcon, link: { to: "/map" } },
-  {
-    prefix: "/channels",
-    label: "Channels",
-    Icon: MessagesSquare,
-    link: { to: "/channels/$index", params: { index: "0" } },
-  },
+  { prefix: "/messages", label: "Messages", Icon: MessagesSquare, link: { to: "/messages" } },
   { prefix: "/nodes", label: "Nodes", Icon: Radio, link: { to: "/nodes" } },
 ];
 

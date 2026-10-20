@@ -44,11 +44,19 @@ export const MeshNode = z.object({
   snr: z.number().nullable(),
   hopsAway: z.number().int().nonnegative().nullable(),
   isFavorite: z.boolean(),
+  /** It announced a PKI public key, so DMs to it are end-to-end encrypted. */
+  hasPublicKey: z.boolean(),
+  /** Ignored in the device's NodeDB. */
+  isIgnored: z.boolean(),
 });
 export type MeshNode = z.infer<typeof MeshNode>;
 
 export const ChannelRole = z.enum(["DISABLED", "PRIMARY", "SECONDARY"]);
 export type ChannelRole = z.infer<typeof ChannelRole>;
+
+/** `default`: one of the well-known keys (the 1-byte PSKs), which anyone can decrypt. */
+export const ChannelEncryption = z.enum(["none", "default", "custom"]);
+export type ChannelEncryption = z.infer<typeof ChannelEncryption>;
 
 /** Deliberately has no PSK field: unknown keys (including `psk`) are stripped on parse. */
 export const Channel = z.object({
@@ -56,6 +64,8 @@ export const Channel = z.object({
   index: ChannelIndex,
   name: z.string(),
   role: ChannelRole,
+  /** What kind of PSK it has (never the PSK); null until the next handshake reports it. */
+  encryption: ChannelEncryption.nullable(),
 });
 export type Channel = z.infer<typeof Channel>;
 
@@ -151,6 +161,14 @@ export function utf8ByteLength(text: string): number {
 
 export function nodeIdFromNum(num: number): string {
   return `!${(num >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+/** `!a1b2c3d4` (the `!` optional, any case) → node number; null when it isn't one. Broadcast is not a node. */
+export function nodeNumFromId(id: string): number | null {
+  const m = /^!?([0-9a-f]{8})$/i.exec(id);
+  if (!m?.[1]) return null;
+  const num = Number.parseInt(m[1], 16);
+  return num === 0 || num === 0xffff_ffff ? null : num;
 }
 
 /**

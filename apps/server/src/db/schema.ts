@@ -28,6 +28,8 @@ export const connections = sqliteTable("connections", {
   myNodeNum: integer("my_node_num"),
   /** When the last packet of any kind arrived from the node (no packet log yet). */
   lastPacketAt: integer("last_packet_at"),
+  /** LoRa `ModemPreset` name (e.g. `LONG_FAST`) from the handshake; NULL with custom settings. */
+  modemPreset: text("modem_preset"),
   createdAt: integer("created_at").notNull(),
 });
 
@@ -53,6 +55,10 @@ export const nodes = sqliteTable(
     favoriteOverride: integer("favorite_override", { mode: "boolean" }),
     /** RSSI of the last packet heard directly from this node. */
     rssi: integer("rssi"),
+    /** It announced a PKI public key, so DMs to it can be end-to-end encrypted. */
+    hasPublicKey: integer("has_public_key", { mode: "boolean" }).notNull().default(false),
+    /** Ignored in the device's NodeDB. */
+    isIgnored: integer("is_ignored", { mode: "boolean" }).notNull().default(false),
 
     // Latest values, cached here so the dashboard reads one row per node.
     // History lives in `positions` and `telemetry`; NULL means never reported.
@@ -136,6 +142,8 @@ export const channels = sqliteTable(
     channelIndex: integer("channel_index").notNull(),
     name: text("name").notNull().default(""),
     role: text("role", { enum: ["DISABLED", "PRIMARY", "SECONDARY"] }).notNull(),
+    /** What the PSK is (never the PSK itself): none, a well-known default key, or custom. */
+    encryption: text("encryption", { enum: ["none", "default", "custom"] }),
   },
   (t) => [primaryKey({ columns: [t.connectionId, t.channelIndex] })],
 );

@@ -45,7 +45,7 @@ function renderCard(card: NodeCardData, props: Partial<NodeCardProps> = {}) {
   const rootRoute = createRootRoute({ component: Card });
   const dmRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: "/dm/$nodeNum",
+    path: "/messages/dm/$nodeId",
     component: () => null,
   });
   const router = createRouter({
@@ -209,7 +209,7 @@ describe("NodeCard", () => {
     await screen.findByRole("article");
     fireEvent.click(screen.getByRole("button", { name: /Message/ }));
     await vi.waitFor(() => {
-      expect(router.state.location.pathname).toBe("/dm/1584361601");
+      expect(router.state.location.pathname).toBe("/messages/dm/!5e6f7081");
     });
   });
 

@@ -1,4 +1,9 @@
-import type { CardPosition, DashboardThresholds, NodeCard as NodeCardData } from "@meshterm/shared";
+import {
+  nodeIdFromNum,
+  type CardPosition,
+  type DashboardThresholds,
+  type NodeCard as NodeCardData,
+} from "@meshterm/shared";
 import { useNavigate } from "@tanstack/react-router";
 import { MessageSquare, PanelRightOpen, Star } from "lucide-react";
 import { openNodeDetails } from "../data/ui-store.js";
@@ -123,7 +128,7 @@ export const NodeCard = memo(function NodeCard({
 
   const openDm = () => {
     if (!card.isSelf) {
-      void navigate({ to: "/dm/$nodeNum", params: { nodeNum: String(card.num) } });
+      void navigate({ to: "/messages/dm/$nodeId", params: { nodeId: nodeIdFromNum(card.num) } });
     }
   };
   const toggleFavorite = () => {

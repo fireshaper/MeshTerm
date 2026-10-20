@@ -62,6 +62,15 @@ export function useMapNodes(connectionId: number | null) {
   });
 }
 
+/** Channels and DMs with their newest message, kept current by WS events. */
+export function useConversationList(connectionId: number | null) {
+  return useQuery({
+    queryKey: queryKeys.conversations(connectionId ?? 0),
+    queryFn: () => api.conversations(connectionId ?? 0),
+    enabled: connectionId !== null,
+  });
+}
+
 /** Observed links between nodes; refreshed every minute (no WS event for them). */
 export function useTopology(connectionId: number | null) {
   return useQuery({

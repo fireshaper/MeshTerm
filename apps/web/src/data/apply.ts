@@ -6,7 +6,7 @@ import {
   type ServerMessage,
   type ServerMessageOf,
 } from "@meshterm/shared";
-import type { ActivityPage, DashboardDTO, MapNodesDTO } from "@meshterm/shared";
+import type { ActivityPage, ConversationsDTO, DashboardDTO, MapNodesDTO } from "@meshterm/shared";
 import { applyNodeToMap, applyPositionToMap, applyTelemetryToMap } from "../map/map-data.js";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -16,6 +16,7 @@ import {
   applyPosition,
   applyTelemetry,
 } from "./dashboard-cache.js";
+import { applyMessageToConversations, applyStatusToConversations } from "./conversations-cache.js";
 import { conversationOf, queryKeys, type ConversationData } from "./keys.js";
 import { useLiveStore } from "./store.js";
 
@@ -80,6 +81,7 @@ export function applySnapshot(qc: QueryClient, snapshot: ServerMessageOf<"snapsh
       queryKeys.dashboard(connectionId),
       queryKeys.activity(connectionId),
       queryKeys.mapNodes(connectionId),
+      queryKeys.conversations(connectionId),
     ]) {
       void qc.invalidateQueries({ queryKey }, { cancelRefetch: false });
     }
@@ -152,6 +154,9 @@ export function applyServerMessage(
         },
       );
       patchDashboard(qc, m.connectionId, (d) => applyMessage(d, m));
+      qc.setQueryData<ConversationsDTO>(queryKeys.conversations(m.connectionId), (d) =>
+        d ? applyMessageToConversations(d, m) : d,
+      );
       return;
     }
 
@@ -169,6 +174,9 @@ export function applyServerMessage(
           messages[i] = { ...current, status, errorReason };
           return { ...data, messages };
         },
+      );
+      qc.setQueryData<ConversationsDTO>(queryKeys.conversations(connectionId), (d) =>
+        d ? applyStatusToConversations(d, messageId, status) : d,
       );
       return;
     }

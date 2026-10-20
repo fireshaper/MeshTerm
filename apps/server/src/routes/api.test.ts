@@ -69,8 +69,8 @@ describe("REST read API", () => {
     const res = await get("/api/connections/1/channels");
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual([
-      { connectionId: 1, index: 0, name: "", role: "PRIMARY" },
-      { connectionId: 1, index: 1, name: "Friends", role: "SECONDARY" },
+      { connectionId: 1, index: 0, name: "", role: "PRIMARY", encryption: "default" },
+      { connectionId: 1, index: 1, name: "Friends", role: "SECONDARY", encryption: "custom" },
     ]);
     expect(allKeys(res.json()).filter((k) => /psk/i.test(k))).toEqual([]);
   });

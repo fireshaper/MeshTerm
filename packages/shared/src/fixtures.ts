@@ -23,6 +23,8 @@ export const fixtures = {
     snr: 6.25,
     hopsAway: 0,
     isFavorite: false,
+    hasPublicKey: true,
+    isIgnored: false,
   } satisfies MeshNode,
 
   channel: {
@@ -30,6 +32,7 @@ export const fixtures = {
     index: 0,
     name: "LongFast",
     role: "PRIMARY",
+    encryption: "default",
   } satisfies Channel,
 
   inboundMessage: {

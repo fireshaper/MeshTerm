@@ -1,6 +1,7 @@
 import type {
   ActivityPage,
   Channel,
+  ConversationsDTO,
   ConnectionState,
   DashboardDTO,
   HistoryWindow,
@@ -74,6 +75,9 @@ export const api = {
 
   nodeHistory: (connectionId: number, num: number, window: HistoryWindow) =>
     request<NodeHistory>(`/api/connections/${connectionId}/nodes/${num}/history?window=${window}`),
+
+  conversations: (connectionId: number) =>
+    request<ConversationsDTO>(`/api/connections/${connectionId}/conversations`),
 
   mapNodes: (connectionId: number) =>
     request<MapNodesDTO>(`/api/connections/${connectionId}/map/nodes`),

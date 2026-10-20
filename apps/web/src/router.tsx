@@ -7,9 +7,9 @@ import {
   redirect,
   type RouterHistory,
 } from "@tanstack/react-router";
-import { ChannelPage } from "./pages/ChannelPage.js";
+import { nodeIdFromNum } from "@meshterm/shared";
+import { ChannelThread, DmThread, MessagesIndex, MessagesPage } from "./messages/MessagesPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
-import { DmPage } from "./pages/DmPage.js";
 import { NodesPage } from "./pages/NodesPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { AppShell } from "./shell/AppShell.js";
@@ -34,10 +34,39 @@ export const dashboardRoute = createRoute({
   component: DashboardPage,
 });
 
-export const channelRoute = createRoute({
+export const messagesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/messages",
+  component: MessagesPage,
+});
+
+const messagesIndexRoute = createRoute({
+  getParentRoute: () => messagesRoute,
+  path: "/",
+  component: MessagesIndex,
+});
+
+export const channelThreadRoute = createRoute({
+  getParentRoute: () => messagesRoute,
+  path: "/channel/$index",
+  component: ChannelThread,
+});
+
+/** `nodeId` is the node ID as the apps show it, e.g. `/messages/dm/!a1b2c3d4`. */
+export const dmThreadRoute = createRoute({
+  getParentRoute: () => messagesRoute,
+  path: "/dm/$nodeId",
+  component: DmThread,
+});
+
+/** Old links (bookmarks, before the Messages view) keep working. */
+const legacyChannelRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/channels/$index",
-  component: ChannelPage,
+  beforeLoad: ({ params }) => {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error -- TanStack Router's redirect API
+    throw redirect({ to: "/messages/channel/$index", params: { index: params.index } });
+  },
 });
 
 export const nodesRoute = createRoute({
@@ -46,10 +75,17 @@ export const nodesRoute = createRoute({
   component: NodesPage,
 });
 
-export const dmRoute = createRoute({
+/** Old DM links used the decimal node number: `/dm/195939070`. */
+const legacyDmRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/dm/$nodeNum",
-  component: DmPage,
+  beforeLoad: ({ params }) => {
+    const num = /^\d{1,10}$/.test(params.nodeNum) ? Number(params.nodeNum) : 0;
+    // eslint-disable-next-line @typescript-eslint/only-throw-error -- TanStack Router's redirect API
+    throw num > 0 && num < 0xffff_ffff
+      ? redirect({ to: "/messages/dm/$nodeId", params: { nodeId: nodeIdFromNum(num) } })
+      : redirect({ to: "/messages" });
+  },
 });
 
 /** `/map?node=<num>` opens the map centered on that node. Code-split: MapLibre loads here only. */
@@ -67,9 +103,10 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   dashboardRoute,
   mapRoute,
-  channelRoute,
+  messagesRoute.addChildren([messagesIndexRoute, channelThreadRoute, dmThreadRoute]),
+  legacyChannelRoute,
   nodesRoute,
-  dmRoute,
+  legacyDmRoute,
 ]);
 
 /** The app's router; tests pass a memory history starting at a given path. */

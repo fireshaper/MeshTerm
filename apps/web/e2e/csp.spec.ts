@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { RIDGE } from "./control.js";
 import { DASHBOARD_PORT } from "./ports.js";
 
 // Every screen loads under the server's Content Security Policy without violations.
@@ -14,13 +13,13 @@ test("no Content Security Policy violations on any screen", async ({ page }) => 
     });
   });
 
-  const response = await page.goto("/channels/0");
+  const response = await page.goto("/messages/channel/0");
   expect(response?.headers()["content-security-policy"]).toContain("img-src 'self' data:");
   await expect(page.locator("[data-mt=status-pill]")).toHaveAttribute("data-mt-state", "connected");
   for (const path of [
     "/nodes",
-    `/dm/${RIDGE}`,
-    "/channels/1",
+    "/messages/dm/!0badcafe",
+    "/messages/channel/1",
     "/dashboard",
     // The map page (MapLibre: module worker, canvas, tiles through the proxy).
     `http://127.0.0.1:${DASHBOARD_PORT}/map`,
@@ -28,9 +27,13 @@ test("no Content Security Policy violations on any screen", async ({ page }) => 
     `http://127.0.0.1:${DASHBOARD_PORT}/dashboard`,
   ]) {
     await page.goto(path);
-    // Pages show a title; the map page shows the map (its title is for screen readers).
+    // Pages show a title (threads their own); the map page shows the map.
     await expect(
-      page.locator("[data-mt=page-title], [data-mt=map-view][data-mt-state=ready]").first(),
+      page
+        .locator(
+          "[data-mt=page-title], [data-mt=thread-title], [data-mt=map-view][data-mt-state=ready]",
+        )
+        .first(),
     ).toBeVisible({ timeout: 15_000 });
     await page.waitForLoadState("networkidle");
   }

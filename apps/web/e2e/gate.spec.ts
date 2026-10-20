@@ -99,7 +99,7 @@ test("base-app gate: sync, reboot recovery, restart persistence, no stray transm
   const a = await contextA.newPage();
   const b = await contextB.newPage();
   for (const page of [a, b]) {
-    await page.goto(`${BASE}/channels/0`);
+    await page.goto(`${BASE}/messages/channel/0`);
     await expect(pill(page)).toHaveAttribute("data-mt-state", "connected");
   }
   await node.setAckMode("ack");

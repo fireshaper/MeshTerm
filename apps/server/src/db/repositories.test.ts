@@ -84,7 +84,7 @@ describe("channels", () => {
     upsertChannel(db, { ...fixtures.channel, name: "Renamed" });
     expect(listChannels(db, 1)).toEqual([
       { ...fixtures.channel, name: "Renamed" },
-      { connectionId: 1, index: 1, name: "Friends", role: "SECONDARY" },
+      { connectionId: 1, index: 1, name: "Friends", role: "SECONDARY", encryption: "default" },
     ]);
   });
 });

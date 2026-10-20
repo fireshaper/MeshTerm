@@ -9,6 +9,7 @@ import {
 } from "@meshterm/protocol";
 import {
   BROADCAST_NUM,
+  pskKind,
   type Channel,
   type DeviceMetrics,
   type EnvironmentMetrics,
@@ -54,6 +55,16 @@ export function decodeFromRadio(message: FromRadio, ctx: DecodeContext): DecodeR
       ]);
     case "packet":
       return decodePacket(v.value, ctx);
+    case "config": {
+      const c = v.value.payloadVariant;
+      if (c.case !== "lora") return ignore(`config ${c.case ?? "empty"}`);
+      const modemPreset = c.value.usePreset
+        ? enumName(Config.Config_LoRaConfig_ModemPreset, c.value.modemPreset)
+        : null;
+      return decoded([
+        { type: "radio.lora", payload: { connectionId: ctx.connectionId, modemPreset } },
+      ]);
+    }
     default:
       return ignore(`FromRadio ${v.case ?? "empty"}`);
   }
@@ -296,6 +307,7 @@ function nodeInfoUpdate(info: Mesh.NodeInfo): NodeUpdate {
     num: info.num,
     lastHeard: info.lastHeard > 0 ? info.lastHeard * 1000 : null,
     isFavorite: info.isFavorite,
+    isIgnored: info.isIgnored,
   };
   if (info.user) Object.assign(update, userFields(info.user));
   // NodeInfo.snr is 0 when unknown; only trust it alongside a last-heard time.
@@ -310,6 +322,7 @@ function userFields(user: Mesh.User): Omit<NodeUpdate, "num"> {
     shortName: user.shortName,
     hwModel: enumName(Mesh.HardwareModel, user.hwModel),
     role: enumName(Config.Config_DeviceConfig_Role, user.role),
+    hasPublicKey: user.publicKey.length === 32,
   };
 }
 
@@ -320,6 +333,7 @@ function toChannel(channel: ChannelPb.Channel, connectionId: number): Channel {
     index: channel.index,
     name: channel.settings?.name ?? "",
     role: (enumName(ChannelPb.Channel_Role, channel.role) ?? "DISABLED") as Channel["role"],
+    encryption: pskKind(channel.settings?.psk),
   };
 }
 

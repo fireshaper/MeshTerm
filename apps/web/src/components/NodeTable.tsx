@@ -1,4 +1,9 @@
-import type { CardPosition, DashboardThresholds, NodeCard } from "@meshterm/shared";
+import {
+  nodeIdFromNum,
+  type CardPosition,
+  type DashboardThresholds,
+  type NodeCard,
+} from "@meshterm/shared";
 import { Link } from "@tanstack/react-router";
 import { openNodeDetails } from "../data/ui-store.js";
 import { Columns3, Star } from "lucide-react";
@@ -196,8 +201,8 @@ const NodeRow = memo(function NodeRow({ card, columns, ctx, onFavorite }: NodeRo
           </>
         ) : (
           <Link
-            to="/dm/$nodeNum"
-            params={{ nodeNum: String(card.num) }}
+            to="/messages/dm/$nodeId"
+            params={{ nodeId: nodeIdFromNum(card.num) }}
             onClick={(e) => {
               e.stopPropagation();
             }}

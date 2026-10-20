@@ -99,7 +99,7 @@ describe("<ActivityFeed />", () => {
     expect(first.getByRole("button", { name: "Ridge Repeater" })).toBeInTheDocument();
     expect(first.getByRole("link", { name: "Message on Friends “ridge here”" })).toHaveAttribute(
       "href",
-      "/channels/1",
+      "/messages/channel/1",
     );
     expect(items()[0]?.querySelector("time")).toHaveTextContent("5 s ago");
     expect(items()[1]).toHaveTextContent("My nodeConnection restored after 30s");

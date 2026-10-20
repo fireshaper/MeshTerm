@@ -3,6 +3,7 @@ import {
   ChannelIndex,
   Connection,
   ConnectionState,
+  ConversationsDTO,
   MeshNode,
   Message,
   messageCursor,
@@ -22,6 +23,7 @@ import {
   nextCursor,
   type MessageCursor,
 } from "../db/repositories.js";
+import { buildConversations } from "../messaging/conversations.js";
 import { HttpError } from "./http-error.js";
 
 /** The opaque `before`/`nextCursor` string of message pages; see `messageCursor`. */
@@ -89,6 +91,16 @@ export const apiRoutes: FastifyPluginAsyncZod = (app) => {
       const { id } = req.params;
       requireConnection(id);
       return listChannels(db, id);
+    },
+  );
+
+  app.get(
+    "/api/connections/:id/conversations",
+    { schema: { params: ConnectionParams, response: { 200: ConversationsDTO, 404: NotFound } } },
+    (req) => {
+      const { id } = req.params;
+      requireConnection(id);
+      return buildConversations(db, id);
     },
   );
 
