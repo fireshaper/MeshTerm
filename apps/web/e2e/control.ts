@@ -1,4 +1,5 @@
 import type { InboundReport } from "@meshterm/fake-node";
+import type { Page } from "@playwright/test";
 import { CONTROL_PORT } from "./ports.js";
 
 export const RIDGE = 0x0badcafe;
@@ -37,3 +38,19 @@ export function controlClient(port: number) {
 
 /** The FakeNode behind the shared e2e server (serve.ts). */
 export const fakeNode = controlClient(CONTROL_PORT);
+
+/**
+ * Resolves once the page's live socket has its first snapshot, i.e. it is subscribed
+ * and will receive events. Call before navigating. Waiting for the status pill isn't
+ * enough: it can show "connected" from REST data before the socket subscribes, and an
+ * event injected in that gap never reaches the page.
+ */
+export function socketSubscribed(page: Page): Promise<void> {
+  return new Promise<void>((resolve) => {
+    page.on("websocket", (ws) => {
+      ws.on("framereceived", ({ payload }) => {
+        if (String(payload).includes('"type":"snapshot"')) resolve();
+      });
+    });
+  });
+}

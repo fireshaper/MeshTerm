@@ -1,10 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { fakeNode, RIDGE } from "./control.js";
+import { fakeNode, RIDGE, socketSubscribed } from "./control.js";
 
 test.describe("channel conversation", () => {
   test.beforeEach(async ({ page }) => {
     await fakeNode.setAckMode("ack");
+    // Inject only once the page's socket is subscribed (see socketSubscribed).
+    const subscribed = socketSubscribed(page);
     await page.goto("/channels/0");
+    await subscribed;
     await expect(page.locator("[data-mt=status-pill]")).toHaveAttribute(
       "data-mt-state",
       "connected",

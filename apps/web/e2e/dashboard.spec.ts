@@ -1,7 +1,7 @@
 // Dashboard and Nodes page acceptance, against serve.ts on the `dashboard` scenario
 // (DASHBOARD_PORT) and on the generated 300-node `large` scenario (LARGE_PORT).
 import { expect, test, type Page, type Response } from "@playwright/test";
-import { controlClient } from "./control.js";
+import { controlClient, socketSubscribed } from "./control.js";
 import { DASHBOARD_CONTROL_PORT, DASHBOARD_PORT, LARGE_PORT } from "./ports.js";
 
 const BASE = `http://127.0.0.1:${DASHBOARD_PORT}`;
@@ -58,13 +58,7 @@ test("injected telemetry updates a card live, with the update flash and no refet
     }
   });
   // Inject only once the socket is subscribed (its snapshot has arrived).
-  const subscribed = new Promise<void>((resolve) => {
-    page.on("websocket", (ws) => {
-      ws.on("framereceived", ({ payload }) => {
-        if (String(payload).includes('"type":"snapshot"')) resolve();
-      });
-    });
-  });
+  const subscribed = socketSubscribed(page);
   await openDashboard(page);
   await subscribed;
   const card = page.locator(`[data-mt=node-preview][data-node-num='${GARAGE}']`);
@@ -192,13 +186,7 @@ test("300 nodes: the dashboard previews a few and links to the rest", async ({ p
 });
 
 test("the activity feed shows a received message live", async ({ page }, info) => {
-  const subscribed = new Promise<void>((resolve) => {
-    page.on("websocket", (ws) => {
-      ws.on("framereceived", ({ payload }) => {
-        if (String(payload).includes('"type":"snapshot"')) resolve();
-      });
-    });
-  });
+  const subscribed = socketSubscribed(page);
   await openDashboard(page);
   await subscribed;
   const text = `feed check ${info.project.name} ${Date.now()}`;
