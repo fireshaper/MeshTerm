@@ -81,6 +81,18 @@ export const Message = z.object({
   status: MessageStatus.nullable(),
   rxSnr: z.number().nullable(),
   rxRssi: z.number().int().nullable(),
+  /** Decrypted by the node with its private key (PKI DM) rather than a channel key. */
+  pkiEncrypted: z.boolean(),
+  /** Reached us through an MQTT gateway. */
+  viaMqtt: z.boolean(),
+  /** Packet id of the message this one replies or reacts to. */
+  replyId: Uint32.nullable(),
+  /** A reaction (tapback) to `replyId`; `text` is the emoji. */
+  emoji: z.boolean(),
+  hopStart: z.number().int().nonnegative().nullable(),
+  hopLimit: z.number().int().nonnegative().nullable(),
+  /** `Routing.Error` name (e.g. `NO_RESPONSE`) when an outgoing message failed; null on timeout. */
+  errorReason: z.string().nullable(),
 });
 export type Message = z.infer<typeof Message>;
 

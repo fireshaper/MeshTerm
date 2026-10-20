@@ -156,16 +156,17 @@ export function applyServerMessage(
     }
 
     case "message.status": {
-      const { connectionId, messageId, status } = message;
+      const { connectionId, messageId, status, errorReason } = message;
       qc.setQueriesData<ConversationData>(
         { queryKey: queryKeys.allMessages(connectionId) },
         (data) => {
           if (!data) return data;
           const i = data.messages.findIndex((m) => m.id === messageId);
           const current = data.messages[i];
-          if (!current || current.status === status) return data;
+          if (!current || (current.status === status && current.errorReason === errorReason))
+            return data;
           const messages = [...data.messages];
-          messages[i] = { ...current, status };
+          messages[i] = { ...current, status, errorReason };
           return { ...data, messages };
         },
       );

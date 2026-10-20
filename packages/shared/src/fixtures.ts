@@ -46,6 +46,13 @@ export const fixtures = {
     status: null,
     rxSnr: -3.5,
     rxRssi: -97,
+    pkiEncrypted: false,
+    viaMqtt: false,
+    replyId: null,
+    emoji: false,
+    hopStart: null,
+    hopLimit: null,
+    errorReason: null,
   } satisfies Message,
 
   outboundMessage: {
@@ -62,5 +69,12 @@ export const fixtures = {
     status: "sent",
     rxSnr: null,
     rxRssi: null,
+    pkiEncrypted: false,
+    viaMqtt: false,
+    replyId: null,
+    emoji: false,
+    hopStart: null,
+    hopLimit: null,
+    errorReason: null,
   } satisfies Message,
 };

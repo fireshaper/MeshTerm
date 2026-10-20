@@ -61,6 +61,8 @@ export const MessageStatusMessage = z.object({
   connectionId: ConnectionId,
   messageId: z.uuid(),
   status: MessageStatus,
+  /** Why it failed (`Routing.Error` name); null otherwise or on timeout. */
+  errorReason: z.string().nullable(),
 });
 
 export const TelemetryNewMessage = z.object({

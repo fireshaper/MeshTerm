@@ -1,7 +1,8 @@
-import { nodeIdFromNum, type MeshNode } from "@meshterm/shared";
+import { nodeIdFromNum, type MeshNode, type Message } from "@meshterm/shared";
 import type { Db } from "../db/database.js";
 import {
   findOutboundByPacketId,
+  getMyNodeNum,
   getNode,
   insertMessage,
   setMyNodeNum,
@@ -57,7 +58,8 @@ export function attachPersistence(
       hub.publish("channel.upsert", { channel });
     }),
 
-    hub.subscribe("radio.text", ({ message }) => {
+    hub.subscribe("radio.text", ({ message: decoded }) => {
+      const message = classifyDm(decoded, getMyNodeNum(db, decoded.connectionId));
       if (insertMessage(db, message) === "duplicate") {
         logger.debug(
           { connectionId: message.connectionId, from: message.fromNum, packetId: message.packetId },
@@ -76,14 +78,28 @@ export function attachPersistence(
       }
       // An ACK is final: a late error for the same packet (e.g. a duplicate) doesn't undo it.
       if (message.status === "acked" || message.status === status) return;
-      updateMessageStatus(db, message.id, status);
+      updateMessageStatus(db, message.id, status, error);
       if (error) logger.info({ connectionId, messageId: message.id, error }, "message failed");
-      hub.publish("message.status", { connectionId, messageId: message.id, status });
+      hub.publish("message.status", {
+        connectionId,
+        messageId: message.id,
+        status,
+        errorReason: error,
+      });
     }),
   ];
   return () => {
     for (const off of offs) off();
   };
+}
+
+/**
+ * DMs are identified by destination. A text from our own node to someone else was
+ * sent by another client on the node: an outgoing DM to `to`, not one from ourselves.
+ */
+export function classifyDm(message: Message, myNodeNum: number | null): Message {
+  if (message.peer === null || myNodeNum === null || message.fromNum !== myNodeNum) return message;
+  return { ...message, peer: message.toNum, direction: "out" };
 }
 
 /** Whether an update is at least as recent as what is stored, so its signal values apply. */

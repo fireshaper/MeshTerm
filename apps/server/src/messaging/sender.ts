@@ -79,6 +79,13 @@ export class MessageSender {
       status: "queued",
       rxSnr: null,
       rxRssi: null,
+      pkiEncrypted: false,
+      viaMqtt: false,
+      replyId: null,
+      emoji: false,
+      hopStart: null,
+      hopLimit: null,
+      errorReason: null,
     });
     hub.publish("message.new", { message });
 
@@ -141,6 +148,7 @@ export class MessageSender {
       connectionId: message.connectionId,
       messageId: message.id,
       status,
+      errorReason: null,
     });
   }
 }

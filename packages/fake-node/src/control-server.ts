@@ -21,13 +21,14 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
  * A small HTTP API for driving a FakeNode from another process (tests, the CLI's
  * `inject` command, docker compose). For test setups only: it has no auth.
  *
- * - `POST /inject-text` `{from, target: {channel} | {to}, text}` → `{packetId}`
+ * - `POST /inject-text` `{from, target: {channel} | {to}, text, options?}` → `{packetId}`
+ *   (`options`: `InjectTextOptions`, e.g. `{pkiEncrypted, replyId, emoji, packetId}`)
  * - `POST /inject-telemetry` `{from, device: {batteryLevel?, voltage?, channelUtilization?, airUtilTx?, uptimeSeconds?}}`
  *   or `{from, environment: {temperature?, relativeHumidity?, barometricPressure?}}` → `{packetId}`
  * - `POST /inject-position` `{from, lat, lon, altitude?, precisionBits?}` → `{packetId}`
  * - `POST /inject-neighbors` `{from, neighbors: [{nodeId, snr}]}` → `{packetId}`
  * - `POST /reboot` `{downMs}`
- * - `POST /ack-mode` `{mode: "ack" | "nak" | "silent"}`
+ * - `POST /ack-mode` `{mode: "ack" | "nak" | "silent", reason?}` (`reason`: NAK `Routing.Error` name)
  * - `POST /clear-inbound`
  * - `GET /inbound` → {@link InboundReport}
  */
@@ -45,6 +46,7 @@ export function startControlServer(node: FakeNode, port: number, host = "127.0.0
                 Number(body.from),
                 body.target as TextTarget,
                 String(body.text),
+                body.options ?? {},
               ),
             };
             break;
@@ -78,7 +80,11 @@ export function startControlServer(node: FakeNode, port: number, host = "127.0.0
             void node.reboot(Number(body.downMs ?? 1000));
             break;
           case "POST /ack-mode":
-            node.setAckMode(body.mode as AckMode);
+            node.setAckMode(
+              body.mode as AckMode,
+              0,
+              typeof body.reason === "string" ? body.reason : undefined,
+            );
             break;
           case "POST /clear-inbound":
             node.clearInbound();

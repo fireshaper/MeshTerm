@@ -137,6 +137,7 @@ describe("applyServerMessage", () => {
       connectionId: 1,
       messageId: out.id,
       status: "acked",
+      errorReason: null,
     });
     expect(conversation(channel0)?.messages.find((m) => m.id === out.id)?.status).toBe("acked");
 
@@ -146,6 +147,7 @@ describe("applyServerMessage", () => {
       connectionId: 1,
       messageId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
       status: "failed",
+      errorReason: "NO_RESPONSE",
     });
     expect(conversation(channel0)).toBe(before);
   });

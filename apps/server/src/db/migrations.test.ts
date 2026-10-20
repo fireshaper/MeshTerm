@@ -28,6 +28,7 @@ describe("migrations", () => {
       "activity",
       "channels",
       "connections",
+      "conversation_state",
       "messages",
       "neighbors",
       "nodes",

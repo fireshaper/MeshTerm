@@ -250,6 +250,31 @@ State: `typecheck`, `lint`, `format:check`, `test` (484), `test:e2e` (72, three 
 
 State: `typecheck`, `lint`, `format:check`, `test` (504), `test:e2e` (90; three of four full runs green, one had a single `toBeVisible` timeout that didn't recur) and `test:gate` (3/3) green locally.
 
+## Messages overhaul (started 2026-10-20)
+
+- The user pasted the Messages Tab Overhaul Spec (saved as `memory-bank/messages-spec.md`). Plan and §1 findings: `memory-bank/messages-plan.md`. DMs were stored correctly; the UI had no list of DM conversations (the real cause). One ingest gap: texts from our own node (sent by another client) were filed as incoming DMs from ourselves.
+
+### Phase 1: ingest and data model (done 2026-10-20)
+
+- Migration 0007:
+  - `messages` gains `pki_encrypted`, `via_mqtt`, `reply_id`, `emoji`, `hop_start`, `hop_limit` and `error_reason`.
+  - The channel index is partial (`WHERE peer IS NULL`).
+  - New `conversation_state` table.
+  - Existing self-DMs are re-filed.
+- Ingest:
+  - The decoder stores the new fields, and an out-of-range channel value on PKI DMs becomes 0.
+  - Persistence classifies DMs against `my_node_num` (`classifyDm`).
+  - A NAK stores its reason, and `message.status` carries `errorReason` (the client cache keeps it).
+- FakeNode:
+  - `injectText` options for PKI, MQTT, reply, reaction.
+  - `setAckMode(mode, delay, nakReason)`; the control API passes both through.
+- Tests:
+  - `dm-ingest.int.test.ts`: PKI and legacy incoming DMs, a secondary-channel message, an odd channel value, an echo from our own node, a reply, a reaction, MQTT, hops, a dedupe, an ACK, and a NAK with its reason.
+  - Migration 0007 data fix.
+  - `classifyDm`.
+
+State: `typecheck`, `lint`, `format` and `test` (512) green. `test:e2e`: 90 passed. The first run had one `toHaveAttribute` timeout that passed on the rerun.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

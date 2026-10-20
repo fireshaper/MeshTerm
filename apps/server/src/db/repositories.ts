@@ -161,8 +161,15 @@ export function insertMessage(db: Db, message: Message): InsertMessageResult {
 }
 
 /** Returns false when no message has that id. */
-export function updateMessageStatus(db: Db, id: string, status: MessageStatus): boolean {
-  return db.update(messages).set({ status }).where(eq(messages.id, id)).run().changes > 0;
+export function updateMessageStatus(
+  db: Db,
+  id: string,
+  status: MessageStatus,
+  errorReason: string | null = null,
+): boolean {
+  return (
+    db.update(messages).set({ status, errorReason }).where(eq(messages.id, id)).run().changes > 0
+  );
 }
 
 /** The message we sent with this packet id, for matching routing ACKs. */

@@ -8,6 +8,16 @@ export const ME = 0xa1b2c3d4;
 
 export type InboundAudit = InboundReport;
 
+/** Extra packet fields for an injected text (see FakeNode `InjectTextOptions`). */
+export interface TextOptions {
+  pkiEncrypted?: boolean;
+  viaMqtt?: boolean;
+  replyId?: number;
+  emoji?: boolean;
+  packetId?: number;
+  hopsAway?: number;
+}
+
 /** A client for a FakeNode's control API (see packages/fake-node/src/control-server.ts). */
 export function controlClient(port: number) {
   async function call<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
@@ -20,8 +30,12 @@ export function controlClient(port: number) {
   }
   return {
     reboot: (downMs: number) => call("POST", "/reboot", { downMs }),
-    injectText: (from: number, target: { channel: number } | { to: number }, text: string) =>
-      call<{ packetId: number }>("POST", "/inject-text", { from, target, text }),
+    injectText: (
+      from: number,
+      target: { channel: number } | { to: number },
+      text: string,
+      options: TextOptions = {},
+    ) => call<{ packetId: number }>("POST", "/inject-text", { from, target, text, options }),
     injectTelemetry: (
       from: number,
       report: { device: Record<string, number> } | { environment: Record<string, number> },
@@ -30,7 +44,8 @@ export function controlClient(port: number) {
       call<{ packetId: number }>("POST", "/inject-neighbors", { from, neighbors }),
     injectPosition: (from: number, lat: number, lon: number) =>
       call<{ packetId: number }>("POST", "/inject-position", { from, lat, lon }),
-    setAckMode: (mode: "ack" | "nak" | "silent") => call("POST", "/ack-mode", { mode }),
+    setAckMode: (mode: "ack" | "nak" | "silent", reason?: string) =>
+      call("POST", "/ack-mode", { mode, reason }),
     clearInbound: () => call("POST", "/clear-inbound"),
     inbound: () => call<InboundAudit>("GET", "/inbound"),
   };

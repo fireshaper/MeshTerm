@@ -11,7 +11,7 @@ import {
 } from "../db/repositories.js";
 import { openTestDatabase } from "../db/test-db.js";
 import { Hub, type PublicEvents } from "./events.js";
-import { attachPersistence, mergeNode } from "./persistence.js";
+import { attachPersistence, classifyDm, mergeNode } from "./persistence.js";
 
 const RIDGE = 0x0badcafe;
 
@@ -81,6 +81,19 @@ describe("mergeNode", () => {
   });
 });
 
+describe("classifyDm", () => {
+  const me = fixtures.inboundMessage.toNum;
+  it("files a DM from our own node under its recipient, as outgoing", () => {
+    const echo = { ...fixtures.inboundMessage, fromNum: me, toNum: 0x0badcafe, peer: me };
+    expect(classifyDm(echo, me)).toMatchObject({ peer: 0x0badcafe, direction: "out" });
+  });
+  it("leaves incoming DMs, broadcasts and unknown node numbers alone", () => {
+    expect(classifyDm(fixtures.inboundMessage, me)).toBe(fixtures.inboundMessage);
+    expect(classifyDm(fixtures.outboundMessage, me)).toBe(fixtures.outboundMessage);
+    expect(classifyDm(fixtures.inboundMessage, null)).toBe(fixtures.inboundMessage);
+  });
+});
+
 describe("attachPersistence", () => {
   it("stores my node number", () => {
     hub.publish("radio.myInfo", { connectionId: 1, myNodeNum: 0xa1b2c3d4 });
@@ -122,7 +135,7 @@ describe("attachPersistence", () => {
     });
     expect(getMessage(handle.db, out.id)?.status).toBe("acked");
     expect(ofType("message.status")).toEqual([
-      { connectionId: 1, messageId: out.id, status: "acked" },
+      { connectionId: 1, messageId: out.id, status: "acked", errorReason: null },
     ]);
 
     // A late error after the ACK changes nothing.

@@ -45,6 +45,13 @@ export interface InjectTextOptions {
   hopsAway?: number;
   /** Reuse a packet id, e.g. to simulate hearing a rebroadcast of the same packet. */
   packetId?: number;
+  /** Flag it as a PKI-decrypted DM, as firmware does for DMs between nodes with keys. */
+  pkiEncrypted?: boolean;
+  viaMqtt?: boolean;
+  /** Packet id it replies or reacts to. */
+  replyId?: number;
+  /** A reaction (tapback): `text` is the emoji and `replyId` the target. */
+  emoji?: boolean;
 }
 
 export type TelemetryInit = MessageInitShape<typeof Telemetry.TelemetrySchema>;
@@ -78,6 +85,7 @@ export class FakeNode {
   private nextPacketId = 0x1000_0000;
   private rebootCount: number;
   private ackMode: AckMode = "ack";
+  private nakReason: Mesh.Routing_Error = Mesh.Routing_Error.MAX_RETRANSMIT;
   private ackDelayMs = 0;
   private configCompleteMode: ConfigCompleteMode = "echo";
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
@@ -252,10 +260,18 @@ export class FakeNode {
     return id;
   }
 
-  /** How to answer outgoing text messages from now on; `delayMs` postpones the answer. */
-  setAckMode(mode: AckMode, delayMs = 0): void {
+  /**
+   * How to answer outgoing text messages from now on; `delayMs` postpones the answer
+   * and `nakReason` (a `Routing.Error` name) is the error a NAK carries.
+   */
+  setAckMode(mode: AckMode, delayMs = 0, nakReason = "MAX_RETRANSMIT"): void {
+    const reason = (
+      Mesh.Routing_Error as unknown as Record<string, Mesh.Routing_Error | undefined>
+    )[nakReason];
+    if (reason === undefined) throw new Error(`unknown routing error ${nakReason}`);
     this.ackMode = mode;
     this.ackDelayMs = delayMs;
+    this.nakReason = reason;
   }
 
   /** How to end later handshake replies; see {@link ConfigCompleteMode}. */
@@ -321,7 +337,17 @@ export class FakeNode {
         rxRssi: options.rxRssi ?? -72,
         hopStart: HOP_START,
         hopLimit: HOP_START - hopsAway,
-        payloadVariant: { case: "decoded", value: { portnum, payload } },
+        pkiEncrypted: options.pkiEncrypted ?? false,
+        viaMqtt: options.viaMqtt ?? false,
+        payloadVariant: {
+          case: "decoded",
+          value: {
+            portnum,
+            payload,
+            replyId: options.replyId ?? 0,
+            emoji: options.emoji ? 1 : 0,
+          },
+        },
       },
     };
   }
@@ -371,8 +397,7 @@ export class FakeNode {
     const data = packet.payloadVariant.case === "decoded" ? packet.payloadVariant.value : null;
     if (data?.portnum !== Portnums.PortNum.TEXT_MESSAGE_APP || this.ackMode === "silent") return;
 
-    const errorReason =
-      this.ackMode === "ack" ? Mesh.Routing_Error.NONE : Mesh.Routing_Error.MAX_RETRANSMIT;
+    const errorReason = this.ackMode === "ack" ? Mesh.Routing_Error.NONE : this.nakReason;
     const reply: FromRadioVariant = {
       case: "packet",
       value: {

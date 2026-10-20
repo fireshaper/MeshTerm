@@ -27,6 +27,8 @@ export interface DecodeContext {
 export type DecodeResult =
   { events: RadioEvent[]; ignored: null } | { events: []; ignored: string };
 
+const MAX_CHANNEL_INDEX = 7;
+
 const decoded = (events: RadioEvent[]): DecodeResult => ({ events, ignored: null });
 const ignore = (why: string): DecodeResult => ({ events: [], ignored: why });
 
@@ -73,13 +75,22 @@ function decodePacket(packet: Mesh.MeshPacket, ctx: DecodeContext): DecodeResult
               packetId: packet.id,
               fromNum: packet.from,
               toNum: packet.to,
+              // Persistence re-classifies against our node number (see classifyDm).
               peer: isBroadcast ? null : packet.from,
-              channelIndex: packet.channel,
+              // PKI DMs aren't decrypted with a channel key; the field may hold anything.
+              channelIndex: packet.channel <= MAX_CHANNEL_INDEX ? packet.channel : 0,
               text: new TextDecoder().decode(data.payload),
               rxTime: packetTime(packet, ctx.now),
               direction: "in",
               status: null,
               ...signal(packet),
+              pkiEncrypted: packet.pkiEncrypted,
+              viaMqtt: packet.viaMqtt,
+              replyId: data.replyId === 0 ? null : data.replyId,
+              emoji: data.emoji !== 0,
+              hopStart: packet.hopStart === 0 ? null : packet.hopStart,
+              hopLimit: packet.hopStart === 0 ? null : packet.hopLimit,
+              errorReason: null,
             },
           },
         },

@@ -161,9 +161,23 @@ export const messages = sqliteTable(
     status: text("status", { enum: ["queued", "sent", "acked", "failed"] }),
     rxSnr: real("rx_snr"),
     rxRssi: integer("rx_rssi"),
+    /** The node decrypted it with its private key (a PKI DM), not a channel key. */
+    pkiEncrypted: integer("pki_encrypted", { mode: "boolean" }).notNull().default(false),
+    /** Reached us through an MQTT gateway. */
+    viaMqtt: integer("via_mqtt", { mode: "boolean" }).notNull().default(false),
+    /** Packet id of the message this one replies or reacts to. */
+    replyId: integer("reply_id"),
+    /** A reaction (tapback) to `reply_id`; the text is the emoji. */
+    emoji: integer("emoji", { mode: "boolean" }).notNull().default(false),
+    hopStart: integer("hop_start"),
+    hopLimit: integer("hop_limit"),
+    /** `Routing.Error` name when an outgoing message failed (NULL on timeout). */
+    errorReason: text("error_reason"),
   },
   (t) => [
-    index("messages_channel_idx").on(t.connectionId, t.channelIndex, t.rxTime),
+    index("messages_channel_idx")
+      .on(t.connectionId, t.channelIndex, t.rxTime)
+      .where(sql`${t.peer} IS NULL`),
     index("messages_peer_idx").on(t.connectionId, t.peer, t.rxTime),
     // A rebroadcast of a packet we already have is the same (sender, packet id).
     uniqueIndex("messages_dedupe_idx").on(t.connectionId, t.fromNum, t.packetId),
@@ -187,6 +201,27 @@ export const ACTIVITY_KINDS = [
  * connection). `value` and `detail` depend on `kind`: quiet time or downtime in ms,
  * battery level, a disconnect reason, a message preview.
  */
+/**
+ * Per-conversation state shared by every browser: read position, mute, favorite,
+ * and a "deleted before" cut-off (deleting a DM hides its history, rows stay).
+ * `key` is the channel index or the DM peer's node number.
+ */
+export const conversationState = sqliteTable(
+  "conversation_state",
+  {
+    connectionId: integer("connection_id")
+      .notNull()
+      .references(() => connections.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ["channel", "dm"] }).notNull(),
+    key: integer("key").notNull(),
+    lastReadRxTime: integer("last_read_rx_time").notNull().default(0),
+    muted: integer("muted", { mode: "boolean" }).notNull().default(false),
+    favorite: integer("favorite", { mode: "boolean" }).notNull().default(false),
+    deletedBefore: integer("deleted_before").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.connectionId, t.kind, t.key] })],
+);
+
 export const activity = sqliteTable(
   "activity",
   {
