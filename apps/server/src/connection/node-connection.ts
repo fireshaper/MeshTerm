@@ -15,7 +15,16 @@ export interface ConnectionTiming {
   backoffMaxMs: number;
   /** ±fraction applied to each backoff delay; defaults to {@link DEFAULT_JITTER}. */
   backoffJitter?: number;
+  /** How long a link must stay connected before the backoff resets; defaults to {@link STABLE_AFTER_MS}. */
+  stableAfterMs?: number;
 }
+
+/**
+ * A link counts as healthy only after staying up this long. Until then a drop keeps
+ * backing off, so a node that accepts and then closes (e.g. because another API client
+ * took over its single TCP slot) isn't asked for a full config dump every 2 s.
+ */
+export const STABLE_AFTER_MS = 30_000;
 
 export interface NodeConnectionOptions {
   connection: Connection;
@@ -79,6 +88,8 @@ export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
   private heartbeat: Heartbeat | null = null;
   private cancelConfigTimer: (() => void) | null = null;
   private cancelRetry: (() => void) | null = null;
+  private cancelStableTimer: (() => void) | null = null;
+  private connectedAt: number | null = null;
   private nonce = 0;
   private pending: NodeModel = emptyModel();
   private current: NodeModel = emptyModel();
@@ -146,7 +157,7 @@ export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
       if (this.transport === transport) this.onFromRadio(message);
     });
     transport.on("close", (info) => {
-      if (this.transport === transport) this.fail(describeClose(info));
+      if (this.transport === transport) this.fail(this.withShortLinkHint(describeClose(info)));
     });
     transport.on("error", () => {
       // Informational; a fatal error is followed by `close`. Logged from Phase 7.
@@ -194,7 +205,14 @@ export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
     this.cancelConfigTimer = null;
     this.current = this.pending;
     this.pending = emptyModel();
-    this.failures = 0;
+    this.connectedAt = this.clock.now();
+    this.cancelStableTimer = this.clock.setTimer(
+      this.timing.stableAfterMs ?? STABLE_AFTER_MS,
+      () => {
+        this.cancelStableTimer = null;
+        this.failures = 0;
+      },
+    );
     this.machine.transition("connected", `config_complete_id ${this.nonce}`);
     const transport = this.transport;
     if (transport) {
@@ -224,9 +242,21 @@ export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
     });
   }
 
+  /** Explains a link the node closed soon after the handshake: usually a second API client. */
+  private withShortLinkHint(reason: string): string {
+    if (this.state !== "connected" || this.connectedAt === null || !this.cancelStableTimer) {
+      return reason;
+    }
+    const ms = this.clock.now() - this.connectedAt;
+    return `${reason} ${ms} ms after connecting; is another app (phone, Home Assistant, another MeshTerm) connected to this node over TCP? The node allows one TCP client at a time`;
+  }
+
   private teardownLink(): Promise<void> {
     this.heartbeat?.stop();
     this.heartbeat = null;
+    this.cancelStableTimer?.();
+    this.cancelStableTimer = null;
+    this.connectedAt = null;
     this.cancelConfigTimer?.();
     this.cancelConfigTimer = null;
     const transport = this.transport;

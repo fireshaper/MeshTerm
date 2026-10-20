@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FakeClock } from "../clock.js";
 import { MockPeer } from "../transport/mock-transport.js";
 import { backoffDelay } from "./backoff.js";
-import { NodeConnection } from "./node-connection.js";
+import { NodeConnection, STABLE_AFTER_MS } from "./node-connection.js";
 import { recordConnection, TEST_CONNECTION } from "./test-helpers.js";
 
 const OPTS = { minMs: 2_000, maxMs: 60_000, jitter: 0.2 };
@@ -104,7 +104,7 @@ describe("NodeConnection reconnect", () => {
     expect(conn.state).toBe("disconnected");
   });
 
-  it("resets the delay to 2 s after a successful connection", async () => {
+  it("resets the delay to 2 s once a connection has stayed up for 30 s", async () => {
     conn.start();
     expect(await nextRetry(1)).toBe(2_000);
     expect(await nextRetry(2)).toBe(4_000);
@@ -114,6 +114,7 @@ describe("NodeConnection reconnect", () => {
     peer.reachable = true;
     clock.advance(8_000);
     await until(() => conn.state === "connected");
+    clock.advance(STABLE_AFTER_MS);
 
     peer.close();
     await until(() => rec.retries.length === 4);
@@ -123,5 +124,23 @@ describe("NodeConnection reconnect", () => {
       state: "reconnecting",
       reason: "link closed (peer-closed)",
     });
+  });
+
+  it("keeps backing off when the node closes each link soon after the handshake", async () => {
+    peer.reachable = true;
+    conn.start();
+    const delays: number[] = [];
+    for (let n = 1; n <= 4; n++) {
+      await until(() => conn.state === "connected");
+      clock.advance(500);
+      peer.close();
+      await until(() => rec.retries.length === n);
+      delays.push(rec.retries[n - 1]?.delayMs ?? -1);
+      clock.advance(rec.retries[n - 1]?.delayMs ?? 0);
+    }
+    expect(delays).toEqual([2_000, 4_000, 8_000, 16_000]);
+    expect(rec.states.find((s) => s.state === "reconnecting")?.reason).toMatch(
+      /^link closed \(peer-closed\) 500 ms after connecting; is another app .* connected to this node over TCP\?/,
+    );
   });
 });
