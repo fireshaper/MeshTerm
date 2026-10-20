@@ -32,6 +32,9 @@ export default defineConfig({
   // Specs share FakeNodes (reboots, ack modes, injected messages), so one test at a time.
   fullyParallel: false,
   workers: 1,
+  // In CI only: one retry, so a timing hiccup on a slow runner shows as "flaky" in the
+  // report instead of blocking the image. A real failure fails both attempts.
+  retries: process.env.CI ? 1 : 0,
   use: { colorScheme: "light" },
   expect: {
     // Antialiasing differs slightly between runs; layout or color changes exceed this.

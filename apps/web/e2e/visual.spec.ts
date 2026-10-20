@@ -188,5 +188,12 @@ test("map", async ({ page }) => {
     })`,
   );
   await freeze(page);
-  await expect(page).toHaveScreenshot("map.png", { mask: MASKS(page) });
+  // WebGL renders in software (SwiftShader) here, and its anti-aliasing differs a little
+  // between CPUs, so the map gets more room than the DOM screens. A missing marker,
+  // wrong colors or a layout change still exceed it.
+  await expect(page).toHaveScreenshot("map.png", {
+    mask: MASKS(page),
+    maxDiffPixelRatio: 0.03,
+    threshold: 0.3,
+  });
 });
