@@ -3,6 +3,7 @@ export * from "./auth.js";
 export * from "./config.js";
 export * from "./conversations.js";
 export * from "./dashboard.js";
+export * from "./device-config.js";
 export * from "./domain.js";
 export * from "./map.js";
 export * from "./node-detail.js";

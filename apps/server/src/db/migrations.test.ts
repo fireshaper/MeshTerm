@@ -28,6 +28,7 @@ describe("migrations", () => {
       "activity",
       "audit_log",
       "channels",
+      "config_snapshots",
       "connections",
       "conversation_state",
       "messages",

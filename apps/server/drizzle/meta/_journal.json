@@ -85,6 +85,13 @@
       "when": 1792553895838,
       "tag": "0011_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1792588154686,
+      "tag": "0012_config_snapshots",
+      "breakpoints": true
     }
   ]
 }

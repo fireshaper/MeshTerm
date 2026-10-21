@@ -19,12 +19,35 @@ afterEach(async () => {
 });
 
 describe("transmit audit", () => {
+  it("counts an admin message to the local node as admin, not as a mesh transmit", async () => {
+    client.send({
+      payloadVariant: {
+        case: "packet",
+        value: {
+          to: node.myNodeNum,
+          id: 9,
+          payloadVariant: {
+            case: "decoded",
+            value: { portnum: Portnums.PortNum.ADMIN_APP, payload: new Uint8Array() },
+          },
+        },
+      },
+    });
+    await until(() => node.inbound.length === 1);
+    expect(auditInbound(node.inbound, node.myNodeNum).counts).toMatchObject({
+      admin: 1,
+      transmit: 0,
+    });
+    // Without the local node number it can't tell, so it errs on the side of "transmit".
+    expect(auditInbound(node.inbound).counts).toMatchObject({ admin: 0, transmit: 1 });
+  });
+
   it("reports zero transmits for a handshake and a heartbeat", async () => {
     client.send({ payloadVariant: { case: "wantConfigId", value: 1 } });
     client.send({ payloadVariant: { case: "heartbeat", value: {} } });
     await until(() => node.inbound.length === 2);
     const audit = auditInbound(node.inbound);
-    expect(audit.counts).toEqual({ handshake: 1, heartbeat: 1, transmit: 0, other: 0 });
+    expect(audit.counts).toEqual({ handshake: 1, heartbeat: 1, transmit: 0, admin: 0, other: 0 });
     expect(audit.transmits).toEqual([]);
   });
 

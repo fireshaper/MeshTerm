@@ -29,6 +29,12 @@ import { healthRoutes } from "./routes/health.js";
 import { HttpError } from "./routes/http-error.js";
 import { tileRoutes } from "./routes/tiles.js";
 import { authPlugin } from "./auth/plugin.js";
+import { audit } from "./auth/store.js";
+import { AdminClient } from "./config/admin.js";
+import { ConfigApplier } from "./config/applier.js";
+import { loadSecretKey } from "./config/snapshots.js";
+import { ConfigStore } from "./config/store.js";
+import { configRoutes } from "./routes/config.js";
 import { indexHtmlRenderer, registerSecurityHeaders } from "./security.js";
 import { TileCache } from "./tiles/tile-cache.js";
 import { isReservedPath, NO_CACHE, staticRoutes } from "./routes/static.js";
@@ -62,6 +68,10 @@ export interface AppDeps {
   themesDir?: string | null;
   /** Map tile cache. Default: `<dataDir>/tiles`, upstream `config.tileUrl`. */
   tiles?: TileCache;
+  /** Key that encrypts config snapshots. Default: `MESHTERM_SECRET_KEY` or `<dataDir>/secret.key`. */
+  secretKey?: Buffer;
+  /** Apply timing overrides (tests). */
+  applyTiming?: { noRebootGraceMs?: number; recoveryAfterMs?: number };
 }
 
 /** What routes need, available as `app.meshterm`. */
@@ -149,6 +159,45 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
     connections.set(connection.id, conn);
   }
 
+  // Device config (CR-002): the live config from each handshake, the admin link, applies.
+  const configStore = new ConfigStore(hub, () => clock.now());
+  const admins = new Map<number, AdminClient>();
+  for (const [id, conn] of connections) {
+    configStore.attach(conn);
+    admins.set(id, new AdminClient(conn, { clock, random, logger: app.log }));
+  }
+  const secretKey = deps.secretKey ?? loadSecretKey(config.secretKey, config.dataDir);
+  const applier = new ConfigApplier({
+    db: handle.db,
+    hub,
+    store: configStore,
+    connections,
+    admins,
+    secretKey,
+    clock,
+    logger: app.log,
+    ...deps.applyTiming,
+    onFinish: (status) => {
+      audit(
+        handle.db,
+        {
+          username: status.by,
+          action: "config.apply",
+          target: `connection ${status.connectionId}`,
+          details: {
+            applyId: status.applyId,
+            phase: status.phase,
+            paths: status.paths,
+            mismatches: status.mismatches.map((m) => m.path),
+            ...(status.error ? { error: status.error } : {}),
+          },
+          result: status.phase === "verified" || status.phase === "mismatched" ? "ok" : "failed",
+        },
+        clock.now(),
+      );
+    },
+  });
+
   app.decorate("meshterm", { config, db: handle.db, hub, connections, clock, random });
 
   app.setErrorHandler<FastifyError>((err, _req, reply) => {
@@ -220,6 +269,7 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
     logger: app.log,
   });
   await app.register(sendRoutes(sender));
+  await app.register(configRoutes({ store: configStore, applier, admins, secretKey }));
   const gateway = new WsGateway(hub, handle.db, connections, app.log);
   await app.register(wsRoutes(gateway));
 

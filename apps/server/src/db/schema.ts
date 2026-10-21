@@ -391,3 +391,24 @@ export const auditLog = sqliteTable(
   },
   (t) => [index("audit_log_time_idx").on(t.time)],
 );
+
+/**
+ * Copies of a node's full config taken before every apply or maintenance action
+ * (CR-002 §5.7). `payload` is AES-256-GCM encrypted (it holds PSKs and keys); the
+ * newest 20 per connection are kept.
+ */
+export const configSnapshots = sqliteTable(
+  "config_snapshots",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    connectionId: integer("connection_id")
+      .notNull()
+      .references(() => connections.id, { onDelete: "cascade" }),
+    takenAt: integer("taken_at").notNull(),
+    reason: text("reason", { enum: ["pre-apply", "pre-maintenance", "manual"] }).notNull(),
+    firmware: text("firmware"),
+    /** base64(iv ‖ tag ‖ ciphertext) of the config JSON. */
+    payload: text("payload").notNull(),
+  },
+  (t) => [index("config_snapshots_conn_idx").on(t.connectionId, t.takenAt)],
+);

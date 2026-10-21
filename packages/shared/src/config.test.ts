@@ -54,6 +54,7 @@ describe("parseConfig", () => {
       auth: "local",
       initialAdmin: null,
       sessionDays: 30,
+      secretKey: null,
     });
   });
 

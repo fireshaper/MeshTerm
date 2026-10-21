@@ -153,6 +153,16 @@ function toServerMessage(
         connectionId: event.payload.activity.connectionId,
         message: { type: "activity.new", ...event.payload },
       };
+    case "config.updated":
+      return {
+        connectionId: event.payload.connectionId,
+        message: { type: "config.updated", ...event.payload },
+      };
+    case "config.apply":
+      return {
+        connectionId: event.payload.status.connectionId,
+        message: { type: "config.apply", ...event.payload },
+      };
     default:
       return null;
   }

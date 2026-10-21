@@ -45,7 +45,7 @@ The user chose (2026-10-20) to **build login first**: CR-002 depends on admin/vi
   - Unit and integration: hashing, sessions, CSRF, roles, WS rejection, setup lock, rate limit, audit.
   - e2e: existing instances run `MESHTERM_AUTH=none`; a new `auth` instance (local) covers setup → login → viewer limits → logout.
 
-## Phase D1: config store, admin layer, apply/verify API
+## Phase D1: config store, admin layer, apply/verify API (done 2026-10-21)
 
 - An in-memory per-connection config store from the handshake: every Config and ModuleConfig section, channels with PSKs, owner, metadata. PSKs and secrets never go to the DB or logs; viewers get them masked. Exposed as `configVersion` (hash).
 - Admin client:

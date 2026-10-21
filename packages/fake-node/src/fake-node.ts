@@ -1,7 +1,9 @@
 import { createServer, type AddressInfo, type Server, type Socket } from "node:net";
 import {
+  Admin,
   create,
   decodeToRadio,
+  fromBinary,
   encodeFrame,
   encodeFromRadio,
   type FromRadioVariant,
@@ -14,6 +16,7 @@ import {
   type ToRadio,
 } from "@meshterm/protocol";
 import { BROADCAST_NUM } from "@meshterm/shared";
+import { FakeAdmin, type FakeAdminOptions } from "./admin.js";
 import { historyPackets } from "./history.js";
 import { loadScenario, type Scenario, type ScenarioNode } from "./scenario.js";
 
@@ -109,6 +112,15 @@ export class FakeNode {
     this.scenario = typeof scenario === "string" ? loadScenario(scenario) : scenario;
     for (const node of this.scenario.nodes) this.nodeDb.set(node.info.num, node);
     this.rebootCount = this.scenario.myInfo.rebootCount;
+    this.admin = new FakeAdmin(this.scenario, () => this.nodeDb.get(this.myNodeNum));
+  }
+
+  /** The admin module (CR-002): its log of received messages and test options. */
+  readonly admin: FakeAdmin;
+
+  /** Changes how the admin module behaves (passkeys, reboot on commit, clamping). */
+  setAdminOptions(options: Partial<FakeAdminOptions>): void {
+    this.admin.options = { ...this.admin.options, ...options };
   }
 
   get myNodeNum(): number {
@@ -378,6 +390,47 @@ export class FakeNode {
     };
   }
 
+  /** An admin message to our own node: answer it like the firmware's admin module. */
+  private handleAdmin(socket: Socket, requestId: number, payload: Uint8Array): void {
+    const me = this.myNodeNum;
+    for (const reply of this.admin.handle(fromBinary(Admin.AdminMessageSchema, payload))) {
+      if (reply.kind === "reboot") {
+        this.later(100, () => {
+          this.admin.resetSession();
+          void this.reboot(reply.afterMs);
+        });
+        continue;
+      }
+      const decoded =
+        reply.kind === "response"
+          ? {
+              portnum: Portnums.PortNum.ADMIN_APP,
+              payload: toBinary(Admin.AdminMessageSchema, reply.message),
+              requestId,
+            }
+          : {
+              portnum: Portnums.PortNum.ROUTING_APP,
+              payload: toBinary(
+                Mesh.RoutingSchema,
+                create(Mesh.RoutingSchema, {
+                  variant: { case: "errorReason", value: reply.error },
+                }),
+              ),
+              requestId,
+            };
+      this.send(socket, {
+        case: "packet",
+        value: {
+          from: me,
+          to: me,
+          id: this.newPacketId(),
+          rxTime: this.nowSeconds(),
+          payloadVariant: { case: "decoded", value: decoded },
+        },
+      });
+    }
+  }
+
   /** Sends one framed `FromRadio` to every connected client. */
   private broadcast(payloadVariant: FromRadioVariant): void {
     const frame = this.frame(payloadVariant);
@@ -421,6 +474,10 @@ export class FakeNode {
     });
 
     const data = packet.payloadVariant.case === "decoded" ? packet.payloadVariant.value : null;
+    if (data?.portnum === Portnums.PortNum.ADMIN_APP && packet.to === this.myNodeNum) {
+      this.handleAdmin(socket, packet.id, data.payload);
+      return;
+    }
     if (data?.portnum !== Portnums.PortNum.TEXT_MESSAGE_APP || this.ackMode === "silent") return;
 
     const errorReason = this.ackMode === "nak" ? this.nakReason : Mesh.Routing_Error.NONE;

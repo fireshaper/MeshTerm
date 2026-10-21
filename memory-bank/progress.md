@@ -467,6 +467,28 @@ State: `typecheck`, `lint`, `format`, `test` (599), `test:e2e` (131 passed, 6 sk
   - The Dockerfile copies all of `apps/server/dist`.
   - The CI docker job now starts the image and waits for `/healthz` (smoke test) before anything is published.
 
+### Phase D1: config store, admin layer, apply and verify (done 2026-10-21)
+
+- The user asked for D2; D1 (its server side) came first.
+- **Config store:** the node model keeps every `config` / `moduleConfig` section. A `ConfigStore` per connection holds owner, sections and channels (PSKs included) in memory, published as proto JSON with a version hash. Secrets are masked for viewers. `config.updated` goes over WS.
+- **Admin client:** admin messages to our own node over the API link. Request/response matching, session passkey from every response, one retry with a fresh passkey on `ADMIN_BAD_SESSION_KEY`.
+- **Apply:**
+  - One per node; 409 on a stale `baseVersion`.
+  - Encrypted pre-apply snapshot (AES-256-GCM, `MESHTERM_SECRET_KEY` or a generated `/data/secret.key`, newest 20).
+  - Begin → owner → channels → config → modules → fixed position → commit.
+  - Phases `applying → rebooting → reconnecting → verifying → verified | mismatched | failed | recovery` over WS (`config.apply`).
+  - Verify compares the node's re-reported config with what was sent; no reboot means re-read the changed sections; no reconnect within 3 min means recovery.
+  - Audit entries with field paths, never values.
+- **Endpoints:** `GET …/config`, `POST …/config/refresh`, `POST …/config/apply`, `GET …/config/apply/:id`, snapshots list/get.
+- **FakeNode:**
+  - Admin module: gets with passkeys, sets need the passkey, begin/commit, reboot after commit, clamp hook, passkey-expiry option.
+  - Audit class `admin` for admin packets to the local node, so they don't count as mesh transmits.
+- **Tests:**
+  - 9 config integration tests: read without any admin traffic; viewer masking and refusal; full apply with reboot → verified, with the exact message order, snapshot and audit; no-reboot re-read; clamping → mismatch; passkey retry; stale version / in progress / invalid fields; recovery; refresh is reads only.
+  - Unit tests: merging and paths, secret masking, verify, snapshot crypto and key loading, admin audit class.
+
+State: `typecheck`, `lint`, `format`, `test` (617), `test:e2e` (131 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

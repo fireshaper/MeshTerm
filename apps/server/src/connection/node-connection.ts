@@ -1,5 +1,12 @@
 import { EventEmitter } from "node:events";
-import type { Channel, FromRadio, Mesh, ToRadioInit } from "@meshterm/protocol";
+import type {
+  Channel,
+  Config,
+  FromRadio,
+  Mesh,
+  ModuleConfig,
+  ToRadioInit,
+} from "@meshterm/protocol";
 import type { Connection, ConnectionState } from "@meshterm/shared";
 import { systemClock, type Clock, type Random } from "../clock.js";
 import { Heartbeat } from "../transport/heartbeat.js";
@@ -42,6 +49,10 @@ export interface NodeModel {
   metadata: Mesh.DeviceMetadata | null;
   nodes: Map<number, Mesh.NodeInfo>;
   channels: Map<number, Channel.Channel>;
+  /** Every `Config` section the node sent, by its oneof case (`device`, `lora`, …). */
+  config: Map<string, Config.Config>;
+  /** Every `ModuleConfig` section, by its oneof case (`mqtt`, `telemetry`, …). */
+  moduleConfig: Map<string, ModuleConfig.ModuleConfig>;
 }
 
 export interface RetryScheduled {
@@ -68,7 +79,15 @@ export class NotConnectedError extends Error {
 const SPECIAL_NONCES = new Set([69420, 69421]);
 
 function emptyModel(): NodeModel {
-  return { myNodeNum: null, myInfo: null, metadata: null, nodes: new Map(), channels: new Map() };
+  return {
+    myNodeNum: null,
+    myInfo: null,
+    metadata: null,
+    nodes: new Map(),
+    channels: new Map(),
+    config: new Map(),
+    moduleConfig: new Map(),
+  };
 }
 
 /**
@@ -305,6 +324,16 @@ function applyToModel(model: NodeModel, variant: FromRadio["payloadVariant"]) {
       break;
     case "channel":
       model.channels.set(variant.value.index, variant.value);
+      break;
+    case "config":
+      if (variant.value.payloadVariant.case) {
+        model.config.set(variant.value.payloadVariant.case, variant.value);
+      }
+      break;
+    case "moduleConfig":
+      if (variant.value.payloadVariant.case) {
+        model.moduleConfig.set(variant.value.payloadVariant.case, variant.value);
+      }
       break;
     default:
       break;

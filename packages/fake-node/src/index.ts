@@ -1,3 +1,4 @@
+export * from "./admin.js";
 export * from "./audit.js";
 export * from "./control-server.js";
 export * from "./fake-node.js";

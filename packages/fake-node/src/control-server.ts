@@ -123,7 +123,7 @@ function telemetryFrom(body: Record<string, unknown>): TelemetryInit {
 }
 
 export function inboundReport(node: FakeNode): InboundReport {
-  const audit = auditInbound(node.inbound);
+  const audit = auditInbound(node.inbound, node.myNodeNum);
   return {
     counts: audit.counts,
     transmits: audit.transmits.map(({ message }) => {

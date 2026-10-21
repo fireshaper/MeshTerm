@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ApplyStatusDTO } from "./device-config.js";
 import { ActivityEvent } from "./activity.js";
 import {
   Channel,
@@ -83,6 +84,19 @@ export const ErrorMessage = z.object({
   message: z.string(),
 });
 
+/** The node's config changed (handshake, refresh, or another client): editors re-check. */
+export const ConfigUpdatedMessage = z.object({
+  type: z.literal("config.updated"),
+  connectionId: ConnectionId,
+  version: z.string(),
+});
+
+/** An apply moved to another phase; other browsers lock their editors while it runs. */
+export const ConfigApplyMessage = z.object({
+  type: z.literal("config.apply"),
+  status: ApplyStatusDTO,
+});
+
 export const ActivityNewMessage = z.object({
   type: z.literal("activity.new"),
   activity: ActivityEvent,
@@ -97,6 +111,8 @@ export const ServerMessage = z.discriminatedUnion("type", [
   TelemetryNewMessage,
   PositionNewMessage,
   ActivityNewMessage,
+  ConfigUpdatedMessage,
+  ConfigApplyMessage,
   ErrorMessage,
 ]);
 export type ServerMessage = z.infer<typeof ServerMessage>;

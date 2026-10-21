@@ -34,20 +34,21 @@ Images are published for **amd64 and arm64** (e.g. a Raspberry Pi 4/5 with a 64-
 
 ### Settings
 
-| Variable                                             | Default                                          | Meaning                                                                                                         |
-| ---------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `MESHTERM_NODE_HOST`                                 | (required)                                       | Node IP or hostname                                                                                             |
-| `MESHTERM_NODE_PORT`                                 | `4403`                                           | Node TCP API port                                                                                               |
-| `MESHTERM_HTTP_PORT`                                 | `8080`                                           | Web UI port inside the container                                                                                |
-| `MESHTERM_DATA_DIR`                                  | `/data`                                          | Where the database lives                                                                                        |
-| `MESHTERM_LOG_LEVEL`                                 | `info`                                           | `debug`, `info`, `warn`, `error`, …                                                                             |
-| `MESHTERM_HEARTBEAT_INTERVAL_MS`                     | `60000`                                          | Keep-alive to the node                                                                                          |
-| `MESHTERM_ACK_TIMEOUT_MS`                            | `120000`                                         | When an unacknowledged message is `failed`                                                                      |
-| `MESHTERM_TILE_URL`                                  | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | Map tile source (the server fetches and caches tiles; browsers never contact it)                                |
-| `MESHTERM_TILE_CACHE_MB`                             | `500`                                            | Size cap of the tile cache in `/data/tiles`                                                                     |
-| `MESHTERM_AUTH`                                      | `local`                                          | `local`: accounts and sign-in (admin / viewer). `none`: no sign-in; everyone who can reach MeshTerm is an admin |
-| `MESHTERM_ADMIN_USERNAME`, `MESHTERM_ADMIN_PASSWORD` | unset                                            | Creates the first admin at startup when no account exists (set both or neither; password ≥ 8 characters)        |
-| `MESHTERM_SESSION_DAYS`                              | `30`                                             | Sessions end after this many days (or after 7 days without use)                                                 |
+| Variable                                             | Default                                          | Meaning                                                                                                                               |
+| ---------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `MESHTERM_NODE_HOST`                                 | (required)                                       | Node IP or hostname                                                                                                                   |
+| `MESHTERM_NODE_PORT`                                 | `4403`                                           | Node TCP API port                                                                                                                     |
+| `MESHTERM_HTTP_PORT`                                 | `8080`                                           | Web UI port inside the container                                                                                                      |
+| `MESHTERM_DATA_DIR`                                  | `/data`                                          | Where the database lives                                                                                                              |
+| `MESHTERM_LOG_LEVEL`                                 | `info`                                           | `debug`, `info`, `warn`, `error`, …                                                                                                   |
+| `MESHTERM_HEARTBEAT_INTERVAL_MS`                     | `60000`                                          | Keep-alive to the node                                                                                                                |
+| `MESHTERM_ACK_TIMEOUT_MS`                            | `120000`                                         | When an unacknowledged message is `failed`                                                                                            |
+| `MESHTERM_TILE_URL`                                  | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | Map tile source (the server fetches and caches tiles; browsers never contact it)                                                      |
+| `MESHTERM_TILE_CACHE_MB`                             | `500`                                            | Size cap of the tile cache in `/data/tiles`                                                                                           |
+| `MESHTERM_AUTH`                                      | `local`                                          | `local`: accounts and sign-in (admin / viewer). `none`: no sign-in; everyone who can reach MeshTerm is an admin                       |
+| `MESHTERM_ADMIN_USERNAME`, `MESHTERM_ADMIN_PASSWORD` | unset                                            | Creates the first admin at startup when no account exists (set both or neither; password ≥ 8 characters)                              |
+| `MESHTERM_SESSION_DAYS`                              | `30`                                             | Sessions end after this many days (or after 7 days without use)                                                                       |
+| `MESHTERM_SECRET_KEY`                                | generated                                        | 32-byte key (base64 or hex) that encrypts device-config snapshots. Unset: created once in `/data/secret.key` (keep `/data` backed up) |
 
 Changing `MESHTERM_NODE_HOST` or `MESHTERM_NODE_PORT` later updates the same connection, so history is kept.
 

@@ -42,6 +42,11 @@ export const EnvSchema = z
     MESHTERM_ADMIN_PASSWORD: z.string().min(8).max(256).optional(),
     /** Sessions end after this many days, or after a week without use. */
     MESHTERM_SESSION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+    /**
+     * 32-byte key (base64 or hex) that encrypts config snapshots. Unset: generated once
+     * into <data dir>/secret.key.
+     */
+    MESHTERM_SECRET_KEY: z.string().trim().min(1).optional(),
   })
   .refine(
     (env) =>
@@ -79,6 +84,7 @@ export const ConfigSchema = EnvSchema.transform((env) => ({
       ? { username: env.MESHTERM_ADMIN_USERNAME, password: env.MESHTERM_ADMIN_PASSWORD }
       : null,
   sessionDays: env.MESHTERM_SESSION_DAYS,
+  secretKey: env.MESHTERM_SECRET_KEY ?? null,
 }));
 
 export type Config = z.output<typeof ConfigSchema>;
