@@ -58,7 +58,7 @@ RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx \
 WORKDIR /app
 # Same layout as the repo, which the server relies on to find web/dist, drizzle/ and themes/.
 COPY --from=build /out/node_modules apps/server/node_modules
-COPY --from=build /app/apps/server/dist/main.js apps/server/dist/main.js
+COPY --from=build /app/apps/server/dist apps/server/dist
 COPY --from=build /app/apps/server/drizzle apps/server/drizzle
 COPY --from=build /app/apps/web/dist apps/web/dist
 COPY --from=build /app/themes themes

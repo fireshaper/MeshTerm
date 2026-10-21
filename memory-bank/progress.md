@@ -459,6 +459,14 @@ State: `typecheck`, `lint`, `format`, `test` (577), `test:e2e` (125 passed, 6 sk
 
 State: `typecheck`, `lint`, `format`, `test` (599), `test:e2e` (131 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
 
+## Fix: the image didn't start (2026-10-21)
+
+- After Phase L the published image crashed at startup: `Cannot find module …/dist/chunk-UCVY2II6.js`. A dynamic `import()` in a new dependency made tsup split the bundle, and the Dockerfile only copied `main.js`. CI built the image but never ran it.
+- Fixes:
+  - tsup `splitting: false` (one file again).
+  - The Dockerfile copies all of `apps/server/dist`.
+  - The CI docker job now starts the image and waits for `/healthz` (smoke test) before anything is published.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

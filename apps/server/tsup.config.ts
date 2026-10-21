@@ -13,6 +13,9 @@ export default defineConfig({
   target: "node24",
   outDir: "dist",
   clean: true,
+  // One file: the Docker image (and any deploy) only has to carry main.js. A dynamic
+  // import() in a dependency would otherwise become a separate chunk.
+  splitting: false,
   sourcemap: true,
   // Everything else is bundled (workspace packages are TypeScript source, and this
   // keeps the runtime image to node + one native module), then tree-shaken.

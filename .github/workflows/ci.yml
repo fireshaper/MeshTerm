@@ -82,6 +82,17 @@ jobs:
       - name: Image size
         run: |
           docker image inspect meshterm:ci --format '{{.Size}}' | awk '{printf "uncompressed: %.1f MB\n", $1/1e6}'
+      # The image must actually start: /healthz answers even while the node is unreachable.
+      - name: Smoke test (the server starts and answers /healthz)
+        run: |
+          docker run -d --name smoke -p 18080:8080 -e MESHTERM_NODE_HOST=127.0.0.1 meshterm:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18080/healthz; then echo; docker rm -f smoke; exit 0; fi
+            sleep 1
+          done
+          docker logs smoke
+          docker rm -f smoke
+          exit 1
 
   publish:
     name: Publish image to GHCR
