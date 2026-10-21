@@ -5,6 +5,8 @@
  * with a humanized name, under "Advanced".
  */
 
+import { MODULE_FIELDS, MODULE_TITLES, NETWORK_FIELDS, SECURITY_FIELDS } from "./registry-more.js";
+
 /** The value of another field (pending edit if any, else the node's). */
 export type Getter = (path: string) => unknown;
 
@@ -35,13 +37,18 @@ export interface FieldMeta {
   readOnly?: boolean;
   /** Not shown at all. */
   hidden?: boolean;
-  /** A slider instead of a number box (needs min and max). */
-  control?: "slider";
+  /**
+   * Another input: a slider (needs min and max), an IPv4 address for a fixed32, or one
+   * line per list item (base64 keys).
+   */
+  control?: "slider" | "ipv4" | "lines";
+  /** How the value reads in diffs and "was:" (e.g. a fixed32 as a dotted IPv4 address). */
+  format?: (value: unknown) => string;
   /** What a value means, shown beside the input (e.g. a slider's radius). */
   valueText?: (value: unknown) => string;
 }
 
-export type SectionKind = "owner" | "config" | "module" | "channels";
+export type SectionKind = "owner" | "config" | "module" | "channels" | "backup" | "maintenance";
 
 export interface SectionMeta {
   /** URL id: `user`, `device`, `lora`, … */
@@ -118,6 +125,16 @@ export const SECTIONS: SectionMeta[] = [
     groups: ["Saving", "Sleep"],
   },
   {
+    id: "network",
+    kind: "config",
+    key: "network",
+    title: "Network",
+    summary: "Wi-Fi, Ethernet, static IP, NTP…",
+    reboots: true,
+    danger: "can disconnect MeshTerm",
+    groups: ["Wi-Fi", "Ethernet", "Static address", "Services"],
+  },
+  {
     id: "display",
     kind: "config",
     key: "display",
@@ -135,11 +152,68 @@ export const SECTIONS: SectionMeta[] = [
     reboots: true,
     groups: ["Bluetooth"],
   },
+  {
+    id: "security",
+    kind: "config",
+    key: "security",
+    title: "Security",
+    summary: "Keys, admin keys, managed mode…",
+    reboots: true,
+    danger: "can lock MeshTerm out",
+    groups: ["Keys", "Remote admin", "Interfaces"],
+  },
 ];
 
+/** After the modules in the nav. */
+export const TAIL_SECTIONS: SectionMeta[] = [
+  {
+    id: "backup",
+    kind: "backup",
+    key: "backup",
+    title: "Backup & restore",
+    summary: "YAML export and import, snapshots",
+    reboots: false,
+    groups: [],
+  },
+  {
+    id: "maintenance",
+    kind: "maintenance",
+    key: "maintenance",
+    title: "Maintenance",
+    summary: "Reboot, shutdown, resets",
+    reboots: false,
+    danger: "resets can't be undone",
+    groups: [],
+  },
+];
+
+/** A section per module the node reports (CR-002 Phase D4). */
+export function moduleSections(keys: readonly string[]): SectionMeta[] {
+  return keys.map((key) => ({
+    id: `module-${key}`,
+    kind: "module" as const,
+    key,
+    title: MODULE_TITLES[key] ?? humanize(key),
+    summary: "Module",
+    reboots: true,
+    groups: MODULE_GROUPS[key] ?? ["Settings"],
+  }));
+}
+
+const MODULE_GROUPS: Record<string, string[]> = { mqtt: ["Server", "Settings"] };
+
+/** Every section in nav order: config sections, then modules, then backup and maintenance. */
+export function allSections(moduleKeys: readonly string[]): SectionMeta[] {
+  return [...SECTIONS, ...moduleSections(moduleKeys), ...TAIL_SECTIONS];
+}
+
+/** A section URL id the route accepts (modules are only known once the node reports them). */
+export const isSectionId = (id: string): boolean =>
+  [...SECTIONS, ...TAIL_SECTIONS].some((s) => s.id === id) || /^module-[A-Za-z0-9]+$/.test(id);
+
 /** The section with this URL id; User when there is none. */
-export const sectionById = (id: string | undefined): SectionMeta =>
-  SECTIONS.find((s) => s.id === id) ?? USER;
+export const sectionById = (id: string | undefined, list: SectionMeta[] = SECTIONS): SectionMeta =>
+  list.find((s) => s.id === id) ?? USER;
 
 const utf8 = (s: string) => new TextEncoder().encode(s).length;
 const ROUTER_ROLES = new Set(["ROUTER", "ROUTER_LATE", "REPEATER", "ROUTER_CLIENT"]);
@@ -708,10 +782,16 @@ export function metaFor(path: string): FieldMeta {
     const meta = CHANNEL_FIELDS[path.replace(/^channels\.\d+\./, "channels.*.")];
     if (meta) return meta;
   }
-  return (
+  const known =
     FIELDS[path] ??
-    POSITION_FIELDS[path] ?? { label: humanize(path.split(".").at(-1) ?? path), advanced: true }
-  );
+    POSITION_FIELDS[path] ??
+    NETWORK_FIELDS[path] ??
+    SECURITY_FIELDS[path] ??
+    MODULE_FIELDS[path];
+  if (known) return known;
+  // Modules have few registry entries: their fields show by default.
+  const label = humanize(path.split(".").at(-1) ?? path);
+  return path.startsWith("moduleConfig.") ? { label } : { label, advanced: true };
 }
 
 /** Problems with a value: the field's own rules (range, bytes) and its `validate`. */
@@ -733,6 +813,7 @@ export const sectionOf = (path: string): string => {
   if (kind === "owner") return "user";
   if (kind === "channels") return "channels";
   if (kind === "fixedPosition") return "position";
+  if (kind === "moduleConfig") return `module-${key ?? ""}`;
   return key ?? "";
 };
 

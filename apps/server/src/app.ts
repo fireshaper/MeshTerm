@@ -16,7 +16,7 @@ import { systemClock, type Clock, type Random } from "./clock.js";
 import { NodeConnection } from "./connection/node-connection.js";
 import { openDataDirDatabase, type DatabaseHandle, type Db } from "./db/database.js";
 import { prepareDatabase } from "./db/init.js";
-import { listConnections } from "./db/repositories.js";
+import { listConnections, setConnectionHost } from "./db/repositories.js";
 import { Hub } from "./events/events.js";
 import { attachPersistence } from "./events/persistence.js";
 import { wireConnection } from "./events/pipeline.js";
@@ -35,6 +35,7 @@ import { ConfigApplier } from "./config/applier.js";
 import { loadSecretKey } from "./config/snapshots.js";
 import { ConfigStore } from "./config/store.js";
 import { configRoutes } from "./routes/config.js";
+import { maintenanceRoutes } from "./routes/maintenance.js";
 import { indexHtmlRenderer, registerSecurityHeaders } from "./security.js";
 import { TileCache } from "./tiles/tile-cache.js";
 import { isReservedPath, NO_CACHE, staticRoutes } from "./routes/static.js";
@@ -142,9 +143,10 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   const connections = new Map<number, NodeConnection>();
   for (const connection of listConnections(handle.db)) {
     if (!connection.enabled) continue;
-    const conn = new NodeConnection({
+    const conn: NodeConnection = new NodeConnection({
       connection,
-      createTransport: () => createTransport(connection),
+      // The current address (it changes when the node moves), or the one to try.
+      createTransport: (host) => createTransport({ ...conn.connection, ...(host ? { host } : {}) }),
       timing: {
         configTimeoutMs: config.configTimeoutMs,
         heartbeatIntervalMs: config.heartbeatIntervalMs,
@@ -157,6 +159,10 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
     wireConnection(conn, hub, { logger: app.log, now: () => clock.now() });
     conn.on("state", ({ previous, state, reason }) => {
       app.log.info({ connectionId: connection.id, previous, state, reason }, "connection state");
+    });
+    conn.on("addressChanged", ({ host }) => {
+      setConnectionHost(handle.db, connection.id, host);
+      app.log.warn({ connectionId: connection.id, host }, "node moved to a new address");
     });
     connections.set(connection.id, conn);
   }
@@ -273,6 +279,15 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   await app.register(sendRoutes(sender));
   await app.register(
     configRoutes({
+      store: configStore,
+      applier,
+      admins,
+      secretKey,
+      ...(deps.configRateLimit ? { rateLimit: deps.configRateLimit } : {}),
+    }),
+  );
+  await app.register(
+    maintenanceRoutes({
       store: configStore,
       applier,
       admins,

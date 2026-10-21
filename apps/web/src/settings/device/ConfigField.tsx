@@ -1,6 +1,6 @@
-import type { FieldSchema } from "@meshterm/shared";
+import { ipv4FromUint32, ipv4ToUint32, type FieldSchema } from "@meshterm/shared";
 import { RotateCcw, TriangleAlert } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { formatValue } from "./format.js";
 import { metaFor, validateField, type Getter } from "./registry.js";
 
@@ -57,7 +57,8 @@ export function ConfigField(props: ConfigFieldProps) {
   const id = `cfg-${path.replaceAll(".", "-")}`;
   const error = changed ? validateField(path, value, get) : null;
   const warning = changed ? (meta.warning?.(value, get) ?? null) : null;
-  const readOnly = disabled || meta.readOnly === true || !isEditable(field);
+  const readOnly =
+    disabled || meta.readOnly === true || !(isEditable(field) || meta.control === "lines");
   const states = [changed && "changed", error && "invalid", conflict && "conflict"].filter(Boolean);
   const variant = meta.secret
     ? "secret"
@@ -80,6 +81,25 @@ export function ConfigField(props: ConfigFieldProps) {
   let input: ReactNode;
   if (props.renderInput) {
     input = props.renderInput(common);
+  } else if (meta.control === "ipv4") {
+    input = <Ipv4Input common={common} value={value} onChange={onChange} />;
+  } else if (meta.control === "lines") {
+    input = (
+      <textarea
+        {...common}
+        rows={3}
+        spellCheck={false}
+        value={Array.isArray(value) ? value.filter((v) => v !== "").join("\n") : ""}
+        onChange={(e) => {
+          onChange(
+            e.target.value
+              .split("\n")
+              .map((l) => l.trim())
+              .filter((l) => l !== ""),
+          );
+        }}
+      />
+    );
   } else if (meta.control === "slider" && typeof value === "number") {
     input = (
       <input
@@ -244,5 +264,43 @@ export function ConfigField(props: ConfigFieldProps) {
         </div>
       )}
     </div>
+  );
+}
+
+/** A fixed32 IPv4 address as dotted text; what doesn't parse is kept as text (and invalid). */
+function Ipv4Input({
+  common,
+  value,
+  onChange,
+}: {
+  common: InputCommon;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}) {
+  const shown =
+    typeof value === "number"
+      ? value === 0
+        ? ""
+        : ipv4FromUint32(value)
+      : typeof value === "string"
+        ? value
+        : "";
+  const [text, setText] = useState(shown);
+  // Follow outside changes (reset, the node's value) unless it's what is being typed.
+  const typed = text.trim() === "" ? 0 : (ipv4ToUint32(text) ?? text);
+  const display = typed === value ? text : shown;
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      autoComplete="off"
+      {...common}
+      value={display}
+      onChange={(e) => {
+        const t = e.target.value;
+        setText(t);
+        onChange(t.trim() === "" ? 0 : (ipv4ToUint32(t) ?? t));
+      }}
+    />
   );
 }

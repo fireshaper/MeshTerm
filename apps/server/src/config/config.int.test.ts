@@ -7,6 +7,8 @@ import type {
   ApplyStatusDTO,
   AuditPage,
   ChannelUrlDTO,
+  ConfigSnapshotSummary,
+  ImportedConfigDTO,
   DeviceConfigDTO,
   MapNodesDTO,
   MeDTO,
@@ -431,4 +433,115 @@ describe("POST /api/connections/:id/config/refresh", () => {
     // Only reads: nothing was set.
     expect(node.admin.log.every((c) => c.startsWith("get"))).toBe(true);
   }, 30_000);
+});
+
+describe("backup, maintenance and keys (CR-002 Phase D4)", () => {
+  it("exports YAML without secrets by default, and reads a file back without applying", async () => {
+    const { node } = await start();
+    const res = await app().inject({ url: "/api/connections/1/config/export" });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toContain("application/yaml");
+    expect(res.headers["content-disposition"]).toMatch(
+      /filename="meshterm-MTB-\d{4}-\d{2}-\d{2}\.yaml"/,
+    );
+    expect(res.body).toContain("owner_short: MTB");
+    expect(res.body).not.toMatch(/^channel_url:/m);
+    const withSecrets = await app().inject({
+      url: "/api/connections/1/config/export?secrets=true",
+    });
+    expect(withSecrets.body).toContain("channel_url: https://meshtastic.org/e/#");
+
+    const back = await app().inject({
+      method: "POST",
+      url: "/api/connections/1/config/import",
+      payload: { yaml: withSecrets.body },
+    });
+    expect(back.statusCode, back.body).toBe(200);
+    const imported = back.json<ImportedConfigDTO>();
+    expect(imported.owner).toEqual({ longName: "MeshTerm Base", shortName: "MTB" });
+    expect(imported.config.lora).toMatchObject({ region: "US", hopLimit: 3 });
+    expect(imported.channels?.settings.map((s) => s.name)).toEqual(["", "Friends"]);
+    const bad = await app().inject({
+      method: "POST",
+      url: "/api/connections/1/config/import",
+      payload: { yaml: "- not\n- a config\n" },
+    });
+    expect(bad.statusCode).toBe(400);
+    const auditPage = (await app().inject({ url: "/api/audit" })).json<AuditPage>();
+    expect(
+      auditPage.entries.filter((e) => e.action === "config.export").map((e) => e.details),
+    ).toEqual([{ secrets: true }, { secrets: false }]);
+    // Export and import never talk to the node.
+    expect(auditInbound(node.inbound, node.myNodeNum).counts).toMatchObject({
+      admin: 0,
+      transmit: 0,
+    });
+  });
+
+  it("maintenance: a snapshot first, typed confirmation for factory resets, then the admin message", async () => {
+    const node = new FakeNode();
+    node.setAdminOptions({ rebootOnCommitMs: 600 });
+    await start({ node });
+    const post = (body: object) =>
+      app().inject({
+        method: "POST",
+        url: "/api/connections/1/maintenance",
+        payload: body,
+        remoteAddress: `10.1.0.${++ip}`,
+      });
+    const refused = await post({ action: "factory_reset_config", confirm: "nope" });
+    expect(refused.statusCode).toBe(400);
+    expect(refused.json<{ error: string }>().error).toBe("confirm_required");
+    expect(node.admin.log).not.toContain("factoryResetConfig");
+
+    const reset = await post({ action: "nodedb_reset" });
+    expect(reset.statusCode, reset.body).toBe(200);
+    expect(node.admin.log).toContain("nodedbReset");
+
+    const factory = await post({ action: "factory_reset_config", confirm: "MTB" });
+    expect(factory.statusCode, factory.body).toBe(200);
+    expect(node.admin.log).toContain("factoryResetConfig");
+    const snaps = (await app().inject({ url: "/api/connections/1/config/snapshots" })).json<
+      ConfigSnapshotSummary[]
+    >();
+    expect(snaps.filter((s) => s.reason === "pre-maintenance")).toHaveLength(2);
+    // The node reboots and comes back.
+    await until(() => app().meshterm.connections.get(1)?.state === "reconnecting", 10_000);
+    await until(() => app().meshterm.connections.get(1)?.state === "connected", 20_000);
+    const auditPage = (await app().inject({ url: "/api/audit" })).json<AuditPage>();
+    expect(auditPage.entries.map((e) => e.action)).toEqual(
+      expect.arrayContaining(["maintenance.nodedb_reset", "maintenance.factory_reset_config"]),
+    );
+    expect(auditInbound(node.inbound, node.myNodeNum).counts.transmit).toBe(0);
+  });
+
+  it("makes Curve25519 key pairs", async () => {
+    await start();
+    const res = await app().inject({ method: "POST", url: "/api/config/keypair" });
+    const { privateKey, publicKey } = res.json<{ privateKey: string; publicKey: string }>();
+    expect(Buffer.from(privateKey, "base64")).toHaveLength(32);
+    expect(Buffer.from(publicKey, "base64")).toHaveLength(32);
+    expect(privateKey).not.toBe(publicKey);
+  });
+
+  it("a new static IP is tried after the reboot", async () => {
+    const node = new FakeNode();
+    node.setAdminOptions({ rebootOnCommitMs: 600 });
+    await start({ node });
+    const before = await getConfig();
+    const res = await apply({
+      baseVersion: before.version,
+      changes: {
+        config: {
+          network: { addressMode: "STATIC", ipv4Config: { ip: 0x0100007f, gateway: 0, subnet: 0 } },
+        },
+      },
+    });
+    expect(res.statusCode, res.body).toBe(202);
+    const status = res.json<ApplyStatusDTO>();
+    // 0x0100007f is 127.0.0.1 (first octet in the lowest byte): the same FakeNode.
+    expect(status.newHost).toBe("127.0.0.1");
+    const done = await finished(status.applyId);
+    expect(done.phase).toBe("verified");
+  });
 });

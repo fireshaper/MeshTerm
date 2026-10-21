@@ -66,6 +66,8 @@ export interface NodeConnectionEvents {
   /** Every `FromRadio` from the node, in order, including the handshake. */
   fromRadio: [FromRadio];
   retry: [RetryScheduled];
+  /** The node answered on its alternate address, which is now the connection's. */
+  addressChanged: [{ host: string }];
 }
 
 export class NotConnectedError extends Error {
@@ -96,8 +98,12 @@ function emptyModel(): NodeModel {
  * and heartbeats.
  */
 export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
-  readonly connection: Connection;
+  private conn: Connection;
   private readonly createTransport: TransportFactory;
+  /** A second address to try (a new static IP after a network change, CR-002 §7.1). */
+  private alternateHost: string | null = null;
+  private attempts = 0;
+  private attemptHost: string | null = null;
   private readonly timing: ConnectionTiming;
   private readonly clock: Clock;
   private readonly random: Random;
@@ -117,7 +123,7 @@ export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
 
   constructor(options: NodeConnectionOptions) {
     super();
-    this.connection = options.connection;
+    this.conn = options.connection;
     this.createTransport = options.createTransport;
     this.timing = options.timing;
     this.clock = options.clock ?? systemClock;
@@ -127,6 +133,23 @@ export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
       this.enteredStateAt = this.clock.now();
       this.emit("state", change);
     });
+  }
+
+  get connection(): Connection {
+    return this.conn;
+  }
+
+  /**
+   * Also try `host` from now on: attempts alternate between the connection's address
+   * and this one until one completes a handshake. If the alternate one does, it becomes
+   * the connection's address and `addressChanged` fires (the app saves it).
+   */
+  tryAlternateHost(host: string | null): void {
+    this.alternateHost = host && host !== this.conn.host ? host : null;
+  }
+
+  get pendingAlternateHost(): string | null {
+    return this.alternateHost;
   }
 
   get state(): ConnectionState {
@@ -186,7 +209,12 @@ export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
 
   private async attempt(reason: string): Promise<void> {
     this.machine.transition("connecting", reason);
-    const transport = this.createTransport();
+    // With an alternate address: the usual one first, then every other attempt the new one.
+    this.attempts++;
+    this.attemptHost = this.alternateHost && this.attempts % 2 === 0 ? this.alternateHost : null;
+    const transport = this.attemptHost
+      ? this.createTransport(this.attemptHost)
+      : this.createTransport();
     this.transport = transport;
     transport.on("fromRadio", (message) => {
       if (this.transport === transport) this.onFromRadio(message);
@@ -248,6 +276,16 @@ export class NodeConnection extends EventEmitter<NodeConnectionEvents> {
         this.failures = 0;
       },
     );
+    if (this.attemptHost) {
+      const host = this.attemptHost;
+      this.conn = { ...this.conn, host };
+      this.alternateHost = null;
+      this.attemptHost = null;
+      this.emit("addressChanged", { host });
+    } else {
+      this.alternateHost = null;
+    }
+    this.attempts = 0;
     this.machine.transition("connected", `config_complete_id ${this.nonce}`);
     const transport = this.transport;
     if (transport) {

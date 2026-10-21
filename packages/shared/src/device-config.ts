@@ -106,6 +106,8 @@ export const ApplyStatusDTO = z.object({
   paths: z.array(z.string()),
   mismatches: z.array(ConfigMismatch),
   error: z.string().nullable(),
+  /** A new static IP the apply gives the node; MeshTerm tries it as well as the old address. */
+  newHost: z.string().nullable(),
 });
 export type ApplyStatusDTO = z.infer<typeof ApplyStatusDTO>;
 
@@ -172,3 +174,44 @@ export const ParsedChannelUrlDTO = z.object({
   add: z.boolean(),
 });
 export type ParsedChannelUrlDTO = z.infer<typeof ParsedChannelUrlDTO>;
+
+/**
+ * IPv4 addresses in `Config.NetworkConfig.IpV4Config` are fixed32 with the first octet
+ * in the lowest byte (the firmware's `IPAddress(uint32)`): 192.168.1.10 → 0x0a01a8c0.
+ */
+export function ipv4FromUint32(n: number): string {
+  return [n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff].join(".");
+}
+
+/** The inverse of {@link ipv4FromUint32}; null unless a dotted IPv4 address. */
+export function ipv4ToUint32(text: string): number | null {
+  const parts = text.trim().split(".");
+  if (parts.length !== 4 || parts.some((p) => !/^\d{1,3}$/.test(p) || Number(p) > 255)) return null;
+  const [a, b, c, d] = parts.map(Number) as [number, number, number, number];
+  return (a | (b << 8) | (c << 16) | (d << 24)) >>> 0;
+}
+
+/** `POST …/maintenance` actions (CR-002 §5.8). */
+export const MaintenanceAction = z.enum([
+  "reboot",
+  "shutdown",
+  "nodedb_reset",
+  "factory_reset_config",
+  "factory_reset_device",
+]);
+export type MaintenanceAction = z.infer<typeof MaintenanceAction>;
+
+/** `POST …/config/import`: what a backup file would set (nothing is applied), as proto JSON. */
+export const ImportedConfigDTO = z.object({
+  /** `longName` / `shortName` when the file has them. */
+  owner: ProtoJson.nullable(),
+  /** Whole sections, by oneof case. */
+  config: z.record(z.string(), ProtoJson),
+  moduleConfig: z.record(z.string(), ProtoJson),
+  /** From `channel_url`. */
+  channels: ParsedChannelUrlDTO.nullable(),
+  fixedPosition: FixedPosition.nullable(),
+  /** Keys the file has that MeshTerm doesn't know; skipped. */
+  unknown: z.array(z.string()),
+});
+export type ImportedConfigDTO = z.infer<typeof ImportedConfigDTO>;

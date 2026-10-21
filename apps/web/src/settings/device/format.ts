@@ -6,6 +6,7 @@ export function formatValue(path: string, value: unknown): string {
   const meta = metaFor(path);
   if (meta.secret || value === SECRET_MASK) return "••••••••";
   if (value === undefined || value === null) return "—";
+  if (meta.format) return meta.format(value);
   if (typeof value === "boolean") return value ? "On" : "Off";
   if (typeof value === "string") {
     if (meta.enumLabels?.[value]) return meta.enumLabels[value];

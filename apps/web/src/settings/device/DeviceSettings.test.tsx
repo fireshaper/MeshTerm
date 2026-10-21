@@ -81,6 +81,7 @@ const status = (
   paths: ["config.lora.hopLimit"],
   mismatches: [],
   error: null,
+  newHost: null,
   ...over,
 });
 

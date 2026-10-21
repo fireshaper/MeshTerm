@@ -1,0 +1,55 @@
+# start of Meshtastic configure yaml
+# Shaped like `meshtastic --export-config` output (Python CLI 2.5): camelCase fields,
+# bytes as base64:..., plus keys MeshTerm doesn't handle (canned_messages, ringtone).
+canned_messages: Hi|Bye|Yes|No
+channel_url: https://meshtastic.org/e/#CgMSAQE
+config:
+  bluetooth:
+    enabled: true
+    fixedPin: 123456
+  device:
+    nodeInfoBroadcastSecs: 10800
+    serialEnabled: true
+  display:
+    screenOnSecs: 600
+  lora:
+    hopLimit: 3
+    region: US
+    txEnabled: true
+    txPower: 30
+    usePreset: true
+    sx126xRxBoostedGain: true
+  network:
+    ntpServer: meshtastic.pool.ntp.org
+  position:
+    positionBroadcastSecs: 900
+    positionBroadcastSmartEnabled: true
+    positionFlags: 811
+  power:
+    lsSecs: 300
+  security:
+    adminKey:
+      - "base64:"
+    privateKey: base64:ACEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8=
+    publicKey: base64:QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8=
+    serialEnabled: true
+    someFutureFlag: true
+location:
+  alt: 100
+  lat: 35.25
+  lon: -80.5
+module_config:
+  ambientLighting:
+    current: 10
+  mqtt:
+    address: mqtt.meshtastic.org
+    encryptionEnabled: true
+    password: large4cats
+    username: meshdev
+  neighborInfo:
+    updateInterval: 900
+  telemetry:
+    deviceUpdateInterval: 900
+owner: Test Node
+owner_short: TST
+ringtone: 24:d=32,o=5,b=565:f6,p,f6

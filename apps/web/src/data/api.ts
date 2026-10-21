@@ -4,6 +4,10 @@ import type {
   ApplyBody,
   ApplyStatusDTO,
   ChannelUrlDTO,
+  ConfigSnapshotSummary,
+  ImportedConfigDTO,
+  MaintenanceAction,
+  ProtoJson,
   ParsedChannelUrlDTO,
   ConfigSchemaDTO,
   DeviceConfigDTO,
@@ -43,6 +47,14 @@ export interface ConnectionView {
 }
 
 /** A non-2xx response; `code` is the server's machine-readable error. */
+/** A config snapshot as stored: the node's whole config, secrets included (admins only). */
+export interface SnapshotData {
+  owner: ProtoJson | null;
+  config: Record<string, ProtoJson>;
+  moduleConfig: Record<string, ProtoJson>;
+  channels: ProtoJson[];
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -185,6 +197,25 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ url }),
     }),
+  keyPair: () =>
+    request<{ privateKey: string; publicKey: string }>("/api/config/keypair", { method: "POST" }),
+  maintenance: (connectionId: number, action: MaintenanceAction, confirm?: string) =>
+    request<{ ok: true }>(`/api/connections/${connectionId}/maintenance`, {
+      method: "POST",
+      body: JSON.stringify({ action, ...(confirm === undefined ? {} : { confirm }) }),
+    }),
+  /** A download link (the browser sends the session cookie). */
+  exportConfigUrl: (connectionId: number, secrets: boolean) =>
+    `/api/connections/${connectionId}/config/export?secrets=${secrets}`,
+  importConfig: (connectionId: number, yaml: string) =>
+    request<ImportedConfigDTO>(`/api/connections/${connectionId}/config/import`, {
+      method: "POST",
+      body: JSON.stringify({ yaml }),
+    }),
+  snapshots: (connectionId: number) =>
+    request<ConfigSnapshotSummary[]>(`/api/connections/${connectionId}/config/snapshots`),
+  snapshot: (connectionId: number, id: number) =>
+    request<SnapshotData>(`/api/connections/${connectionId}/config/snapshots/${id}`),
   refreshConfig: (connectionId: number) =>
     request<DeviceConfigDTO>(`/api/connections/${connectionId}/config/refresh`, { method: "POST" }),
 

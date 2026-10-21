@@ -84,7 +84,7 @@ The user chose (2026-10-20) to **build login first**: CR-002 depends on admin/vi
 - Channel URL export with QR (SVG, server-side) and URL import with diff (Add / Replace).
 - Fixed position: lat/lon/alt fields or map picker; `set_fixed_position` / `remove_fixed_position`.
 
-## Phase D4: network, security, modules, backup, maintenance
+## Phase D4: network, security, modules, backup, maintenance (done 2026-10-21)
 
 - Network and Security with lockout guards. The review shows the new address; after reboot, try the old then the new address and update the connection.
 - Every ModuleConfig section the firmware reports (generic plus registry entries).

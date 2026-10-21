@@ -50,6 +50,11 @@ export function getConnection(db: Db, id: number): Connection | null {
   return listConnections(db).find((c) => c.id === id) ?? null;
 }
 
+/** The node moved (a network change, CR-002 §7.1): its new address. */
+export function setConnectionHost(db: Db, id: number, host: string): void {
+  db.update(connections).set({ host }).where(eq(connections.id, id)).run();
+}
+
 /** Our node's number on that connection, from the last handshake. */
 export function getMyNodeNum(db: Db, connectionId: number): number | null {
   return (

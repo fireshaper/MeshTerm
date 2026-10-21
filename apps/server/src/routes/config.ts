@@ -3,6 +3,7 @@ import {
   ApplyBody,
   ApplyStatusDTO,
   ChannelUrlDTO,
+  ImportedConfigDTO,
   ParsedChannelUrlDTO,
   ConfigSchemaDTO,
   ConfigSnapshotSummary,
@@ -15,6 +16,7 @@ import type { AdminClient, AdminVariant } from "../config/admin.js";
 import { applyAdminResponse, type ConfigApplier } from "../config/applier.js";
 import { listSnapshots, loadSnapshot } from "../config/snapshots.js";
 import { configSchema } from "../config/schema.js";
+import { BackupError, backupFileName, exportYaml, importYaml } from "../config/backup.js";
 import {
   ChannelUrlError,
   encodeChannelUrl,
@@ -152,6 +154,69 @@ export function configRoutes(deps: ConfigRouteDeps): FastifyPluginAsyncZod {
           return parseChannelUrl(req.body.url);
         } catch (err) {
           if (err instanceof ChannelUrlError) throw new HttpError(400, "invalid", err.message);
+          throw err;
+        }
+      },
+    );
+
+    // Backup and restore (CR-002 §5.7). Secrets only when asked for; admins only.
+    app.get(
+      "/api/connections/:id/config/export",
+      {
+        config: { role: "admin" },
+        schema: {
+          params: Params,
+          querystring: z.object({ secrets: z.enum(["true", "false"]).default("false") }),
+        },
+      },
+      (req, reply) => {
+        const { id } = req.params;
+        const entry = store.get(id);
+        if (!entry) throw new HttpError(404, "not_found", "no config for this connection");
+        const secrets = req.query.secrets === "true";
+        const conn = app.meshterm.connections.get(id);
+        const position = conn?.model.nodes.get(entry.myNodeNum)?.position;
+        const fixed = entry.config.get("position")?.payloadVariant;
+        const location =
+          fixed?.case === "position" && fixed.value.fixedPosition && position?.latitudeI
+            ? {
+                lat: position.latitudeI / 1e7,
+                lon: (position.longitudeI ?? 0) / 1e7,
+                ...(position.altitude ? { alt: position.altitude } : {}),
+              }
+            : null;
+        auditRequest(db, clock, req, {
+          action: "config.export",
+          target: `connection ${id}`,
+          details: { secrets },
+        });
+        return reply
+          .header("content-type", "application/yaml; charset=utf-8")
+          .header(
+            "content-disposition",
+            `attachment; filename="${backupFileName(entry.owner?.shortName ?? "", clock.now())}"`,
+          )
+          .header("cache-control", "no-store")
+          .send(exportYaml(entry, { secrets, location }));
+      },
+    );
+
+    app.post(
+      "/api/connections/:id/config/import",
+      {
+        config: { role: "admin" },
+        bodyLimit: 512 * 1024,
+        schema: {
+          params: Params,
+          body: z.object({ yaml: z.string().max(256 * 1024) }),
+          response: { 200: ImportedConfigDTO },
+        },
+      },
+      (req) => {
+        try {
+          return importYaml(req.body.yaml);
+        } catch (err) {
+          if (err instanceof BackupError) throw new HttpError(400, "invalid", err.message);
           throw err;
         }
       },

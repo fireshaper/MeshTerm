@@ -1,4 +1,4 @@
-import { Admin, Channel, Config, create, Mesh, ModuleConfig } from "@meshterm/protocol";
+import { Admin, Channel, clone, Config, create, Mesh, ModuleConfig } from "@meshterm/protocol";
 import type { Scenario, ScenarioNode } from "./scenario.js";
 
 export interface FakeAdminOptions {
@@ -10,6 +10,8 @@ export interface FakeAdminOptions {
   clamp: ((config: Config.Config) => Config.Config) | null;
   /** Forget the passkey right after `begin_edit_settings` (as if it expired), to test the retry. */
   expirePasskeyOnBegin: boolean;
+  /** How long a shutdown keeps the node away (a real one needs someone to power it on). */
+  shutdownDownMs: number;
 }
 
 export const DEFAULT_ADMIN_OPTIONS: FakeAdminOptions = {
@@ -17,12 +19,15 @@ export const DEFAULT_ADMIN_OPTIONS: FakeAdminOptions = {
   rebootOnCommitMs: 1_500,
   clamp: null,
   expirePasskeyOnBegin: false,
+  shutdownDownMs: 4_000,
 };
 
 type AdminReply =
   | { kind: "response"; message: Admin.AdminMessage }
   | { kind: "routing"; error: Mesh.Routing_Error }
-  | { kind: "reboot"; afterMs: number };
+  | { kind: "reboot"; afterMs: number }
+  /** Forget every node but our own. */
+  | { kind: "nodedbReset" };
 
 /** `LORA_CONFIG` → `lora`, `DEVICEUI_CONFIG` → `deviceUi`: the oneof case with those letters. */
 function caseFor(enumName: string, cases: readonly string[]): string | undefined {
@@ -57,12 +62,28 @@ export class FakeAdmin {
   readonly log: string[] = [];
   private passkey = new Uint8Array();
   private editing = false;
+  /** The scenario's settings as loaded: what a factory reset goes back to. */
+  private readonly factory: Pick<Scenario, "config" | "moduleConfig" | "channels">;
 
   constructor(
     private readonly scenario: Scenario,
     private readonly own: () => ScenarioNode | undefined,
     private readonly random: () => number = Math.random,
-  ) {}
+  ) {
+    this.factory = {
+      config: scenario.config.map((c) => clone(Config.ConfigSchema, c)),
+      moduleConfig: scenario.moduleConfig.map((c) => clone(ModuleConfig.ModuleConfigSchema, c)),
+      channels: scenario.channels.map((c) => clone(Channel.ChannelSchema, c)),
+    };
+  }
+
+  private factoryReset(): void {
+    this.scenario.config = this.factory.config.map((c) => clone(Config.ConfigSchema, c));
+    this.scenario.moduleConfig = this.factory.moduleConfig.map((c) =>
+      clone(ModuleConfig.ModuleConfigSchema, c),
+    );
+    this.scenario.channels = this.factory.channels.map((c) => clone(Channel.ChannelSchema, c));
+  }
 
   /** A reboot (or new link) invalidates the passkey. */
   resetSession(): void {
@@ -177,6 +198,20 @@ export class FakeAdmin {
         return [ack];
       case "rebootSeconds":
         return [ack, { kind: "reboot", afterMs: Math.max(1, v.value) * 1000 }];
+      case "shutdownSeconds":
+        return [ack, { kind: "reboot", afterMs: this.options.shutdownDownMs }];
+      case "nodedbReset":
+        return [ack, { kind: "nodedbReset" }];
+      case "factoryResetConfig":
+        this.factoryReset();
+        return [ack, { kind: "reboot", afterMs: this.options.rebootOnCommitMs || 1_500 }];
+      case "factoryResetDevice":
+        this.factoryReset();
+        return [
+          ack,
+          { kind: "nodedbReset" },
+          { kind: "reboot", afterMs: this.options.rebootOnCommitMs || 1_500 },
+        ];
       default:
         return [ack];
     }

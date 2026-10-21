@@ -394,6 +394,10 @@ export class FakeNode {
   private handleAdmin(socket: Socket, requestId: number, payload: Uint8Array): void {
     const me = this.myNodeNum;
     for (const reply of this.admin.handle(fromBinary(Admin.AdminMessageSchema, payload))) {
+      if (reply.kind === "nodedbReset") {
+        for (const num of [...this.nodeDb.keys()]) if (num !== me) this.nodeDb.delete(num);
+        continue;
+      }
       if (reply.kind === "reboot") {
         this.later(100, () => {
           this.admin.resetSession();

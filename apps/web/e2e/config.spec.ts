@@ -247,3 +247,113 @@ test("fixed position picked on the map: setFixedPosition, then removed again", a
   expect((await node.adminLog()).log.slice(before)).toContain("removeFixedPosition");
   await expect(fixed).not.toBeChecked();
 });
+
+// ------------------------------------------------------------------ Phase D4
+
+async function applyAll(page: Page, typed?: string) {
+  await page.getByRole("button", { name: "Review & apply" }).click();
+  const dialog = page.getByRole("dialog", { name: "Review changes" });
+  if (typed) await dialog.locator("[data-mt=typed-confirm-input]").fill(typed);
+  await dialog.getByRole("button", { name: /^Apply \d+ changes?$/ }).click();
+  await expect(page.locator("[data-mt=apply-progress]")).toHaveAttribute(
+    "data-mt-state",
+    "verified",
+    {
+      timeout: 30_000,
+    },
+  );
+  await page.getByRole("button", { name: "Dismiss" }).click();
+}
+
+test("a module section: telemetry interval, setModuleConfig, verified", async ({ page }) => {
+  const before = (await node.adminLog()).log.length;
+  await open(page, "module-telemetry");
+  const value = await next(page, "Device metrics interval (s)", "3600", "2700");
+  await applyAll(page);
+  await expect(page.getByLabel("Device metrics interval (s)", { exact: true })).toHaveValue(value);
+  expect((await node.adminLog()).log.slice(before)).toContain("setModuleConfig");
+});
+
+test("network: a static address needs the short name and shows where MeshTerm will look", async ({
+  page,
+}) => {
+  await open(page, "network");
+  await page.getByLabel("Address", { exact: true }).selectOption("STATIC");
+  await page.getByLabel("IP address", { exact: true }).fill("10.9.8.7");
+  await page.getByRole("button", { name: "Review & apply" }).click();
+  const dialog = page.getByRole("dialog", { name: "Review changes" });
+  await expect(dialog.getByRole("note")).toContainText("10.9.8.7");
+  await expect(dialog.getByRole("button", { name: /^Apply/ })).toBeDisabled();
+  await dialog.locator("[data-mt=typed-confirm-input]").fill("MTB");
+  await expect(dialog.getByRole("button", { name: /^Apply/ })).toBeEnabled();
+  // Not applied: the FakeNode can't move to 10.9.8.7.
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: "Discard all" }).click();
+});
+
+test("backup: download YAML, import it back, restore a snapshot; nothing is sent", async ({
+  page,
+}) => {
+  const before = (await node.adminLog()).log.length;
+  await open(page, "backup");
+  const download = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download backup" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^meshterm-MTB-\d{4}-\d{2}-\d{2}\.yaml$/);
+  const path = await file.path();
+  const { readFileSync } = await import("node:fs");
+  const yaml = readFileSync(path, "utf8").replace(/owner: .*/, "owner: Restored Base");
+  expect(yaml).not.toMatch(/^channel_url:/m);
+
+  await page.getByLabel(/Choose a YAML file/).setInputFiles({
+    name: "base.yaml",
+    mimeType: "application/yaml",
+    buffer: Buffer.from(yaml),
+  });
+  let dialog = page.getByRole("dialog", { name: "Import base.yaml" });
+  await expect(dialog.getByRole("row", { name: /Long name/ })).toContainText("Restored Base");
+  await dialog.getByRole("button", { name: /^Stage \d+ changes?$/ }).click();
+  await expect(page.getByRole("region", { name: "Pending changes" })).toBeVisible();
+  await page.getByRole("button", { name: "Discard all" }).click();
+
+  // Earlier tests applied changes, so there are snapshots.
+  await page.getByRole("button", { name: "Restore…" }).first().click();
+  dialog = page.getByRole("dialog", { name: /^Restore the snapshot of/ });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  expect((await node.adminLog()).log.slice(before).filter((c) => c.startsWith("set"))).toEqual([]);
+});
+
+test("maintenance: reboot reconnects; a device reset waits for the name and the countdown", async ({
+  page,
+}) => {
+  const before = (await node.adminLog()).log.length;
+  await open(page, "maintenance");
+  await page.getByRole("button", { name: "Reboot…" }).click();
+  await page
+    .getByRole("dialog", { name: "Reboot" })
+    .getByRole("button", { name: "Reboot" })
+    .click();
+  await expect(page.locator("[data-mt=config-connection]")).not.toContainText("connected", {
+    timeout: 10_000,
+  });
+  await expect(page.locator("[data-mt=config-connection]")).toContainText("connected", {
+    timeout: 30_000,
+  });
+  expect((await node.adminLog()).log.slice(before)).toContain("rebootSeconds");
+
+  await page.getByRole("button", { name: "Factory reset (device)…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Factory reset (device)" });
+  await dialog.locator("[data-mt=typed-confirm-input]").fill("MTB");
+  await expect(
+    dialog.getByRole("button", { name: /^Factory reset \(device\) \(\d\)$/ }),
+  ).toBeDisabled();
+  await expect(
+    dialog.getByRole("button", { name: "Factory reset (device)", exact: true }),
+  ).toBeEnabled({
+    timeout: 8_000,
+  });
+  // Not sent: the shared FakeNode keeps its settings.
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  expect((await node.adminLog()).log.slice(before)).not.toContain("factoryResetDevice");
+});

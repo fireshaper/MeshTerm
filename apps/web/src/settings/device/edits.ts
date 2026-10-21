@@ -145,8 +145,10 @@ export function buildChanges(edits: Record<string, Edit>, cfg?: ConfigView): Con
     if (kind === "owner") {
       out.owner = { ...out.owner, [a]: value };
     } else if ((kind === "config" || kind === "moduleConfig") && b !== undefined) {
+      // Nested fields (e.g. `config.network.ipv4Config.ip`) as nested partials.
       const sections = (out[kind] ??= {});
-      sections[a] = { ...sections[a], [b]: value };
+      const section = (sections[a] ??= {});
+      setDeep(section, parts.slice(2), value);
     } else if (kind === "channels") {
       const index = Number(a);
       const channel = channels.get(index) ?? structuredClone(channelAt(cfg, index));

@@ -13,7 +13,7 @@ import { ChannelThread, DmThread, MessagesIndex, MessagesPage } from "./messages
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { AccountPage, AuditPage, SettingsPage, UsersPage } from "./settings/SettingsPages.js";
 import { DeviceSettingsPage } from "./settings/device/DeviceSettings.js";
-import { SECTIONS } from "./settings/device/registry.js";
+import { isSectionId } from "./settings/device/registry.js";
 import { NodesPage } from "./pages/NodesPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { AppShell } from "./shell/AppShell.js";
@@ -138,7 +138,7 @@ export const deviceSettingsRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/device",
   validateSearch: (search: Record<string, unknown>): { section?: string } =>
-    typeof search.section === "string" && SECTIONS.some((s) => s.id === search.section)
+    typeof search.section === "string" && isSectionId(search.section)
       ? { section: search.section }
       : {},
   component: DeviceSettingsPage,

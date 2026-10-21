@@ -11,6 +11,7 @@ import {
   type JsonValue,
 } from "@meshterm/protocol";
 import {
+  ipv4FromUint32,
   SECRET_MASK,
   type ApplyBody,
   type ApplyStatusDTO,
@@ -96,6 +97,15 @@ interface Plan {
   /** The whole intended config (proto JSON), to verify against. */
   intended: ReturnType<typeof entryJson>;
   paths: string[];
+  /** A static IP the change gives the node: also tried after the reboot (CR-002 §7.1). */
+  newHost: string | null;
+}
+
+/** The static IPv4 address a network section sets, if any. */
+export function staticHostOf(network: ProtoJson | undefined): string | null {
+  if (network?.addressMode !== "STATIC") return null;
+  const ip = (network.ipv4Config as ProtoJson | undefined)?.ip;
+  return typeof ip === "number" && ip !== 0 ? ipv4FromUint32(ip) : null;
 }
 
 const invalid = (what: string, err: unknown) =>
@@ -231,7 +241,12 @@ export function planApply(entry: ConfigEntry, body: ApplyBody): Plan {
     });
   }
 
-  return { steps, intended, paths: steps.flatMap((s) => s.paths) };
+  return {
+    steps,
+    intended,
+    paths: steps.flatMap((s) => s.paths),
+    newHost: changes.config?.network ? staticHostOf(intended.config.network) : null,
+  };
 }
 
 /** `storeForward` → `STOREFORWARD_CONFIG` (the enum drops camelCase), with known exceptions. */
@@ -360,6 +375,7 @@ export class ConfigApplier {
       paths: plan.paths,
       mismatches: [],
       error: null,
+      newHost: plan.newHost,
     };
     this.active.set(connectionId, status);
     this.remember(status);
@@ -387,6 +403,8 @@ export class ConfigApplier {
       await admin.refreshPasskey();
       await admin.set({ case: "beginEditSettings", value: true });
       for (const step of plan.steps) await admin.set(step.variant);
+      // A new static IP: after the reboot, try the old address and the new one.
+      if (plan.newHost) conn.tryAlternateHost(plan.newHost);
       // Watch for the reboot before committing: the link may drop at once.
       const outcome = this.watchReboot(conn);
       await admin.set({ case: "commitEditSettings", value: true }).catch((err: unknown) => {

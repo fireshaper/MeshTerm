@@ -1,4 +1,4 @@
-import type { ApplyStatusDTO, FieldSchema } from "@meshterm/shared";
+import { ipv4FromUint32, type ApplyStatusDTO, type FieldSchema } from "@meshterm/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearch } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
@@ -9,7 +9,9 @@ import { useConnections, useMapNodes } from "../../data/queries.js";
 import { useLiveStore } from "../../data/store.js";
 import { useUiStore } from "../../data/ui-store.js";
 import { ApplyProgress, TERMINAL } from "./ApplyProgress.js";
+import { BackupRestore } from "./BackupRestore.js";
 import { ChannelsEditor } from "./ChannelsEditor.js";
+import { Maintenance } from "./Maintenance.js";
 import { ConfigField } from "./ConfigField.js";
 import {
   buildChanges,
@@ -20,10 +22,9 @@ import {
   type Edit,
 } from "./edits.js";
 import { fieldProps, scalar, stage, type FieldContext } from "./field-props.js";
-import { SECTIONS, metaFor, sectionById, type SectionMeta } from "./registry.js";
+import { allSections, metaFor, sectionById, type SectionMeta } from "./registry.js";
 import { ReviewDialog } from "./ReviewDialog.js";
 
-const REBOOTING = new Set(SECTIONS.filter((s) => s.reboots).map((s) => s.id));
 const NO_EDITS: Record<string, Edit> = {};
 /** MapLibre loads only when the picker opens. */
 const MapPicker = lazy(() => import("./MapPicker.js").then((m) => ({ default: m.MapPicker })));
@@ -34,16 +35,41 @@ const FIXED_FIELDS = (["lat", "lon", "alt"] as const).map((name) => ({
   path: `fixedPosition.${name}`,
 }));
 
-function fieldsOf(
-  schema: { owner: FieldSchema[]; config: Record<string, FieldSchema[]> } | undefined,
-  section: SectionMeta,
-) {
-  if (!schema || section.kind === "channels") return [];
-  return section.kind === "owner" ? schema.owner : (schema.config[section.key] ?? []);
+type Schema = {
+  owner: FieldSchema[];
+  config: Record<string, FieldSchema[]>;
+  moduleConfig: Record<string, FieldSchema[]>;
+};
+
+function fieldsOf(schema: Schema | undefined, section: SectionMeta): FieldSchema[] {
+  if (!schema) return [];
+  if (section.kind === "owner") return schema.owner;
+  if (section.kind === "config") return schema.config[section.key] ?? [];
+  if (section.kind === "module") return schema.moduleConfig[section.key] ?? [];
+  return [];
 }
 
 const pathOf = (section: SectionMeta, name: string) =>
-  section.kind === "owner" ? `owner.${name}` : `config.${section.key}.${name}`;
+  section.kind === "owner"
+    ? `owner.${name}`
+    : `${section.kind === "module" ? "moduleConfig" : "config"}.${section.key}.${name}`;
+
+/** Nested messages (e.g. `ipv4Config`) as their own fields; deeper ones stay read-only. */
+function flatten(fields: FieldSchema[], prefix: string): { field: FieldSchema; path: string }[] {
+  return fields.flatMap((f) =>
+    f.kind === "message" && !f.list && f.fields
+      ? flatten(f.fields, `${prefix}.${f.name}`)
+      : [{ field: f, path: `${prefix}.${f.name}` }],
+  );
+}
+
+/** The static IP a pending network change gives the node (shown in the review, CR-002 §7.1). */
+function staticHost(get: (path: string) => unknown): string | null {
+  const ip = get("config.network.ipv4Config.ip");
+  return get("config.network.addressMode") === "STATIC" && typeof ip === "number" && ip !== 0
+    ? ipv4FromUint32(ip)
+    : null;
+}
 
 function errorText(err: unknown): string {
   if (!(err instanceof ApiError)) return "Couldn't reach MeshTerm. Try again.";
@@ -60,7 +86,6 @@ export function DeviceSettingsPage() {
   const qc = useQueryClient();
   const toast = useUiStore((s) => s.toast);
   const { section: sectionId } = useSearch({ from: "/settings/device" });
-  const section = sectionById(sectionId);
   const [advanced, setAdvanced] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -108,7 +133,19 @@ export function DeviceSettingsPage() {
     [config.data, selfLat, selfLon],
   );
   const get = useMemo(() => getterFor(cfg, edits), [cfg, edits]);
-  const summary = useMemo(() => summarize(cfg, edits, REBOOTING), [cfg, edits]);
+  // A section per module the node reports, in protobuf order.
+  const moduleKeys = useMemo(
+    () =>
+      Object.keys(schema.data?.moduleConfig ?? {}).filter((k) => k in (cfg?.moduleConfig ?? {})),
+    [schema.data, cfg],
+  );
+  const sections = useMemo(() => allSections(moduleKeys), [moduleKeys]);
+  const section = sectionById(sectionId, sections);
+  const rebooting = useMemo(
+    () => new Set(sections.filter((s) => s.reboots).map((s) => s.id)),
+    [sections],
+  );
+  const summary = useMemo(() => summarize(cfg, edits, rebooting), [cfg, edits, rebooting]);
 
   const status = apply.data;
   const running = status !== null && !TERMINAL.has(status.phase);
@@ -150,7 +187,7 @@ export function DeviceSettingsPage() {
 
   const fields = fieldsOf(schema.data, section);
   const visible = [
-    ...fields.map((f) => ({ field: f, path: pathOf(section, f.name) })),
+    ...flatten(fields, pathOf(section, "").slice(0, -1)),
     ...(section.id === "position" ? FIXED_FIELDS : []),
   ].filter(({ path }) => {
     const meta = metaFor(path);
@@ -210,10 +247,16 @@ export function DeviceSettingsPage() {
 
       <div data-mt="config-layout">
         <nav data-mt="config-nav" aria-label="Device settings sections">
-          {SECTIONS.map((s) => {
+          {sections.map((s, i) => {
             const n = summary.bySection[s.id] ?? 0;
             const active = s.id === section.id;
-            return (
+            const firstModule = s.kind === "module" && sections[i - 1]?.kind !== "module";
+            return [
+              firstModule && (
+                <span key="modules" data-mt="config-nav-heading">
+                  Modules
+                </span>
+              ),
               <Link
                 key={s.id}
                 to="/settings/device"
@@ -232,8 +275,8 @@ export function DeviceSettingsPage() {
                     •{n}
                   </span>
                 )}
-              </Link>
-            );
+              </Link>,
+            ];
           })}
         </nav>
 
@@ -249,6 +292,14 @@ export function DeviceSettingsPage() {
             <div data-mt="skeleton" aria-hidden />
           ) : section.kind === "channels" ? (
             <ChannelsEditor ctx={ctx} admin={admin} />
+          ) : section.kind === "backup" || section.kind === "maintenance" ? (
+            !admin ? (
+              <p data-mt="detail-note">Only admins can back up, restore or maintain the node.</p>
+            ) : section.kind === "backup" ? (
+              <BackupRestore ctx={ctx} moduleKeys={moduleKeys} />
+            ) : (
+              <Maintenance connectionId={connectionId} shortName={ownerShort} disabled={readOnly} />
+            )
           ) : (
             <>
               {groups.map((g) => (
@@ -259,6 +310,26 @@ export function DeviceSettingsPage() {
                   {g.items.map(({ field, path }) => (
                     <ConfigField key={path} {...fieldProps(ctx, path, field, section.reboots)} />
                   ))}
+                  {g.name === "Keys" && section.id === "security" && admin && (
+                    <button
+                      type="button"
+                      data-mt="button"
+                      disabled={readOnly}
+                      onClick={() => {
+                        void api.keyPair().then(
+                          ({ privateKey, publicKey }) => {
+                            stage(ctx, "config.security.privateKey", privateKey);
+                            stage(ctx, "config.security.publicKey", publicKey);
+                          },
+                          () => {
+                            toast("Couldn't make a key pair. Try again.", "error");
+                          },
+                        );
+                      }}
+                    >
+                      New key pair…
+                    </button>
+                  )}
                   {g.name === "Fixed position" && get("config.position.fixedPosition") === true && (
                     <button
                       type="button"
@@ -346,6 +417,11 @@ export function DeviceSettingsPage() {
         summary={summary}
         get={get}
         shortName={ownerShort}
+        addresses={
+          staticHost(get) && conn && staticHost(get) !== conn.host
+            ? { current: conn.host, next: staticHost(get) ?? "" }
+            : null
+        }
         busy={busy || readOnly}
         onApply={() => void doApply()}
       />

@@ -39,4 +39,5 @@ export interface Transport extends EventEmitter<TransportEvents> {
   send(message: ToRadioInit): void;
 }
 
-export type TransportFactory = () => Transport;
+/** Makes a transport for one attempt; `host` overrides the connection's host (address change). */
+export type TransportFactory = (host?: string) => Transport;

@@ -103,6 +103,12 @@ export function ApplyProgress({ status, address, onDismiss }: ApplyProgressProps
                 at <code>{address}</code>
               </>
             ) : null}
+            {status.newHost ? (
+              <>
+                {" "}
+                and at the new address <code>{status.newHost}</code>
+              </>
+            ) : null}
             .
           </p>
           <p>Changed: {status.paths.map((p) => labelFor(p)).join(", ")}.</p>

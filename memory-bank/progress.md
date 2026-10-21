@@ -515,6 +515,20 @@ State: `typecheck`, `lint`, `format`, `test` (632), `test:e2e` (141 passed, 6 sk
 
 State: `typecheck`, `lint`, `format`, `test` (655), `test:e2e` (151 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
 
+### Phase D4: network, security, modules, backup, maintenance (done 2026-10-21)
+
+- **Network:** Wi-Fi, Ethernet, address mode, static IPv4 (dotted input for the firmware's fixed32), NTP, syslog. Turning Wi-Fi/Ethernet off, a new SSID or password, the address mode and the static IP are lockout-class (typed short name).
+- **Address change:** the review says which addresses MeshTerm will try. After the reboot the connection alternates between the old address and the new static IP until one answers; the one that answers is saved as the connection's address. The recovery panel names both.
+- **Security:** public key (read-only), new key pair (Curve25519 from the server; lockout), admin keys (up to 3), managed mode (lockout), legacy admin channel and serial console (warnings).
+- **Modules:** a section for every module the node reports, from the protobuf schema; registry details for MQTT (password secret, map reporting warning), telemetry and neighbor-info intervals (airtime warnings), range test.
+- **Backup & restore:** YAML export in the CLI's `--export-config` layout (secrets off by default: no channel link, Wi-Fi password, private key or MQTT password), import of MeshTerm or CLI files (camelCase or snake_case, `base64:` keys) and restore of any snapshot. Both show what would change by section; Network and Security are opt-in; unknown keys are listed; changes are staged for the normal review.
+- **Maintenance:** reboot, shutdown, reset node list, factory reset config (typed short name), factory reset device (typed + 5 s countdown); a snapshot first; audited.
+- **FakeNode:** shutdown (down for a while), NodeDB reset, factory resets back to the scenario's settings.
+- **Tests:** YAML export/import (incl. a CLI-shaped fixture with unknown keys), IPv4 helpers, alternate address (old refuses → new answers → saved); integration: export/import routes, maintenance (typed confirm refused, snapshots, reboot comes back), key pairs, static IP status. Web unit (nested network changes, lockout list, IPv4/admin-key validation, module sections, restore diff) and component tests (static IP + review address + typed confirm, key pair, modules, maintenance confirmations and countdown, YAML import with opt-in network). e2e: module apply, static-IP review, backup download → import → snapshot restore (nothing sent), maintenance reboot and the device-reset countdown. Visual baselines `device-network`, `device-maintenance` (win32 + linux).
+- **CR-002 is complete** (L, D1–D4).
+
+State: `typecheck`, `lint`, `format`, `test` (679), `test:e2e` (163 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

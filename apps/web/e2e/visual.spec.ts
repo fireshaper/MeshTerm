@@ -269,3 +269,24 @@ test("device channels", async ({ page }) => {
   await freeze(page);
   await expect(page).toHaveScreenshot("device-channels.png", { mask: MASKS(page) });
 });
+
+test("device network", async ({ page }) => {
+  await ready(page, "/settings/device?section=network");
+  // A staged static address: the IP fields and a lockout-class warning.
+  await page.getByLabel("Address", { exact: true }).selectOption("STATIC");
+  await page.getByLabel("IP address", { exact: true }).fill("192.168.1.20");
+  await page
+    .locator("[data-mt=config-field][data-path='config.network.addressMode']")
+    .evaluate((el) => {
+      el.scrollIntoView({ block: "start" });
+    });
+  await freeze(page);
+  await expect(page).toHaveScreenshot("device-network.png", { mask: MASKS(page) });
+});
+
+test("device maintenance", async ({ page }) => {
+  await ready(page, "/settings/device?section=maintenance");
+  await expect(page.getByRole("button", { name: "Reboot…" })).toBeEnabled();
+  await freeze(page);
+  await expect(page).toHaveScreenshot("device-maintenance.png", { mask: MASKS(page) });
+});

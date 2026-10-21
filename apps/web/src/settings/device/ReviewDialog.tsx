@@ -17,6 +17,8 @@ interface ReviewDialogProps {
   shortName: string;
   busy: boolean;
   onApply: () => void;
+  /** A pending static IP: MeshTerm tries the current address and this one after the reboot. */
+  addresses?: { current: string; next: string } | null;
 }
 
 /** Every pending change by section, warnings, and the apply button (CR-002 §5.3, §7). */
@@ -105,6 +107,12 @@ export function ReviewDialog(props: ReviewDialogProps) {
             {summary.conflicts.length > 0 && (
               <p data-mt="review-blocked" role="alert">
                 Some fields changed on the device since you edited them. Resolve them first.
+              </p>
+            )}
+            {props.addresses && (
+              <p data-mt="review-address" role="note">
+                After the reboot MeshTerm tries <code>{props.addresses.current}</code> and then the
+                new address <code>{props.addresses.next}</code>, and keeps the one that answers.
               </p>
             )}
             <p data-mt="review-note" id="review-note">
