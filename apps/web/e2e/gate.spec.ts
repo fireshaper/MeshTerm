@@ -56,6 +56,7 @@ test.beforeAll(async () => {
       MESHTERM_LOG_LEVEL: "warn",
       MESHTERM_BACKOFF_MIN_MS: "200",
       MESHTERM_BACKOFF_MAX_MS: "1000",
+      MESHTERM_AUTH: "none",
     },
   });
   fakeNode.start();

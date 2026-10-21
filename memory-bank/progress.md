@@ -424,6 +424,41 @@ State: `typecheck`, `lint`, `format`, `test` (577), `test:e2e` (125 passed, 6 sk
   - Encrypted broadcasts on other channels stay silent.
 - Tests: recorder (only DMs to us, throttled); pipeline (an encrypted DM from FakeNode lands in the feed).
 
+## CR-002 Device config editor (started 2026-10-20)
+
+- The user pasted CR-002 (saved as `memory-bank/cr-002-device-config.md`). Plan: `memory-bank/cr-002-plan.md`.
+- The CR needs admin/viewer roles and an audit log, which didn't exist. The user chose to **build login first** (Phase L).
+
+### Phase L: login, roles, audit log (done 2026-10-21)
+
+- **Env:**
+  - `MESHTERM_AUTH`: `local` (default) or `none`.
+  - Optional `MESHTERM_ADMIN_USERNAME` / `MESHTERM_ADMIN_PASSWORD` (both or neither).
+  - `MESHTERM_SESSION_DAYS` (30).
+- **Migration 0011:** `users`, `sessions` (hashed tokens) and `audit_log`.
+- **Passwords:** argon2id via Node's built-in `crypto.argon2` (no native module). Unknown usernames take as long as known ones.
+- **First run:** with no account, the browser shows "Welcome to MeshTerm" to create the admin. Setup is locked once an account exists.
+- **Enforcement:**
+  - Every API route (except `/healthz` and `/api/auth/me|login|setup|logout`) and the WebSocket need a session.
+  - Non-GET requests need the session's CSRF token.
+  - Admin only: send, favorite, reconnect, users, audit.
+  - Login is limited to 10 per minute per IP.
+- **Audit log:** logins (failed ones too), logout, password changes, user create/update/delete, refused admin requests.
+- **Web:**
+  - Auth gate with sign-in / setup screens; deep links survive sign-in.
+  - Header user menu.
+  - Settings → Account (password), Users (admin), Audit log (admin).
+  - Viewers get a read-only composer, disabled ★ and no Reconnect.
+- **Tests and harnesses:** `startTestApp`, e2e `serve.ts`, the gate spec and `compose.test.yml` run with `MESHTERM_AUTH=none`.
+- **Tests:**
+  - Server: 12 auth integration tests (setup lock, cookie flags, failed-login audit, logout, env admin, rate limit, CSRF, viewer refusals with audit, last-admin rules, password change ending other sessions, WS refused without a session, `none` mode).
+  - Web: gate, setup, viewer and user-menu tests.
+  - e2e `auth.spec.ts` on a new `auth` instance (ports 4194/4195, `MESHTERM_AUTH=local`): setup → live data over the authenticated WebSocket, deep link through sign-in, sign-out, viewer refused by the server, audit log.
+- **Docs:** README, docker-compose.yml and .env.example document sign-in.
+- **Bug found by a test:** a validation hint inside a `<label>` became part of the field's name. Hints now sit after the label, linked with `aria-describedby`.
+
+State: `typecheck`, `lint`, `format`, `test` (599), `test:e2e` (131 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

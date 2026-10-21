@@ -21,6 +21,7 @@ import { hardwareLabel, roleLabel } from "./labels.js";
 import { MiniMap } from "./MiniMap.js";
 import { STATUS_LABELS } from "./insights.js";
 import { nodeStatus, type Density } from "./view.js";
+import { useIsAdmin, VIEWER_HINT } from "../auth/me.js";
 
 /** How long a card shows `data-mt-state="updated"` after new data arrives. */
 export const UPDATE_FLASH_MS = 1500;
@@ -111,6 +112,7 @@ export const NodeCard = memo(function NodeCard({
   density,
   onFavorite,
 }: NodeCardProps) {
+  const canFavorite = useIsAdmin();
   const navigate = useNavigate();
   const flashing = useUpdateFlash(freshness(card));
   const [copied, copy] = useCopied();
@@ -179,6 +181,8 @@ export const NodeCard = memo(function NodeCard({
         <button
           type="button"
           data-mt="favorite-toggle"
+          disabled={!canFavorite}
+          {...(canFavorite ? {} : { title: VIEWER_HINT })}
           data-mt-state={card.isFavorite ? "on" : "off"}
           aria-pressed={card.isFavorite}
           aria-label={card.isFavorite ? `Unfavorite ${name}` : `Favorite ${name}`}

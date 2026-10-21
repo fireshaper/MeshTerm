@@ -11,6 +11,13 @@ import { nodeIdFromNum } from "@meshterm/shared";
 
 import { ChannelThread, DmThread, MessagesIndex, MessagesPage } from "./messages/MessagesPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
+import {
+  AccountPage,
+  AuditPage,
+  SettingsIndex,
+  SettingsPage,
+  UsersPage,
+} from "./settings/SettingsPages.js";
 import { NodesPage } from "./pages/NodesPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { AppShell } from "./shell/AppShell.js";
@@ -117,6 +124,32 @@ export const mapRoute = createRoute({
   component: lazyRouteComponent(() => import("./map/MapPage.js"), "MapPage"),
 });
 
+export const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings",
+  component: SettingsPage,
+});
+const settingsIndexRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/",
+  component: SettingsIndex,
+});
+const accountRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/account",
+  component: AccountPage,
+});
+const usersRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/users",
+  component: UsersPage,
+});
+const auditRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/audit",
+  component: AuditPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   dashboardRoute,
@@ -125,6 +158,7 @@ const routeTree = rootRoute.addChildren([
   legacyChannelRoute,
   nodesRoute,
   legacyDmRoute,
+  settingsRoute.addChildren([settingsIndexRoute, accountRoute, usersRoute, auditRoute]),
 ]);
 
 /** The app's router; tests pass a memory history starting at a given path. */

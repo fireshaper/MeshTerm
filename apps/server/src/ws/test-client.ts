@@ -16,10 +16,13 @@ export class WsTestClient {
     });
   }
 
-  /** Connects to `/ws` on an app that is listening. */
-  static open(app: App): Promise<WsTestClient> {
+  /** Connects to `/ws` on an app that is listening (with a session cookie, if given). */
+  static open(app: App, cookie?: string): Promise<WsTestClient> {
     const { port } = app.server.address() as AddressInfo;
-    const socket = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    const socket = new WebSocket(
+      `ws://127.0.0.1:${port}/ws`,
+      cookie ? { headers: { cookie } } : undefined,
+    );
     return new Promise((resolve, reject) => {
       socket.once("open", () => {
         resolve(new WsTestClient(socket));

@@ -26,6 +26,7 @@ describe("migrations", () => {
     expect(objects("table")).toEqual([
       "__drizzle_migrations",
       "activity",
+      "audit_log",
       "channels",
       "connections",
       "conversation_state",
@@ -34,9 +35,11 @@ describe("migrations", () => {
       "nodes",
       "packet_stats",
       "positions",
+      "sessions",
       "settings",
       "signal_log",
       "telemetry",
+      "users",
     ]);
     expect(objects("index")).toEqual(
       expect.arrayContaining([

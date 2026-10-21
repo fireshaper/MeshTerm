@@ -32,6 +32,8 @@ const config = parseConfig({
   MESHTERM_WEB_DIR: fileURLToPath(new URL("../dist/", import.meta.url)),
   MESHTERM_TILE_URL: tiles.urlTemplate,
   MESHTERM_THEMES_DIR: fileURLToPath(new URL("../../../themes/", import.meta.url)),
+  // Accounts off unless a spec's instance asks for them (E2E_AUTH=local).
+  MESHTERM_AUTH: process.env.E2E_AUTH ?? "none",
 });
 const app = await buildApp(config);
 const historyDays = Number(process.env.E2E_HISTORY_DAYS ?? 0);

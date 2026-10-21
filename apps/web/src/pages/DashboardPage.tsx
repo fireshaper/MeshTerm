@@ -13,6 +13,7 @@ import { NetworkKpis } from "../dashboard/NetworkKpis.js";
 import { NetworkMap } from "../dashboard/NetworkMap.js";
 import { NodePreviewCard } from "../dashboard/NodePreviewCard.js";
 import { TrafficPanel } from "../dashboard/TrafficPanel.js";
+import { useIsAdmin } from "../auth/me.js";
 import { useToggleFavorite } from "../dashboard/useFavorite.js";
 import { api, ApiError } from "../data/api.js";
 import { useDashboard } from "../data/queries.js";
@@ -35,12 +36,14 @@ function LastPacket({ at }: { at: number | null }) {
   );
 }
 
-/** Drops and re-establishes the link to my node; disabled while one is in progress. */
+/** Drops and re-establishes the link to my node; disabled while one is in progress. Admins only. */
 function ReconnectButton({ connectionId }: { connectionId: number | null }) {
+  const admin = useIsAdmin();
   const nodeState = useLiveStore((s) => s.nodeState);
   const toast = useUiStore((s) => s.toast);
   const [busy, setBusy] = useState(false);
   const inProgress = nodeState === "connecting" || nodeState === "configuring";
+  if (!admin) return null;
   return (
     <button
       type="button"

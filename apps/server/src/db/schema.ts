@@ -339,3 +339,55 @@ export const settings = sqliteTable("settings", {
     .notNull()
     .default(sql`(unixepoch() * 1000)`),
 });
+
+/** Local accounts (MESHTERM_AUTH=local). `username` is stored lowercase. */
+export const users = sqliteTable(
+  "users",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    username: text("username").notNull(),
+    /** PHC string: `$argon2id$v=19$m=…,t=…,p=…$<salt>$<hash>`. */
+    passwordHash: text("password_hash").notNull(),
+    role: text("role", { enum: ["admin", "viewer"] }).notNull(),
+    createdAt: integer("created_at").notNull(),
+    lastLoginAt: integer("last_login_at"),
+  },
+  (t) => [uniqueIndex("users_username_idx").on(t.username)],
+);
+
+/**
+ * Signed-in sessions. The cookie holds a random token; only its SHA-256 is stored, so
+ * a copy of the database can't be used to sign in.
+ */
+export const sessions = sqliteTable(
+  "sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Sent back as `x-csrf-token` on state-changing requests. */
+    csrfToken: text("csrf_token").notNull(),
+    createdAt: integer("created_at").notNull(),
+    lastSeenAt: integer("last_seen_at").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (t) => [index("sessions_user_idx").on(t.userId)],
+);
+
+/** Who did what (logins, user changes, config changes). Never holds secrets. */
+export const auditLog = sqliteTable(
+  "audit_log",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    time: integer("time").notNull(),
+    /** Kept as text: the entry outlives a deleted account. Null: anonymous or system. */
+    username: text("username"),
+    action: text("action").notNull(),
+    target: text("target"),
+    details: text("details", { mode: "json" }).$type<Record<string, unknown>>(),
+    result: text("result", { enum: ["ok", "denied", "failed"] }).notNull(),
+    ip: text("ip"),
+  },
+  (t) => [index("audit_log_time_idx").on(t.time)],
+);

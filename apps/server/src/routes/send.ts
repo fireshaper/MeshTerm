@@ -35,7 +35,7 @@ export function sendRoutes(sender: MessageSender): FastifyPluginAsyncZod {
     app.post(
       "/api/connections/:id/messages",
       {
-        config: { rateLimit: SEND_RATE_LIMIT },
+        config: { rateLimit: SEND_RATE_LIMIT, role: "admin" },
         schema: {
           params: z.object({ id: z.coerce.number().int().positive() }),
           body: SendBody,

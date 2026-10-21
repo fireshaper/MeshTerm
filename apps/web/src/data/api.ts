@@ -1,5 +1,10 @@
+import { CSRF_HEADER } from "@meshterm/shared";
 import type {
   ActivityPage,
+  AuditPage,
+  MeDTO,
+  Role,
+  UserDTO,
   Channel,
   ConversationsDTO,
   ConnectionState,
@@ -43,14 +48,29 @@ export class ApiError extends Error {
   }
 }
 
+/** The session's CSRF token (from `/api/auth/me`), sent on every non-GET request. */
+let csrfToken = "";
+export function setCsrfToken(token: string): void {
+  csrfToken = token;
+}
+
+/** Called when an API request says the session is gone (the gate shows the login). */
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  onUnauthorized = handler;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase();
   const res = await fetch(path, {
     ...init,
     headers: {
       accept: "application/json",
       ...(init?.body ? { "content-type": "application/json" } : {}),
+      ...(method !== "GET" && csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
     },
   });
+  if (res.status === 401 && !path.startsWith("/api/auth/")) onUnauthorized?.();
   const body: unknown = await res.json().catch(() => null);
   if (!res.ok) {
     const { error, message } = (body ?? {}) as { error?: string; message?: string };
@@ -60,6 +80,32 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  me: () => request<MeDTO>("/api/auth/me"),
+  login: (username: string, password: string) =>
+    request<{ ok: true }>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }),
+  setup: (username: string, password: string) =>
+    request<{ ok: true }>("/api/auth/setup", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }),
+  logout: () => request<{ ok: true }>("/api/auth/logout", { method: "POST" }),
+  changePassword: (current: string, next: string) =>
+    request<{ ok: true }>("/api/auth/password", {
+      method: "PUT",
+      body: JSON.stringify({ current, next }),
+    }),
+  users: () => request<UserDTO[]>("/api/users"),
+  createUser: (body: { username: string; password: string; role: Role }) =>
+    request<UserDTO>("/api/users", { method: "POST", body: JSON.stringify(body) }),
+  updateUser: (id: number, body: { role?: Role; password?: string }) =>
+    request<UserDTO>(`/api/users/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  deleteUser: (id: number) => request<{ ok: true }>(`/api/users/${id}`, { method: "DELETE" }),
+  audit: (before?: number | null) =>
+    request<AuditPage>(`/api/audit?limit=50${before ? `&before=${before}` : ""}`),
+
   connections: () => request<ConnectionView[]>("/api/connections"),
   nodes: (connectionId: number) => request<MeshNode[]>(`/api/connections/${connectionId}/nodes`),
   channels: (connectionId: number) =>

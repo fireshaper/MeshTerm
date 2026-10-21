@@ -2,6 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Outlet } from "@tanstack/react-router";
 import { Menu, PanelLeftClose, PanelLeftOpen, RadioTower, X } from "lucide-react";
 import { useState } from "react";
+import { UserMenu } from "../auth/UserMenu.js";
 import { NodeDrawer } from "../node-drawer/NodeDrawer.js";
 import { ConnectionIndicator, useDeviceInfo } from "./ConnectionIndicator.js";
 import { MainNav } from "./MainNav.js";
@@ -102,6 +103,7 @@ export function AppShell() {
         </Dialog.Root>
         <Brand />
         <ConnectionIndicator />
+        <UserMenu />
       </header>
       <aside data-mt="sidebar" aria-label="Sidebar">
         <MainNav variant="sidebar" />

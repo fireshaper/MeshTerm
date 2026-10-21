@@ -115,7 +115,7 @@ export const activityRoutes: FastifyPluginAsyncZod = (app) => {
   app.post(
     "/api/connections/:id/reconnect",
     {
-      config: { rateLimit: RECONNECT_RATE_LIMIT },
+      config: { rateLimit: RECONNECT_RATE_LIMIT, role: "admin" },
       schema: {
         params: ConnectionParams,
         response: { 202: z.object({ state: ConnectionState }) },

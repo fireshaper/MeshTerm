@@ -31,6 +31,7 @@ export const dashboardRoutes: FastifyPluginAsyncZod = (app) => {
   app.put(
     "/api/connections/:id/nodes/:num/favorite",
     {
+      config: { role: "admin" },
       schema: {
         params: ConnectionParams.extend({ num: z.coerce.number().pipe(Uint32) }),
         body: z.object({ favorite: z.boolean() }),

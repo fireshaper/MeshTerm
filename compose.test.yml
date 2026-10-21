@@ -28,6 +28,8 @@ services:
     depends_on: [fakenode]
     environment:
       MESHTERM_NODE_HOST: fakenode
+      # The test stack has no accounts (sign-in off).
+      MESHTERM_AUTH: none
       MESHTERM_NODE_PORT: "4403"
     ports: ["${MESHTERM_PORT:-8080}:8080"]
     volumes: ["meshterm-data:/data"]

@@ -1,5 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutGrid, Map as MapIcon, MessagesSquare, Radio, type LucideIcon } from "lucide-react";
+import {
+  LayoutGrid,
+  Map as MapIcon,
+  MessagesSquare,
+  Radio,
+  Settings,
+  type LucideIcon,
+} from "lucide-react";
 
 interface MainNavProps {
   /** `sidebar` from 768 px, `drawer` (the mobile menu) below; also the element's data-mt. */
@@ -14,7 +21,12 @@ interface Item {
   prefix: string;
   label: string;
   Icon: LucideIcon;
-  link: { to: "/dashboard" } | { to: "/map" } | { to: "/messages" } | { to: "/nodes" };
+  link:
+    | { to: "/dashboard" }
+    | { to: "/map" }
+    | { to: "/messages" }
+    | { to: "/nodes" }
+    | { to: "/settings" };
 }
 
 const ITEMS: Item[] = [
@@ -22,6 +34,7 @@ const ITEMS: Item[] = [
   { prefix: "/map", label: "Map", Icon: MapIcon, link: { to: "/map" } },
   { prefix: "/messages", label: "Messages", Icon: MessagesSquare, link: { to: "/messages" } },
   { prefix: "/nodes", label: "Nodes", Icon: Radio, link: { to: "/nodes" } },
+  { prefix: "/settings", label: "Settings", Icon: Settings, link: { to: "/settings" } },
 ];
 
 export function MainNav({ variant, onNavigate }: MainNavProps) {

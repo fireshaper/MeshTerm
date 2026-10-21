@@ -14,6 +14,19 @@ function issuesFor(env: Record<string, string | undefined>): string[] {
 }
 
 describe("parseConfig", () => {
+  it("needs both admin username and password, or neither", () => {
+    expect(() => parseConfig({ MESHTERM_NODE_HOST: "h", MESHTERM_ADMIN_USERNAME: "root" })).toThrow(
+      /MESHTERM_ADMIN_PASSWORD/,
+    );
+    expect(
+      parseConfig({
+        MESHTERM_NODE_HOST: "h",
+        MESHTERM_ADMIN_USERNAME: "root",
+        MESHTERM_ADMIN_PASSWORD: "long-enough",
+      }).initialAdmin,
+    ).toEqual({ username: "root", password: "long-enough" });
+  });
+
   it("rejects a tile URL without {z}/{x}/{y}", () => {
     expect(issuesFor({ ...HOST, MESHTERM_TILE_URL: "https://tiles.example/x.png" })).toEqual([
       "MESHTERM_TILE_URL",
@@ -38,6 +51,9 @@ describe("parseConfig", () => {
       backoffMaxMs: 60_000,
       tileUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       tileCacheMb: 500,
+      auth: "local",
+      initialAdmin: null,
+      sessionDays: 30,
     });
   });
 

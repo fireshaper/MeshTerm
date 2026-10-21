@@ -13,6 +13,9 @@ export interface ConversationData {
 
 export const queryKeys = {
   connections: ["connections"] as const,
+  me: ["me"] as const,
+  users: ["users"] as const,
+  audit: ["audit"] as const,
   nodes: (connectionId: number) => ["nodes", connectionId] as const,
   channels: (connectionId: number) => ["channels", connectionId] as const,
   dashboard: (connectionId: number) => ["dashboard", connectionId] as const,

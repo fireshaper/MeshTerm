@@ -1,8 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, beforeEach } from "vitest";
+import { setMe } from "../auth/me.js";
 import { installCanvasStub, installMatchMediaStub } from "./canvas.js";
 import { installLayoutMock } from "./layout.js";
+import { TEST_ADMIN } from "./me.js";
 
 // DOM stubs, only when running under jsdom (some files use the node environment).
 // jsdom has no layout: these let TanStack Virtual and scrolling code run, with
@@ -26,6 +28,11 @@ if (typeof Element !== "undefined") {
   installCanvasStub();
   installMatchMediaStub();
 }
+
+// Components rendered on their own act as a signed-in admin (accounts off).
+beforeEach(() => {
+  setMe(TEST_ADMIN);
+});
 
 afterEach(() => {
   cleanup();

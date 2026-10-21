@@ -35,7 +35,22 @@ export const EnvSchema = z
       .default("https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
     /** Size cap of the on-disk tile cache (<data dir>/tiles). */
     MESHTERM_TILE_CACHE_MB: z.coerce.number().positive().default(500),
+    /** `local`: accounts and sessions (default). `none`: no login, everyone is an admin. */
+    MESHTERM_AUTH: z.enum(["local", "none"]).default("local"),
+    /** Optional first admin, created at startup when no accounts exist. */
+    MESHTERM_ADMIN_USERNAME: z.string().trim().min(1).optional(),
+    MESHTERM_ADMIN_PASSWORD: z.string().min(8).max(256).optional(),
+    /** Sessions end after this many days, or after a week without use. */
+    MESHTERM_SESSION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
   })
+  .refine(
+    (env) =>
+      (env.MESHTERM_ADMIN_USERNAME === undefined) === (env.MESHTERM_ADMIN_PASSWORD === undefined),
+    {
+      path: ["MESHTERM_ADMIN_PASSWORD"],
+      message: "set both MESHTERM_ADMIN_USERNAME and MESHTERM_ADMIN_PASSWORD, or neither",
+    },
+  )
   .refine((env) => env.MESHTERM_BACKOFF_MAX_MS >= env.MESHTERM_BACKOFF_MIN_MS, {
     path: ["MESHTERM_BACKOFF_MAX_MS"],
     message: "must be greater than or equal to MESHTERM_BACKOFF_MIN_MS",
@@ -58,6 +73,12 @@ export const ConfigSchema = EnvSchema.transform((env) => ({
   backoffMaxMs: env.MESHTERM_BACKOFF_MAX_MS,
   tileUrl: env.MESHTERM_TILE_URL,
   tileCacheMb: env.MESHTERM_TILE_CACHE_MB,
+  auth: env.MESHTERM_AUTH,
+  initialAdmin:
+    env.MESHTERM_ADMIN_USERNAME !== undefined && env.MESHTERM_ADMIN_PASSWORD !== undefined
+      ? { username: env.MESHTERM_ADMIN_USERNAME, password: env.MESHTERM_ADMIN_PASSWORD }
+      : null,
+  sessionDays: env.MESHTERM_SESSION_DAYS,
 }));
 
 export type Config = z.output<typeof ConfigSchema>;

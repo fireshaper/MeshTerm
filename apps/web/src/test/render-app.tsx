@@ -3,6 +3,7 @@ import {
   type Channel,
   type ConversationsDTO,
   type DashboardDTO,
+  type MeDTO,
   type MeshNode,
 } from "@meshterm/shared";
 import type { QueryClient } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import { createQueryClient } from "../data/queries.js";
 import { resetLiveStore, useLiveStore } from "../data/store.js";
 import { resetUiStore } from "../data/ui-store.js";
 import { createTestRouter } from "../router.js";
+import { TEST_ADMIN } from "./me.js";
 
 export interface Seed {
   channels?: Channel[];
@@ -23,6 +25,8 @@ export interface Seed {
   conversations?: [ReturnType<typeof queryKeys.messages>, ConversationData][];
   /** The conversation list; by default the seeded channels (preset LongFast) and no DMs. */
   conversationList?: ConversationsDTO;
+  /** Who is signed in; an admin with accounts off by default. */
+  me?: MeDTO;
   myNodeNum?: number | null;
   nodeState?: Parameters<ReturnType<typeof useLiveStore.getState>["setNodeState"]>[0];
 }
@@ -73,7 +77,9 @@ export async function renderApp(path: string, seed: Seed = {}) {
   for (const [key, data] of seed.conversations ?? []) queryClient.setQueryData(key, data);
 
   const router = createTestRouter(path);
-  const utils = render(<App router={router} queryClient={queryClient} live={false} />);
+  const utils = render(
+    <App router={router} queryClient={queryClient} live={false} me={seed.me ?? TEST_ADMIN} />,
+  );
   // `hidden`: a deep-linked drawer opens at once and hides the page from the a11y tree.
   await screen.findByRole("heading", { level: 1, hidden: true });
   return { ...utils, router, queryClient };

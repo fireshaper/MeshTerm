@@ -1,0 +1,241 @@
+/* Sign-in / setup screens, the user menu, and Settings (accounts, users, audit). Tokens only. */
+@layer base {
+  [data-mt="auth-loading"] {
+    min-block-size: 100vh;
+    background: var(--mt-surface-bg);
+  }
+
+  [data-mt="auth-screen"] {
+    display: grid;
+    place-items: center;
+    min-block-size: 100vh;
+    padding: var(--mt-space-3);
+    background: var(--mt-surface-bg);
+    color: var(--mt-text);
+  }
+
+  [data-mt="auth-card"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-3);
+    inline-size: min(24rem, 100%);
+    padding: var(--mt-space-4);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-radius-lg);
+    background: var(--mt-surface-elevated);
+    box-shadow: var(--mt-shadow-popover);
+  }
+
+  [data-mt="auth-title"] {
+    display: flex;
+    gap: var(--mt-space-2);
+    align-items: center;
+    margin: 0;
+    font-size: var(--mt-font-size-xl);
+  }
+
+  [data-mt="auth-title"] [data-mt="brand-icon"] {
+    color: var(--mt-accent);
+  }
+
+  [data-mt="auth-note"],
+  [data-mt="auth-hint"] {
+    margin: 0;
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="auth-field"],
+  [data-mt="settings-field"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-1);
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="auth-field"] input,
+  [data-mt="settings-field"] input,
+  [data-mt="settings-field"] select,
+  [data-mt="users-table"] select {
+    padding: var(--mt-space-2);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-radius-md);
+    background: var(--mt-surface-raised);
+    color: var(--mt-text);
+    font-size: var(--mt-font-size-md);
+  }
+
+  [data-mt="auth-field"] input[aria-invalid="true"],
+  [data-mt="settings-field"] input[aria-invalid="true"] {
+    border-color: var(--mt-status-error);
+  }
+
+  [data-mt="auth-error"] {
+    margin: 0;
+    color: var(--mt-status-error);
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="auth-submit"] {
+    padding: var(--mt-space-2) var(--mt-space-3);
+    border: none;
+    border-radius: var(--mt-radius-md);
+    background: var(--mt-accent);
+    color: var(--mt-accent-text);
+    font-weight: var(--mt-font-weight-medium);
+    cursor: pointer;
+  }
+
+  [data-mt="auth-submit"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* User menu (header) */
+
+  [data-mt="user-menu"] {
+    display: inline-flex;
+    gap: var(--mt-space-1);
+    align-items: center;
+    padding: var(--mt-space-1) var(--mt-space-2);
+    border: var(--mt-border-width) solid transparent;
+    border-radius: var(--mt-radius-md);
+    background: none;
+    color: var(--mt-text);
+    cursor: pointer;
+  }
+
+  [data-mt="user-menu"]:hover,
+  [data-mt="user-menu"][data-state="open"] {
+    border-color: var(--mt-border-color);
+  }
+
+  [data-mt="user-menu-name"] {
+    max-inline-size: 10rem;
+    overflow: hidden;
+    font-size: var(--mt-font-size-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  [data-mt="menu-label"] {
+    padding: var(--mt-space-2) var(--mt-space-3);
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-xs);
+  }
+
+  /* Settings */
+
+  [data-mt="settings-view"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-3);
+  }
+
+  [data-mt="settings-nav"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mt-space-1);
+    border-bottom: var(--mt-border-width) solid var(--mt-border-color);
+  }
+
+  [data-mt="settings-nav-item"] {
+    padding: var(--mt-space-2) var(--mt-space-3);
+    border-bottom: var(--mt-border-width) solid transparent;
+    color: var(--mt-text-muted);
+    text-decoration: none;
+  }
+
+  [data-mt="settings-nav-item"][data-mt-state="active"] {
+    border-bottom-color: var(--mt-accent);
+    color: var(--mt-accent);
+  }
+
+  [data-mt="settings-section"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-3);
+    max-inline-size: 60rem;
+  }
+
+  [data-mt="settings-title"] {
+    margin: 0;
+    font-size: var(--mt-font-size-lg);
+  }
+
+  [data-mt="settings-subtitle"] {
+    margin: 0;
+    font-size: var(--mt-font-size-md);
+  }
+
+  [data-mt="settings-form"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-2);
+    max-inline-size: 24rem;
+  }
+
+  [data-mt="settings-section"] [data-mt="button"],
+  [data-mt="settings-form"] [data-mt="button"] {
+    align-self: flex-start;
+    padding: var(--mt-space-1) var(--mt-space-3);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-radius-md);
+    background: var(--mt-surface-raised);
+    color: var(--mt-text);
+    cursor: pointer;
+  }
+
+  [data-mt="settings-section"] [data-mt="button"]:hover {
+    border-color: var(--mt-accent);
+    color: var(--mt-accent);
+  }
+
+  [data-mt="settings-section"] [data-mt="button"][data-mt-variant="danger"]:hover {
+    border-color: var(--mt-status-error);
+    color: var(--mt-status-error);
+  }
+
+  [data-mt="users-table"],
+  [data-mt="audit-table"] {
+    display: block;
+    max-inline-size: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="users-table"] th,
+  [data-mt="users-table"] td,
+  [data-mt="audit-table"] th,
+  [data-mt="audit-table"] td {
+    padding: var(--mt-space-2);
+    border-bottom: var(--mt-border-width) solid var(--mt-border-color);
+    text-align: start;
+    white-space: nowrap;
+  }
+
+  [data-mt="user-actions"] {
+    display: flex;
+    gap: var(--mt-space-2);
+  }
+
+  [data-mt="user-self"] {
+    color: var(--mt-text-muted);
+    font-weight: normal;
+  }
+
+  [data-mt="audit-row"][data-mt-state="failed"],
+  [data-mt="audit-row"][data-mt-state="denied"] {
+    color: var(--mt-status-warn);
+  }
+
+  [data-mt="composer-hint"][data-mt-variant="viewer"] {
+    color: var(--mt-text-muted);
+  }
+
+  [data-mt="favorite-toggle"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}

@@ -28,6 +28,7 @@ import { dashboardRoutes } from "./routes/dashboard.js";
 import { healthRoutes } from "./routes/health.js";
 import { HttpError } from "./routes/http-error.js";
 import { tileRoutes } from "./routes/tiles.js";
+import { authPlugin } from "./auth/plugin.js";
 import { indexHtmlRenderer, registerSecurityHeaders } from "./security.js";
 import { TileCache } from "./tiles/tile-cache.js";
 import { isReservedPath, NO_CACHE, staticRoutes } from "./routes/static.js";
@@ -166,6 +167,15 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
       message: status >= 500 ? "internal error" : err.message,
     });
   });
+  await app.register(
+    authPlugin({
+      db: handle.db,
+      clock,
+      mode: config.auth,
+      sessionDays: config.sessionDays,
+      initialAdmin: config.initialAdmin,
+    }),
+  );
   await app.register(staticRoutes({ webDir, themesDir }));
   app.log.info({ webDir, themesDir }, "static files");
 

@@ -14,7 +14,10 @@ services:
       # The Meshtastic node to connect to (Wi-Fi/Ethernet node or meshtasticd).
       - MESHTERM_NODE_HOST=192.168.1.50
       - MESHTERM_NODE_PORT=4403
-      # MESHTERM_AUTH is planned (milestone M5); there is no login yet.
+      # Sign-in (default "local"): the first visit asks you to create the admin account,
+      # or set MESHTERM_ADMIN_USERNAME / MESHTERM_ADMIN_PASSWORD to create it at startup.
+      # "none" turns sign-in off: everyone who can reach MeshTerm is an admin.
+      - MESHTERM_AUTH=local
 
 volumes:
   meshterm-data: {}

@@ -33,6 +33,8 @@ export async function startTestApp(
     MESHTERM_CONFIG_TIMEOUT_MS: "2000",
     MESHTERM_BACKOFF_MIN_MS: "100",
     MESHTERM_BACKOFF_MAX_MS: "400",
+    // Most tests aren't about accounts; auth tests set "local".
+    MESHTERM_AUTH: "none",
     ...options.env,
   });
   const app = await buildApp(config, {

@@ -28,6 +28,7 @@ import { CopyButton, ICON, useCopy } from "./parts.js";
 import { readRange, writeRange, type NodeRange } from "./charts/series-data.js";
 import { RawTab } from "./RawTab.js";
 import { clampWidth, DRAWER_WIDTH, readDrawerWidth, writeDrawerWidth } from "./width.js";
+import { useIsAdmin, VIEWER_HINT } from "../auth/me.js";
 
 // Charts load only when their tab is opened (uPlot is in that chunk).
 const TelemetryTab = lazy(() =>
@@ -66,6 +67,7 @@ function Header({
   node: NodeDetailDTO;
   onClose: () => void;
 }) {
+  const canFavorite = useIsAdmin();
   const now = useNow();
   const thresholds = useThresholds(connectionId);
   const toggleFavorite = useToggleFavorite(connectionId);
@@ -107,6 +109,8 @@ function Header({
       <button
         type="button"
         data-mt="favorite-toggle"
+        disabled={!canFavorite}
+        {...(canFavorite ? {} : { title: VIEWER_HINT })}
         data-mt-state={node.isFavorite ? "on" : "off"}
         aria-pressed={node.isFavorite}
         aria-label={node.isFavorite ? `Unfavorite ${name}` : `Favorite ${name}`}

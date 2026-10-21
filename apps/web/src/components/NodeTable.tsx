@@ -14,6 +14,7 @@ import { bearingDegrees, cardinal, formatDistance, haversineMeters } from "../da
 import { ageLabel, isStale, STATUS_LABELS } from "../dashboard/insights.js";
 import { hardwareLabel, roleLabel } from "../dashboard/labels.js";
 import { nodeStatus } from "../dashboard/view.js";
+import { useIsAdmin, VIEWER_HINT } from "../auth/me.js";
 
 interface Ctx {
   origin: CardPosition | null;
@@ -161,6 +162,7 @@ interface NodeRowProps {
 }
 
 const NodeRow = memo(function NodeRow({ card, columns, ctx, onFavorite }: NodeRowProps) {
+  const canFavorite = useIsAdmin();
   const name = card.longName || card.userId;
   const status = nodeStatus(card.lastHeard, ctx.now, ctx.thresholds);
   const open = () => {
@@ -182,6 +184,8 @@ const NodeRow = memo(function NodeRow({ card, columns, ctx, onFavorite }: NodeRo
         <button
           type="button"
           data-mt="favorite-toggle"
+          disabled={!canFavorite}
+          {...(canFavorite ? {} : { title: VIEWER_HINT })}
           data-mt-state={card.isFavorite ? "on" : "off"}
           aria-pressed={card.isFavorite}
           aria-label={card.isFavorite ? `Unfavorite ${name}` : `Favorite ${name}`}

@@ -16,6 +16,7 @@ import { roleLabel } from "./labels.js";
 import { freshness, useUpdateFlash } from "./NodeCard.js";
 import { SignalBars } from "./SignalBars.js";
 import { nodeStatus } from "./view.js";
+import { useIsAdmin, VIEWER_HINT } from "../auth/me.js";
 
 export interface NodePreviewCardProps {
   card: NodeCard;
@@ -47,6 +48,7 @@ export const NodePreviewCard = memo(function NodePreviewCard({
   thresholds,
   onFavorite,
 }: NodePreviewCardProps) {
+  const canFavorite = useIsAdmin();
   const flashing = useUpdateFlash(freshness(card));
   const status = nodeStatus(card.lastHeard, now, thresholds);
   const name = card.longName || card.shortName || card.userId;
@@ -97,6 +99,8 @@ export const NodePreviewCard = memo(function NodePreviewCard({
         <button
           type="button"
           data-mt="favorite-toggle"
+          disabled={!canFavorite}
+          {...(canFavorite ? {} : { title: VIEWER_HINT })}
           data-mt-state={card.isFavorite ? "on" : "off"}
           aria-pressed={card.isFavorite}
           aria-label={card.isFavorite ? `Unfavorite ${name}` : `Favorite ${name}`}

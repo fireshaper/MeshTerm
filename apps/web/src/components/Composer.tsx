@@ -3,6 +3,7 @@ import { useState, type KeyboardEvent, type SyntheticEvent } from "react";
 import { ApiError, api } from "../data/api.js";
 import type { Conversation } from "../data/keys.js";
 import { useLiveStore } from "../data/store.js";
+import { useIsAdmin, VIEWER_HINT } from "../auth/me.js";
 
 export function sendErrorText(err: unknown): string {
   if (err instanceof ApiError) {
@@ -33,7 +34,8 @@ export function Composer({ connectionId, conversation }: ComposerProps) {
   const tooLong = bytes > MAX_TEXT_BYTES;
   const empty = text.trim().length === 0;
   const connected = nodeState === "connected";
-  const canSend = connected && !empty && !tooLong && !sending;
+  const admin = useIsAdmin();
+  const canSend = admin && connected && !empty && !tooLong && !sending;
   const state = sending ? "sending" : error ? "error" : canSend ? "ready" : "disabled";
 
   async function send() {
@@ -66,7 +68,10 @@ export function Composer({ connectionId, conversation }: ComposerProps) {
       <textarea
         data-mt="composer-input"
         aria-label="Message"
-        placeholder={connected ? "Message" : "Waiting for the node…"}
+        placeholder={
+          !admin ? "Viewers can't send messages" : connected ? "Message" : "Waiting for the node…"
+        }
+        readOnly={!admin}
         rows={1}
         value={text}
         onChange={(e) => {
@@ -93,8 +98,14 @@ export function Composer({ connectionId, conversation }: ComposerProps) {
           {error}
         </p>
       )}
-      {!connected && (
-        <p data-mt="composer-hint">Sending is off while the node is {nodeState ?? "unknown"}.</p>
+      {!admin ? (
+        <p data-mt="composer-hint" data-mt-variant="viewer">
+          {VIEWER_HINT}
+        </p>
+      ) : (
+        !connected && (
+          <p data-mt="composer-hint">Sending is off while the node is {nodeState ?? "unknown"}.</p>
+        )
       )}
     </form>
   );

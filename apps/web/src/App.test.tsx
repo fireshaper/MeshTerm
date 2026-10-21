@@ -4,10 +4,11 @@ import { describe, expect, it } from "vitest";
 import { App } from "./App.js";
 import { createTestRouter } from "./router.js";
 import { byDataMt, expectDataMt } from "./test/data-mt.js";
+import { TEST_ADMIN } from "./test/me.js";
 
 async function renderAt(path: string) {
   const router = createTestRouter(path);
-  render(<App router={router} live={false} />);
+  render(<App router={router} live={false} me={TEST_ADMIN} />);
   await screen.findByRole("heading", { level: 1 });
   return router;
 }
@@ -49,7 +50,9 @@ describe("<App /> shell", () => {
   it("collapses and expands the sidebar, and remembers the choice", async () => {
     localStorage.clear();
     const user = userEvent.setup();
-    const first = render(<App router={createTestRouter("/messages/channel/0")} live={false} />);
+    const first = render(
+      <App router={createTestRouter("/messages/channel/0")} live={false} me={TEST_ADMIN} />,
+    );
     await screen.findByRole("heading", { level: 1 });
     // jsdom matches no media query: auto reads as collapsed, so the toggle expands.
     await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
@@ -57,7 +60,7 @@ describe("<App /> shell", () => {
     await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
     expectDataMt(byDataMt("app-shell"), "app-shell", { state: "collapsed" });
     first.unmount();
-    render(<App router={createTestRouter("/messages/channel/0")} live={false} />);
+    render(<App router={createTestRouter("/messages/channel/0")} live={false} me={TEST_ADMIN} />);
     await screen.findByRole("heading", { level: 1 });
     expectDataMt(byDataMt("app-shell"), "app-shell", { state: "collapsed" });
     expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
