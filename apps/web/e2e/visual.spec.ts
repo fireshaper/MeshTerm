@@ -261,3 +261,11 @@ test("device settings", async ({ page }) => {
   await freeze(page);
   await expect(page).toHaveScreenshot("device-settings.png", { mask: MASKS(page) });
 });
+
+test("device channels", async ({ page }) => {
+  await ready(page, "/settings/device?section=channels");
+  await page.locator("[data-mt=channel-slot]").nth(1).click();
+  await expect(page.getByLabel("Name", { exact: true })).toBeEditable();
+  await freeze(page);
+  await expect(page).toHaveScreenshot("device-channels.png", { mask: MASKS(page) });
+});

@@ -3,7 +3,15 @@
 // recovery, viewer masking, snapshots and audit.
 import { auditInbound, FakeNode, until } from "@meshterm/fake-node";
 import { Config, create } from "@meshterm/protocol";
-import type { ApplyStatusDTO, AuditPage, DeviceConfigDTO, MeDTO } from "@meshterm/shared";
+import type {
+  ApplyStatusDTO,
+  AuditPage,
+  ChannelUrlDTO,
+  DeviceConfigDTO,
+  MapNodesDTO,
+  MeDTO,
+  ParsedChannelUrlDTO,
+} from "@meshterm/shared";
 import { SECRET_MASK } from "@meshterm/shared";
 import { afterEach, describe, expect, it } from "vitest";
 import { startTestApp, type TestApp } from "../test-app.js";
@@ -118,6 +126,110 @@ describe("GET /api/connections/:id/config", () => {
       { cookie, "x-csrf-token": csrf },
     );
     expect(res.statusCode).toBe(403);
+    // The channel link holds the keys.
+    const link = await app().inject({
+      url: "/api/connections/1/channels/url",
+      headers: { cookie },
+    });
+    expect(link.statusCode).toBe(403);
+  });
+});
+
+describe("channel links (CR-002 Phase D3)", () => {
+  it("exports enabled channels with LoRa settings and a QR code, reads them back, audits it", async () => {
+    const { node } = await start();
+    const res = await app().inject({ url: "/api/connections/1/channels/url?indexes=1,0" });
+    expect(res.statusCode, res.body).toBe(200);
+    const { url, qr } = res.json<ChannelUrlDTO>();
+    expect(url).toMatch(/^https:\/\/meshtastic\.org\/e\/#[A-Za-z0-9_-]+$/);
+    expect(qr.path.length).toBeGreaterThan(100);
+    const parsed = await app().inject({
+      method: "POST",
+      url: "/api/connections/1/channels/url/parse",
+      payload: { url },
+    });
+    expect(parsed.statusCode).toBe(200);
+    const body = parsed.json<ParsedChannelUrlDTO>();
+    // The primary comes first whatever order was asked for.
+    expect(body.settings.map((x) => x.name)).toEqual(["", "Friends"]);
+    expect(body.lora).toMatchObject({ region: "US", modemPreset: "LONG_FAST" });
+    const loraOff = await app().inject({ url: "/api/connections/1/channels/url?lora=false" });
+    expect(
+      (
+        await app().inject({
+          method: "POST",
+          url: "/api/connections/1/channels/url/parse",
+          payload: { url: loraOff.json<ChannelUrlDTO>().url },
+        })
+      ).json<ParsedChannelUrlDTO>().lora,
+    ).toBeNull();
+    const auditPage = (await app().inject({ url: "/api/audit" })).json<AuditPage>();
+    expect(auditPage.entries.find((e) => e.action === "channels.export")?.details).toEqual({
+      indexes: [0, 1],
+    });
+    // Reading and encoding never talks to the node.
+    expect(auditInbound(node.inbound, node.myNodeNum).counts).toMatchObject({
+      admin: 0,
+      transmit: 0,
+    });
+  });
+
+  it("refuses links that aren't channel links, and makes random keys", async () => {
+    await start();
+    const bad = await app().inject({
+      method: "POST",
+      url: "/api/connections/1/channels/url/parse",
+      payload: { url: "https://example.com/" },
+    });
+    expect(bad.statusCode).toBe(400);
+    const key = await app().inject({ url: "/api/config/random-psk?bits=128" });
+    expect(Buffer.from(key.json<{ psk: string }>().psk, "base64")).toHaveLength(16);
+  });
+
+  it("applies a channel and a fixed position: setChannel and setFixedPosition, verified", async () => {
+    const node = new FakeNode();
+    node.setAdminOptions({ rebootOnCommitMs: 600 });
+    await start({ node });
+    const before = await getConfig();
+    const friends = before.channels.find((c) => c.index === 1) as Record<string, unknown>;
+    const res = await apply({
+      baseVersion: before.version,
+      changes: {
+        channels: [
+          {
+            ...friends,
+            settings: { ...(friends.settings as object), name: "Hikers", uplinkEnabled: true },
+          },
+          { index: 2, role: "SECONDARY", settings: { name: "Ops", psk: "AQ==" } },
+        ],
+        config: { position: { fixedPosition: true } },
+        fixedPosition: { lat: 47.6, lon: -122.3, alt: 50 },
+      },
+    });
+    expect(res.statusCode, res.body).toBe(202);
+    const done = await finished(res.json<ApplyStatusDTO>().applyId);
+    expect(done.phase, JSON.stringify(done)).toBe("verified");
+    expect(done.paths).toEqual(
+      expect.arrayContaining([
+        "channels.1.settings.name",
+        "channels.1.settings.uplinkEnabled",
+        "channels.2.role",
+        "fixedPosition",
+      ]),
+    );
+    const after = await getConfig();
+    expect(after.channels.map((c) => (c.settings as { name: string }).name)).toEqual([
+      "",
+      "Hikers",
+      "Ops",
+    ]);
+    expect(node.admin.log).toEqual(
+      expect.arrayContaining(["setChannel", "setChannel", "setFixedPosition"]),
+    );
+    // The node reported the new position in the handshake after its reboot.
+    const map = (await app().inject({ url: "/api/connections/1/map/nodes" })).json<MapNodesDTO>();
+    const self = map.features.find((f) => f.properties.isSelf);
+    expect(self?.geometry.coordinates).toEqual([-122.3, 47.6]);
   });
 });
 

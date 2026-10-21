@@ -142,3 +142,108 @@ test("another browser's apply locks the editor and marks conflicting edits", asy
   await a.context().close();
   await b.context().close();
 });
+
+// ------------------------------------------------------------------ Phase D3
+
+const ADD_LINK = "https://meshtastic.org/e/?add=true#ChcSEAECAwQFBgcICQoLDA0ODxAaA09wcw";
+const REPLACE_LINK = "https://meshtastic.org/e/#CgMSAQEKFxIQAQIDBAUGBwgJCgsMDQ4PEBoDT3Bz";
+
+test("rename a channel and make a new key: setChannel, verified", async ({ page }) => {
+  const before = (await node.adminLog()).log.length;
+  await open(page, "channels");
+  await page.locator("[data-mt=channel-slot]").nth(1).click();
+  const name = await next(page, "Name", "Hikers", "Friends");
+  await page.getByLabel("Key type").selectOption("random256");
+  await expect(page.getByLabel("Key type")).toHaveValue("custom");
+  await page.getByRole("button", { name: "Review & apply" }).click();
+  const dialog = page.getByRole("dialog", { name: "Review changes" });
+  await expect(dialog.getByRole("row", { name: /Key/ })).toContainText("(changed)");
+  await dialog.getByRole("button", { name: "Apply 2 changes" }).click();
+  await expect(page.locator("[data-mt=apply-progress]")).toHaveAttribute(
+    "data-mt-state",
+    "verified",
+    {
+      timeout: 30_000,
+    },
+  );
+  await expect(page.locator("[data-mt=channel-slot]").nth(1)).toContainText(name);
+  expect((await node.adminLog()).log.slice(before)).toContain("setChannel");
+  expect((await node.inbound()).counts.transmit).toBe(0);
+});
+
+test("share link: the QR code and a link that reads back", async ({ page }) => {
+  await open(page, "channels");
+  await page.getByRole("button", { name: "Share link / QR…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Share channels" });
+  await dialog.getByRole("button", { name: "Create link" }).click();
+  await expect(dialog.locator("[data-mt=qr-code] path")).toHaveAttribute("d", /^M/);
+  await expect(dialog.getByRole("textbox", { name: "Channel link" })).toHaveValue(
+    /^https:\/\/meshtastic\.org\/e\/#/,
+  );
+});
+
+test("import a link: Add stages a new slot, Replace the whole set; nothing is sent", async ({
+  page,
+}) => {
+  const before = (await node.adminLog()).log.length;
+  await open(page, "channels");
+  await page.getByRole("button", { name: "Import link…" }).click();
+  let dialog = page.getByRole("dialog", { name: "Import a channel link" });
+  await dialog.getByLabel("Channel link").fill(ADD_LINK);
+  await dialog.getByRole("button", { name: "Read link" }).click();
+  await expect(dialog.getByLabel(/^Add:/)).toBeChecked();
+  await expect(dialog.getByRole("row", { name: /#2 · Name/ })).toContainText("Ops");
+  await dialog.getByRole("button", { name: /^Stage \d+ changes$/ }).click();
+  await expect(page.locator("[data-mt=channel-slot]").nth(2)).toContainText("Ops");
+  await page.getByRole("button", { name: "Discard all" }).click();
+
+  await page.getByRole("button", { name: "Import link…" }).click();
+  dialog = page.getByRole("dialog", { name: "Import a channel link" });
+  await dialog.getByLabel("Channel link").fill(REPLACE_LINK);
+  await dialog.getByRole("button", { name: "Read link" }).click();
+  await expect(dialog.getByLabel(/^Replace:/)).toBeChecked();
+  await dialog.getByRole("button", { name: /^Stage \d+ changes$/ }).click();
+  await expect(page.locator("[data-mt=channel-slot]").nth(1)).toContainText("Ops");
+  await page.getByRole("button", { name: "Review & apply" }).click();
+  await expect(page.getByRole("dialog", { name: "Review changes" })).toContainText("#1 Ops · Name");
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: "Discard all" }).click();
+  expect((await node.adminLog()).log.slice(before).filter((c) => c.startsWith("set"))).toEqual([]);
+});
+
+test("fixed position picked on the map: setFixedPosition, then removed again", async ({ page }) => {
+  const before = (await node.adminLog()).log.length;
+  await open(page, "position");
+  const fixed = page.getByLabel("Fixed position", { exact: true });
+  await fixed.check();
+  await page.getByRole("button", { name: "Pick on map…" }).click();
+  const picker = page.getByRole("dialog", { name: "Pick the fixed position" });
+  await expect.poll(() => page.evaluate(() => "__meshtermPickerMap" in window)).toBe(true);
+  await picker.locator("[data-mt=map-picker] canvas").click();
+  await expect(picker.locator("[data-mt=map-picker-point]")).toHaveText(
+    /^-?\d+\.\d{6}, -?\d+\.\d{6}$/,
+  );
+  await picker.getByRole("button", { name: "Use this point" }).click();
+  await expect(page.getByLabel("Latitude", { exact: true })).not.toHaveValue("");
+
+  const applyAll = async () => {
+    await page.getByRole("button", { name: "Review & apply" }).click();
+    await page
+      .getByRole("dialog", { name: "Review changes" })
+      .getByRole("button", { name: /^Apply \d+ changes?$/ })
+      .click();
+    await expect(page.locator("[data-mt=apply-progress]")).toHaveAttribute(
+      "data-mt-state",
+      "verified",
+      { timeout: 30_000 },
+    );
+    await page.getByRole("button", { name: "Dismiss" }).click();
+  };
+  await applyAll();
+  expect((await node.adminLog()).log.slice(before)).toContain("setFixedPosition");
+
+  await fixed.uncheck();
+  await applyAll();
+  expect((await node.adminLog()).log.slice(before)).toContain("removeFixedPosition");
+  await expect(fixed).not.toBeChecked();
+});

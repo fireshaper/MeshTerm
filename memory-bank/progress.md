@@ -503,6 +503,18 @@ State: `typecheck`, `lint`, `format`, `test` (617), `test:e2e` (131 passed, 6 sk
 
 State: `typecheck`, `lint`, `format`, `test` (632), `test:e2e` (141 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
 
+### Phase D3: channels and fixed position (done 2026-10-21)
+
+- **Channels section:** slots 0–7 (role, name, encryption, MQTT, position precision as a radius). Edit name (11 bytes), key, MQTT uplink/downlink, position precision (slider, "~1.5 km"), muted.
+- **Keys:** default (public, warned), none (unencrypted, warned), new random 128/256-bit from the server's CSPRNG, or paste base64 (validated: 16 or 32 bytes); show/hide and copy. The review only says "(changed)".
+- **Add / remove / reorder:** add puts a secondary with a random 256-bit key in the first free slot; remove disables it; Move up/down swaps slots (with a note that other nodes match by name and key).
+- **Share:** pick channels and whether to include LoRa settings → the Meshtastic link and a QR code (server-side encoding), with a warning that it holds the keys; audited.
+- **Import:** paste a link → what it changes, Add (free slots, skipping channels already there) or Replace (all channels), optionally its LoRa settings → staged for the normal review.
+- **Fixed position:** latitude/longitude/altitude under the switch, starting from the node's own position; "Pick on map" (MapLibre, loaded on demand). Applies `set_fixed_position`; switching off applies `remove_fixed_position`.
+- **Tests:** link encode/parse (exact bytes for the default channel, round trip, `?add=true`, padded base64, refusals), QR and keys; integration (export → parse → audit, no node traffic; refusals; viewers can't export; channel + new slot + fixed position applied and verified). Web unit (paths, whole-channel changes, fixed position, key/name validation, Add/Replace planning) and component tests (slots, edit and add, move and remove, share and import, viewer, fixed position). e2e: rename + new key → verified; share link and QR; import Add and Replace (nothing sent); fixed position picked on the map, then removed. Visual baseline `device-channels` (win32 + linux).
+
+State: `typecheck`, `lint`, `format`, `test` (655), `test:e2e` (151 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

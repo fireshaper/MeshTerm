@@ -3,6 +3,8 @@ import type {
   ActivityPage,
   ApplyBody,
   ApplyStatusDTO,
+  ChannelUrlDTO,
+  ParsedChannelUrlDTO,
   ConfigSchemaDTO,
   DeviceConfigDTO,
   AuditPage,
@@ -173,6 +175,16 @@ export const api = {
     }),
   applyStatus: (connectionId: number, applyId: string) =>
     request<ApplyStatusDTO>(`/api/connections/${connectionId}/config/apply/${applyId}`),
+  randomPsk: (bits: 128 | 256) => request<{ psk: string }>(`/api/config/random-psk?bits=${bits}`),
+  channelUrl: (connectionId: number, indexes: number[], lora: boolean) =>
+    request<ChannelUrlDTO>(
+      `/api/connections/${connectionId}/channels/url?indexes=${indexes.join(",")}&lora=${lora}`,
+    ),
+  parseChannelUrl: (connectionId: number, url: string) =>
+    request<ParsedChannelUrlDTO>(`/api/connections/${connectionId}/channels/url/parse`, {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    }),
   refreshConfig: (connectionId: number) =>
     request<DeviceConfigDTO>(`/api/connections/${connectionId}/config/refresh`, { method: "POST" }),
 

@@ -1,7 +1,9 @@
-import { Admin } from "@meshterm/protocol";
+import { Admin, Channel } from "@meshterm/protocol";
 import {
   ApplyBody,
   ApplyStatusDTO,
+  ChannelUrlDTO,
+  ParsedChannelUrlDTO,
   ConfigSchemaDTO,
   ConfigSnapshotSummary,
   DeviceConfigDTO,
@@ -13,6 +15,13 @@ import type { AdminClient, AdminVariant } from "../config/admin.js";
 import { applyAdminResponse, type ConfigApplier } from "../config/applier.js";
 import { listSnapshots, loadSnapshot } from "../config/snapshots.js";
 import { configSchema } from "../config/schema.js";
+import {
+  ChannelUrlError,
+  encodeChannelUrl,
+  parseChannelUrl,
+  qrCode,
+  randomPsk,
+} from "../config/channel-url.js";
 import type { ConfigStore } from "../config/store.js";
 import { HttpError } from "./http-error.js";
 
@@ -60,6 +69,8 @@ function refreshRequests(): {
   ];
 }
 
+const primaryFirst = (c: Channel.Channel) => (c.role === Channel.Channel_Role.PRIMARY ? 0 : 1);
+
 /** Device config (CR-002 §8.2): read (secrets masked for viewers), refresh, apply, snapshots. */
 export function configRoutes(deps: ConfigRouteDeps): FastifyPluginAsyncZod {
   const rateLimit = deps.rateLimit ?? CONFIG_RATE_LIMIT;
@@ -69,6 +80,81 @@ export function configRoutes(deps: ConfigRouteDeps): FastifyPluginAsyncZod {
 
     app.get("/api/config/schema", { schema: { response: { 200: ConfigSchemaDTO } } }, () =>
       configSchema(),
+    );
+
+    app.get(
+      "/api/config/random-psk",
+      {
+        config: { role: "admin" },
+        schema: {
+          querystring: z.object({ bits: z.enum(["128", "256"]).default("256") }),
+          response: { 200: z.object({ psk: z.string() }) },
+        },
+      },
+      (req) => ({ psk: randomPsk(req.query.bits === "128" ? 128 : 256) }),
+    );
+
+    // The link holds the channel keys: admins only (CR-002 §5.4).
+    app.get(
+      "/api/connections/:id/channels/url",
+      {
+        config: { role: "admin" },
+        schema: {
+          params: Params,
+          querystring: z.object({
+            indexes: z
+              .string()
+              .regex(/^[0-7](,[0-7])*$/)
+              .optional(),
+            lora: z.enum(["true", "false"]).default("true"),
+          }),
+          response: { 200: ChannelUrlDTO },
+        },
+      },
+      (req) => {
+        const entry = store.get(req.params.id);
+        if (!entry) throw new HttpError(404, "not_found", "no config for this connection");
+        const wanted = req.query.indexes?.split(",").map(Number);
+        const channels = [...entry.channels.values()]
+          .filter((c) => c.role !== Channel.Channel_Role.DISABLED && c.settings)
+          .filter((c) => !wanted || wanted.includes(c.index))
+          // The primary first: the receiving app takes the first channel as its primary.
+          .sort((a, b) => primaryFirst(a) - primaryFirst(b) || a.index - b.index);
+        if (channels.length === 0)
+          throw new HttpError(400, "invalid", "no enabled channels chosen");
+        const lora = entry.config.get("lora")?.payloadVariant;
+        const url = encodeChannelUrl(
+          channels.flatMap((c) => (c.settings ? [c.settings] : [])),
+          req.query.lora === "true" && lora?.case === "lora" ? lora.value : null,
+        );
+        // Who exported the keys, never the keys.
+        auditRequest(db, clock, req, {
+          action: "channels.export",
+          target: `connection ${req.params.id}`,
+          details: { indexes: channels.map((c) => c.index) },
+        });
+        return { url, qr: qrCode(url) };
+      },
+    );
+
+    app.post(
+      "/api/connections/:id/channels/url/parse",
+      {
+        config: { role: "admin" },
+        schema: {
+          params: Params,
+          body: z.object({ url: z.string().max(4096) }),
+          response: { 200: ParsedChannelUrlDTO },
+        },
+      },
+      (req) => {
+        try {
+          return parseChannelUrl(req.body.url);
+        } catch (err) {
+          if (err instanceof ChannelUrlError) throw new HttpError(400, "invalid", err.message);
+          throw err;
+        }
+      },
     );
 
     app.get(

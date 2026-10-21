@@ -35,9 +35,13 @@ export interface FieldMeta {
   readOnly?: boolean;
   /** Not shown at all. */
   hidden?: boolean;
+  /** A slider instead of a number box (needs min and max). */
+  control?: "slider";
+  /** What a value means, shown beside the input (e.g. a slider's radius). */
+  valueText?: (value: unknown) => string;
 }
 
-export type SectionKind = "owner" | "config" | "module";
+export type SectionKind = "owner" | "config" | "module" | "channels";
 
 export interface SectionMeta {
   /** URL id: `user`, `device`, `lora`, … */
@@ -87,13 +91,22 @@ export const SECTIONS: SectionMeta[] = [
     groups: ["Region", "Modem", "Transmit", "Filtering"],
   },
   {
+    id: "channels",
+    kind: "channels",
+    key: "channels",
+    title: "Channels",
+    summary: "Names, keys, MQTT, position precision",
+    reboots: false,
+    groups: [],
+  },
+  {
     id: "position",
     kind: "config",
     key: "position",
     title: "Position",
     summary: "GPS, fixed position, broadcast…",
     reboots: false,
-    groups: ["Broadcast", "GPS"],
+    groups: ["Broadcast", "Fixed position", "GPS"],
   },
   {
     id: "power",
@@ -417,8 +430,12 @@ export const FIELDS: Record<string, FieldMeta> = {
   },
   "config.position.fixedPosition": {
     label: "Fixed position",
-    help: "Use a set position instead of GPS (setting the coordinates comes with the Channels phase).",
-    group: "Broadcast",
+    help: "Use a set position instead of GPS.",
+    group: "Fixed position",
+    warning: (v) =>
+      v === true
+        ? "The position is broadcast with each channel's position precision (see Channels)."
+        : null,
   },
   "config.position.gpsMode": {
     label: "GPS",
@@ -572,6 +589,114 @@ export const FIELDS: Record<string, FieldMeta> = {
   },
 };
 
+/** The default channel key ("AQ==": the public, well-known key). */
+export const DEFAULT_PSK = "AQ==";
+
+/** Bytes of a base64 key, or null when it isn't base64. */
+export function pskBytes(psk: string): number | null {
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(psk) || psk.length % 4 !== 0) return null;
+  return (psk.length / 4) * 3 - (psk.endsWith("==") ? 2 : psk.endsWith("=") ? 1 : 0);
+}
+
+/**
+ * Roughly how far a broadcast position can be from the real one at this precision
+ * (bits kept of the 32-bit coordinates; 0 = no position, 32 = exact).
+ */
+export function precisionRadius(bits: number): string {
+  if (bits <= 0) return "No position shared";
+  if (bits >= 32) return "Exact position";
+  const metres = (2 ** (32 - bits) * 1e-7 * 111_320) / 2;
+  return metres >= 1000 ? `~${(metres / 1000).toFixed(1)} km` : `~${Math.round(metres)} m`;
+}
+
+/** Channel fields, by `channels.*.<path>` (the editor's own form, CR-002 §5.4). */
+const CHANNEL_FIELDS: Record<string, FieldMeta> = {
+  "channels.*.role": {
+    label: "Role",
+    enumLabels: { PRIMARY: "Primary", SECONDARY: "Secondary", DISABLED: "Disabled" },
+    readOnly: true,
+  },
+  "channels.*.settings.name": {
+    label: "Name",
+    help: "Up to 11 characters. Empty on the primary: the preset name (e.g. LongFast).",
+    maxBytes: 11,
+  },
+  "channels.*.settings.psk": {
+    label: "Key",
+    secret: true,
+    danger: "warn",
+    warning: (v) =>
+      v === ""
+        ? "No key: the channel is unencrypted, anyone can read it."
+        : v === DEFAULT_PSK
+          ? "The default key is public: anyone with a Meshtastic app can read this channel."
+          : null,
+    validate: (v) => {
+      if (typeof v !== "string") return null;
+      const n = pskBytes(v);
+      if (n === null) return "Not base64.";
+      return [0, 1, 16, 32].includes(n) ? null : `A key is 16 or 32 bytes (this one is ${n}).`;
+    },
+  },
+  "channels.*.settings.uplinkEnabled": {
+    label: "MQTT uplink",
+    help: "Gateways may forward this channel's messages to MQTT.",
+  },
+  "channels.*.settings.downlinkEnabled": {
+    label: "MQTT downlink",
+    help: "Gateways may bring messages from MQTT into this channel.",
+  },
+  "channels.*.settings.moduleSettings.positionPrecision": {
+    label: "Position precision",
+    help: "How exactly your position is shared on this channel.",
+    min: 0,
+    max: 32,
+    control: "slider",
+    valueText: (v) => (typeof v === "number" ? precisionRadius(v) : ""),
+  },
+  "channels.*.settings.moduleSettings.isMuted": {
+    label: "Muted",
+    help: "No notifications on the node for this channel.",
+  },
+};
+
+/** Fixed position coordinates (`set_fixed_position`, CR-002 §5.6). */
+const POSITION_FIELDS: Record<string, FieldMeta> = {
+  "fixedPosition.lat": {
+    label: "Latitude",
+    group: "Fixed position",
+    visibleIf: (get) => get("config.position.fixedPosition") === true,
+    min: -90,
+    max: 90,
+    step: 0.000001,
+    validate: (v, get) =>
+      get("config.position.fixedPosition") === true && typeof v !== "number"
+        ? "Enter the latitude."
+        : null,
+  },
+  "fixedPosition.lon": {
+    label: "Longitude",
+    group: "Fixed position",
+    visibleIf: (get) => get("config.position.fixedPosition") === true,
+    min: -180,
+    max: 180,
+    step: 0.000001,
+    validate: (v, get) =>
+      get("config.position.fixedPosition") === true && typeof v !== "number"
+        ? "Enter the longitude."
+        : null,
+  },
+  "fixedPosition.alt": {
+    label: "Altitude",
+    group: "Fixed position",
+    visibleIf: (get) => get("config.position.fixedPosition") === true,
+    unit: "m",
+    min: -1000,
+    max: 10_000,
+    step: 1,
+  },
+};
+
 /** "nodeInfoBroadcastSecs" → "Node info broadcast secs", for fields without an entry. */
 export function humanize(name: string): string {
   const words = name.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase();
@@ -579,7 +704,14 @@ export function humanize(name: string): string {
 }
 
 export function metaFor(path: string): FieldMeta {
-  return FIELDS[path] ?? { label: humanize(path.split(".").at(-1) ?? path), advanced: true };
+  if (path.startsWith("channels.")) {
+    const meta = CHANNEL_FIELDS[path.replace(/^channels\.\d+\./, "channels.*.")];
+    if (meta) return meta;
+  }
+  return (
+    FIELDS[path] ??
+    POSITION_FIELDS[path] ?? { label: humanize(path.split(".").at(-1) ?? path), advanced: true }
+  );
 }
 
 /** Problems with a value: the field's own rules (range, bytes) and its `validate`. */
@@ -598,5 +730,14 @@ export function validateField(path: string, value: unknown, get: Getter): string
 
 export const sectionOf = (path: string): string => {
   const [kind, key] = path.split(".");
-  return kind === "owner" ? "user" : (key ?? "");
+  if (kind === "owner") return "user";
+  if (kind === "channels") return "channels";
+  if (kind === "fixedPosition") return "position";
+  return key ?? "";
 };
+
+/** Channel index of a `channels.<i>.…` path, else null. */
+export function channelIndexOf(path: string): number | null {
+  const m = /^channels\.(\d+)\./.exec(path);
+  return m ? Number(m[1]) : null;
+}

@@ -52,6 +52,10 @@
 
     --mt-map-marker: #55a8ff;
     --mt-map-marker-self: #f16d79;
+
+    /* QR codes stay dark on light in every scheme: scanners expect it. */
+    --mt-qr-fg: #000;
+    --mt-qr-bg: #fff;
     --mt-shadow-popover: 0 8px 24px #0006;
   }
 

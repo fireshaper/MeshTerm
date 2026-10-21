@@ -1,35 +1,44 @@
-import type { ApplyStatusDTO, DeviceConfigDTO, FieldSchema } from "@meshterm/shared";
+import type { ApplyStatusDTO, FieldSchema } from "@meshterm/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useIsAdmin } from "../../auth/me.js";
 import { ApiError, api } from "../../data/api.js";
 import { queryKeys } from "../../data/keys.js";
-import { useConnections } from "../../data/queries.js";
+import { useConnections, useMapNodes } from "../../data/queries.js";
 import { useLiveStore } from "../../data/store.js";
 import { useUiStore } from "../../data/ui-store.js";
 import { ApplyProgress, TERMINAL } from "./ApplyProgress.js";
+import { ChannelsEditor } from "./ChannelsEditor.js";
 import { ConfigField } from "./ConfigField.js";
 import {
   buildChanges,
   getterFor,
-  nodeValue,
   summarize,
   useEditsStore,
+  type ConfigView,
   type Edit,
 } from "./edits.js";
+import { fieldProps, scalar, stage, type FieldContext } from "./field-props.js";
 import { SECTIONS, metaFor, sectionById, type SectionMeta } from "./registry.js";
 import { ReviewDialog } from "./ReviewDialog.js";
 
 const REBOOTING = new Set(SECTIONS.filter((s) => s.reboots).map((s) => s.id));
 const NO_EDITS: Record<string, Edit> = {};
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+/** MapLibre loads only when the picker opens. */
+const MapPicker = lazy(() => import("./MapPicker.js").then((m) => ({ default: m.MapPicker })));
+
+/** Coordinates of a fixed position: laid out after the "Fixed position" switch. */
+const FIXED_FIELDS = (["lat", "lon", "alt"] as const).map((name) => ({
+  field: scalar(name, "float"),
+  path: `fixedPosition.${name}`,
+}));
 
 function fieldsOf(
   schema: { owner: FieldSchema[]; config: Record<string, FieldSchema[]> } | undefined,
   section: SectionMeta,
 ) {
-  if (!schema) return [];
+  if (!schema || section.kind === "channels") return [];
   return section.kind === "owner" ? schema.owner : (schema.config[section.key] ?? []);
 }
 
@@ -56,6 +65,7 @@ export function DeviceSettingsPage() {
   const [reviewing, setReviewing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dismissed, setDismissed] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const schema = useQuery({
     queryKey: queryKeys.configSchema,
@@ -74,6 +84,7 @@ export function DeviceSettingsPage() {
     enabled: false,
     initialData: null,
   });
+  const { data: mapNodes } = useMapNodes(connectionId);
   const { data: connections } = useConnections();
   const conn = connections?.find((c) => c.id === connectionId);
 
@@ -81,9 +92,21 @@ export function DeviceSettingsPage() {
   const storeEdits = useEditsStore((s) => s.edits);
   const edits = storeConn === connectionId ? storeEdits : NO_EDITS;
   const myApplyId = useEditsStore((s) => s.applyId);
-  const { set, reset, rebase, clear, setApplyId } = useEditsStore.getState();
+  const { clear, setApplyId } = useEditsStore.getState();
 
-  const cfg: DeviceConfigDTO | undefined = config.data;
+  // The node's own position is where a fixed position starts from (CR-002 §5.6).
+  const self = mapNodes?.features.find((f) => f.properties.isSelf);
+  const selfLon = self?.geometry.coordinates[0];
+  const selfLat = self?.geometry.coordinates[1];
+  const cfg = useMemo<ConfigView | undefined>(
+    () =>
+      config.data && {
+        ...config.data,
+        fixedPosition:
+          selfLat === undefined || selfLon === undefined ? null : { lat: selfLat, lon: selfLon },
+      },
+    [config.data, selfLat, selfLon],
+  );
   const get = useMemo(() => getterFor(cfg, edits), [cfg, edits]);
   const summary = useMemo(() => summarize(cfg, edits, REBOOTING), [cfg, edits]);
 
@@ -108,7 +131,7 @@ export function DeviceSettingsPage() {
     try {
       const started = await api.applyConfig(connectionId, {
         baseVersion: cfg.version,
-        changes: buildChanges(edits),
+        changes: buildChanges(edits, cfg),
       });
       setApplyId(started.applyId);
       qc.setQueryData(queryKeys.configApply(connectionId), (prev: ApplyStatusDTO | null) =>
@@ -126,12 +149,13 @@ export function DeviceSettingsPage() {
   }
 
   const fields = fieldsOf(schema.data, section);
-  const visible = fields
-    .map((f) => ({ field: f, path: pathOf(section, f.name) }))
-    .filter(({ path }) => {
-      const meta = metaFor(path);
-      return !meta.hidden && (meta.visibleIf?.(get) ?? true);
-    });
+  const visible = [
+    ...fields.map((f) => ({ field: f, path: pathOf(section, f.name) })),
+    ...(section.id === "position" ? FIXED_FIELDS : []),
+  ].filter(({ path }) => {
+    const meta = metaFor(path);
+    return !meta.hidden && (meta.visibleIf?.(get) ?? true);
+  });
   const advancedCount = visible.filter(({ path }) => metaFor(path).advanced).length;
   const shown = visible.filter(({ path }) => advanced || !metaFor(path).advanced || path in edits);
   const groups = [...section.groups, "Other"]
@@ -141,6 +165,9 @@ export function DeviceSettingsPage() {
     }))
     .filter((g) => g.items.length > 0);
 
+  const ctx: FieldContext | null = cfg
+    ? { connectionId, cfg, edits, get, disabled: readOnly }
+    : null;
   const ownerShort = typeof cfg?.owner?.shortName === "string" ? cfg.owner.shortName : "";
   const ownerLong = typeof cfg?.owner?.longName === "string" ? cfg.owner.longName : "";
 
@@ -218,8 +245,10 @@ export function DeviceSettingsPage() {
                 ? "The node hasn't reported its settings yet."
                 : "Settings couldn't be loaded."}
             </p>
-          ) : !cfg || !schema.data ? (
+          ) : !ctx || !schema.data ? (
             <div data-mt="skeleton" aria-hidden />
+          ) : section.kind === "channels" ? (
+            <ChannelsEditor ctx={ctx} admin={admin} />
           ) : (
             <>
               {groups.map((g) => (
@@ -227,34 +256,21 @@ export function DeviceSettingsPage() {
                   {(groups.length > 1 || g.name !== section.title) && (
                     <legend data-mt="config-group-title">{g.name}</legend>
                   )}
-                  {g.items.map(({ field, path }) => {
-                    const edit = edits[path];
-                    const current = nodeValue(cfg, path);
-                    return (
-                      <ConfigField
-                        key={path}
-                        path={path}
-                        field={field}
-                        value={edit ? edit.value : current}
-                        changed={edit !== undefined}
-                        was={edit?.base}
-                        conflict={edit !== undefined && !same(edit.base, current)}
-                        current={current}
-                        get={get}
-                        disabled={readOnly}
-                        reboots={section.reboots}
-                        onChange={(value) => {
-                          if (connectionId !== null) set(connectionId, path, value, current);
-                        }}
-                        onReset={() => {
-                          reset(path);
-                        }}
-                        onKeepMine={() => {
-                          rebase(path, current);
-                        }}
-                      />
-                    );
-                  })}
+                  {g.items.map(({ field, path }) => (
+                    <ConfigField key={path} {...fieldProps(ctx, path, field, section.reboots)} />
+                  ))}
+                  {g.name === "Fixed position" && get("config.position.fixedPosition") === true && (
+                    <button
+                      type="button"
+                      data-mt="button"
+                      disabled={readOnly}
+                      onClick={() => {
+                        setPicking(true);
+                      }}
+                    >
+                      Pick on map…
+                    </button>
+                  )}
                 </fieldset>
               ))}
               {advancedCount > 0 && (
@@ -299,6 +315,28 @@ export function DeviceSettingsPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {picking && ctx && (
+        <Suspense fallback={null}>
+          <MapPicker
+            open={picking}
+            onOpenChange={setPicking}
+            initial={
+              typeof get("fixedPosition.lat") === "number" &&
+              typeof get("fixedPosition.lon") === "number"
+                ? {
+                    lat: get("fixedPosition.lat") as number,
+                    lon: get("fixedPosition.lon") as number,
+                  }
+                : null
+            }
+            onPick={({ lat, lon }) => {
+              stage(ctx, "fixedPosition.lat", lat);
+              stage(ctx, "fixedPosition.lon", lon);
+            }}
+          />
+        </Suspense>
       )}
 
       <ReviewDialog

@@ -153,3 +153,22 @@ export const ConfigSchemaDTO = z.object({
   channel: z.array(FieldSchema),
 });
 export type ConfigSchemaDTO = z.infer<typeof ConfigSchemaDTO>;
+
+/** A QR code: `path` draws its dark modules in a `size` × `size` viewBox (quiet zone included). */
+export const QrDTO = z.object({ size: z.number().int().positive(), path: z.string() });
+export type QrDTO = z.infer<typeof QrDTO>;
+
+/** `GET …/channels/url`: the Meshtastic channel link (it contains the keys) and its QR code. */
+export const ChannelUrlDTO = z.object({ url: z.string(), qr: QrDTO });
+export type ChannelUrlDTO = z.infer<typeof ChannelUrlDTO>;
+
+/** `POST …/channels/url/parse`: what a channel link holds, as proto JSON. */
+export const ParsedChannelUrlDTO = z.object({
+  /** `ChannelSettings`, in link order (the first is the sender's primary). */
+  settings: z.array(ProtoJson),
+  /** `Config.LoRaConfig`, when the link carries LoRa settings. */
+  lora: ProtoJson.nullable(),
+  /** The link was made to add channels (`?add=true`) rather than replace them. */
+  add: z.boolean(),
+});
+export type ParsedChannelUrlDTO = z.infer<typeof ParsedChannelUrlDTO>;

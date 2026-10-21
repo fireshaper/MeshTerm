@@ -76,7 +76,7 @@ The user chose (2026-10-20) to **build login first**: CR-002 depends on admin/vi
 - Pending tray → review dialog: diff with secrets masked, warn-class notes, typed confirmation for lockout-class.
 - Apply progress, verification result and recovery panel; conflicts ("changed on device") and locking while another apply runs.
 
-## Phase D3: channels and fixed position
+## Phase D3: channels and fixed position (done 2026-10-21)
 
 - Channels editor:
   - Slots 0–7: name, role, PSK (default / none / random 128 / random 256 / paste, show/copy), uplink/downlink, precision slider with radius, mute.

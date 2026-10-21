@@ -50,7 +50,7 @@ pnpm --filter @meshterm/server test  # one package's tests
 pnpm test:e2e                        # build the SPA, then Playwright (desktop 1280 px + mobile 390 px)
 pnpm --filter @meshterm/web exec playwright install chromium   # once per machine
 pnpm test:gate                       # base-app gate spec, three runs in a row
-pnpm test:visual                     # visual baselines (dashboard, map, node drawer + charts, nodes cards/table, channel, node list, DM, device settings × 1280/390 px)
+pnpm test:visual                     # visual baselines (dashboard, map, node drawer + charts, nodes cards/table, channel, node list, DM, device settings, device channels × 1280/390 px)
 pnpm test:visual:update              # rewrite this platform's baselines after an intended UI change
 pnpm test:visual:linux               # rewrite the Linux (CI) baselines in the Playwright Docker image
 

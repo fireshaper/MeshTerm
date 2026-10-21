@@ -1,6 +1,5 @@
 import type { ApplyPhase, ApplyStatusDTO } from "@meshterm/shared";
-import { formatValue } from "./format.js";
-import { metaFor } from "./registry.js";
+import { formatValue, labelFor } from "./format.js";
 
 const STEPS: { phase: ApplyPhase; label: string }[] = [
   { phase: "applying", label: "Sending" },
@@ -80,7 +79,7 @@ export function ApplyProgress({ status, address, onDismiss }: ApplyProgressProps
             <tbody>
               {status.mismatches.map((m) => (
                 <tr key={m.path} data-mt="diff-row" data-path={m.path}>
-                  <th scope="row">{metaFor(m.path).label}</th>
+                  <th scope="row">{labelFor(m.path)}</th>
                   <td>{formatValue(m.path, m.sent)}</td>
                   <td>{formatValue(m.path, m.actual)}</td>
                 </tr>
@@ -106,7 +105,7 @@ export function ApplyProgress({ status, address, onDismiss }: ApplyProgressProps
             ) : null}
             .
           </p>
-          <p>Changed: {status.paths.map((p) => metaFor(p).label).join(", ")}.</p>
+          <p>Changed: {status.paths.map((p) => labelFor(p)).join(", ")}.</p>
           <ul>
             <li>Check the node has power and is on the same network.</li>
             <li>

@@ -5,6 +5,7 @@ export { create, fromBinary, fromJson, toBinary, toJson } from "@bufbuild/protob
 export type { JsonValue, MessageInitShape } from "@bufbuild/protobuf";
 export {
   Admin,
+  AppOnly,
   Channel,
   Config,
   Mesh,

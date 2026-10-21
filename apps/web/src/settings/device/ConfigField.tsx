@@ -30,6 +30,15 @@ interface ConfigFieldProps {
   onChange: (value: unknown) => void;
   onReset: () => void;
   onKeepMine: () => void;
+  /** A custom input (e.g. the channel key); gets the id and ARIA attributes to use. */
+  renderInput?: (common: InputCommon) => ReactNode;
+}
+
+export interface InputCommon {
+  id: string;
+  disabled: boolean;
+  "aria-invalid": true | undefined;
+  "aria-describedby": string | undefined;
 }
 
 const numberOrNaN = (s: string) => (s.trim() === "" ? Number.NaN : Number(s));
@@ -61,15 +70,32 @@ export function ConfigField(props: ConfigFieldProps) {
     [meta.help && `${id}-help`, error && `${id}-error`, warning && `${id}-warning`]
       .filter(Boolean)
       .join(" ") || undefined;
-  const common = {
+  const common: InputCommon = {
     id,
     disabled: readOnly,
     "aria-invalid": error ? true : undefined,
     "aria-describedby": describedBy,
-  } as const;
+  };
 
   let input: ReactNode;
-  if (field.kind === "bool" && !field.list) {
+  if (props.renderInput) {
+    input = props.renderInput(common);
+  } else if (meta.control === "slider" && typeof value === "number") {
+    input = (
+      <input
+        type="range"
+        {...common}
+        min={meta.min}
+        max={meta.max}
+        step={meta.step ?? 1}
+        value={value}
+        aria-valuetext={meta.valueText?.(value)}
+        onChange={(e) => {
+          onChange(Number(e.target.value));
+        }}
+      />
+    );
+  } else if (field.kind === "bool" && !field.list) {
     input = (
       <input
         type="checkbox"
@@ -182,7 +208,14 @@ export function ConfigField(props: ConfigFieldProps) {
           </button>
         )}
       </div>
-      <div data-mt="config-input">{input}</div>
+      <div data-mt="config-input">
+        {input}
+        {meta.valueText && (
+          <output data-mt="config-value-text" htmlFor={id}>
+            {meta.valueText(value)}
+          </output>
+        )}
+      </div>
       {meta.help && (
         <small data-mt="config-help" id={`${id}-help`}>
           {meta.help}

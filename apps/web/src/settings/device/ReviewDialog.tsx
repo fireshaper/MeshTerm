@@ -2,7 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
 import type { Edit, EditSummary } from "./edits.js";
-import { formatChange } from "./format.js";
+import { formatChange, labelFor } from "./format.js";
 import { SECTIONS, metaFor, sectionOf, type Getter } from "./registry.js";
 
 const ICON = { "aria-hidden": true, focusable: false } as const;
@@ -72,7 +72,7 @@ export function ReviewDialog(props: ReviewDialogProps) {
                             data-mt-variant={meta.danger}
                             data-path={path}
                           >
-                            <th scope="row">{meta.label}</th>
+                            <th scope="row">{labelFor(path, get)}</th>
                             <td data-mt="diff-from">{from}</td>
                             <td data-mt="diff-arrow" aria-label="to">
                               →

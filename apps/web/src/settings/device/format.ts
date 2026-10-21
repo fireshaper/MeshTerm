@@ -1,5 +1,5 @@
 import { SECRET_MASK } from "@meshterm/shared";
-import { metaFor } from "./registry.js";
+import { channelIndexOf, metaFor } from "./registry.js";
 
 /** A value as the editor shows it (enum labels, units, On/Off); secrets never in clear. */
 export function formatValue(path: string, value: unknown): string {
@@ -20,4 +20,14 @@ export function formatValue(path: string, value: unknown): string {
 export function formatChange(path: string, from: unknown, to: unknown): [string, string] {
   if (metaFor(path).secret) return ["", "(changed)"];
   return [formatValue(path, from), formatValue(path, to)];
+}
+
+/** A field's label in diffs: channel fields carry their slot and name ("#1 Friends · Name"). */
+export function labelFor(path: string, get?: (path: string) => unknown): string {
+  const label = metaFor(path).label;
+  const index = channelIndexOf(path);
+  if (index === null) return label;
+  const name = get?.(`channels.${index}.settings.name`);
+  const shown = typeof name === "string" && name !== "" ? name : index === 0 ? "Primary" : "";
+  return `#${index}${shown ? ` ${shown}` : ""} · ${label}`;
 }
