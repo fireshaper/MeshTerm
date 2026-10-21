@@ -411,9 +411,33 @@ export class ConfigApplier {
         // A reboot can cut the link before the commit's reply arrives; that's fine.
         if (!(err instanceof AdminError && err.code === "disconnected")) throw err;
       });
-      const result = await outcome.wait((phase) => {
+      const onPhase = (phase: ApplyStatusDTO["phase"]) => {
         this.update(status, { phase });
-      });
+      };
+      let result = await outcome.wait(onPhase);
+      if (result === "no-reboot") {
+        this.update(status, { phase: "verifying" });
+        try {
+          await this.reread(status.connectionId, admin, plan);
+        } catch (err) {
+          if (!(
+            err instanceof AdminError &&
+            (err.code === "timeout" || err.code === "disconnected")
+          )) {
+            throw err;
+          }
+          // The node stopped answering: it is most likely rebooting and the link hasn't
+          // noticed yet (common over Wi-Fi, where a reboot sends no FIN). Reconnect, and
+          // verify against the handshake once it is back.
+          this.logger.info(
+            { connectionId: status.connectionId, err: err.message },
+            "config apply: no answer after commit, reconnecting",
+          );
+          const again = this.watchReboot(conn);
+          void conn.reconnect();
+          result = await again.wait(onPhase);
+        }
+      }
       if (result === "recovery") {
         this.finish(status, {
           phase: "recovery",
@@ -422,7 +446,6 @@ export class ConfigApplier {
         return;
       }
       this.update(status, { phase: "verifying" });
-      if (result === "no-reboot") await this.reread(status.connectionId, admin, plan);
       const now = this.deps.store.get(status.connectionId);
       const mismatches = now ? verify(plan.intended, entryJson(now), plan.paths) : [];
       this.finish(status, { phase: mismatches.length ? "mismatched" : "verified", mismatches });

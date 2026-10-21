@@ -22,7 +22,7 @@ const TITLES: Record<ApplyPhase, string> = {
   verifying: "Checking the node's settings…",
   verified: "Applied and verified",
   mismatched: "Applied with differences",
-  failed: "The changes weren't applied",
+  failed: "The apply didn't finish",
   recovery: "The node hasn't come back",
 };
 
@@ -90,7 +90,8 @@ export function ApplyProgress({ status, address, onDismiss }: ApplyProgressProps
       )}
       {status.phase === "failed" && (
         <p data-mt="auth-error" role="alert">
-          {status.error ?? "The node refused the changes."} Your edits are still pending.
+          {status.error ?? "The node refused the changes."} Some changes may already be on the node:
+          fields it has now show as &quot;changed on device&quot;. Your edits are still pending.
         </p>
       )}
       {status.phase === "recovery" && (

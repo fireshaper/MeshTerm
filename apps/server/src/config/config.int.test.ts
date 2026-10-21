@@ -329,6 +329,22 @@ describe("POST /api/connections/:id/config/apply", () => {
     expect((await getConfig()).config.display).toMatchObject({ screenOnSecs: 120 });
   });
 
+  it("a reboot the link doesn't notice (Wi-Fi): no answer, reconnect, verified", async () => {
+    const node = new FakeNode();
+    // The node saves and goes quiet after the commit; the TCP socket stays open.
+    node.setAdminOptions({ silentRebootOnCommit: true });
+    await start({ node, grace: 500 });
+    const before = await getConfig();
+    const res = await apply({
+      baseVersion: before.version,
+      changes: { config: { lora: { hopLimit: 5 } } },
+    });
+    const done = await finished(res.json<ApplyStatusDTO>().applyId);
+    expect(done.phase, JSON.stringify(done)).toBe("verified");
+    expect(done.error).toBeNull();
+    expect((await getConfig()).config.lora).toMatchObject({ hopLimit: 5 });
+  }, 30_000);
+
   it("a value the firmware clamps is reported as a mismatch", async () => {
     const node = new FakeNode();
     node.setAdminOptions({

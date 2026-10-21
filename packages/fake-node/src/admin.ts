@@ -10,6 +10,11 @@ export interface FakeAdminOptions {
   clamp: ((config: Config.Config) => Config.Config) | null;
   /** Forget the passkey right after `begin_edit_settings` (as if it expired), to test the retry. */
   expirePasskeyOnBegin: boolean;
+  /**
+   * After the commit, reboot without the link noticing (as over Wi-Fi): the socket stays
+   * open but nothing is answered until a client connects again.
+   */
+  silentRebootOnCommit: boolean;
   /** How long a shutdown keeps the node away (a real one needs someone to power it on). */
   shutdownDownMs: number;
 }
@@ -20,6 +25,7 @@ export const DEFAULT_ADMIN_OPTIONS: FakeAdminOptions = {
   clamp: null,
   expirePasskeyOnBegin: false,
   shutdownDownMs: 4_000,
+  silentRebootOnCommit: false,
 };
 
 type AdminReply =
@@ -62,6 +68,8 @@ export class FakeAdmin {
   readonly log: string[] = [];
   private passkey = new Uint8Array();
   private editing = false;
+  /** Rebooting silently: nothing is answered until the next handshake. */
+  muted = false;
   /** The scenario's settings as loaded: what a factory reset goes back to. */
   private readonly factory: Pick<Scenario, "config" | "moduleConfig" | "channels">;
 
@@ -98,6 +106,7 @@ export class FakeAdmin {
   handle(message: Admin.AdminMessage): AdminReply[] {
     const v = message.payloadVariant;
     this.log.push(v.case ?? "empty");
+    if (this.muted) return [];
     const respond = (payloadVariant: Admin.AdminMessage["payloadVariant"]): AdminReply[] => [
       {
         kind: "response",
@@ -155,6 +164,10 @@ export class FakeAdmin {
         return [ack];
       case "commitEditSettings": {
         this.editing = false;
+        if (this.options.silentRebootOnCommit) {
+          this.muted = true;
+          return [];
+        }
         const ms = this.options.rebootOnCommitMs;
         return ms > 0 ? [ack, { kind: "reboot", afterMs: ms }] : [ack];
       }

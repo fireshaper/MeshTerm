@@ -456,6 +456,11 @@ export class FakeNode {
         this.handlePacket(socket, v.value);
         break;
       case "wantConfigId":
+        // A new handshake: a silently rebooted node is back.
+        if (this.admin.muted) {
+          this.admin.muted = false;
+          this.admin.resetSession();
+        }
         this.sendConfig(socket, v.value);
         break;
       case "disconnect":

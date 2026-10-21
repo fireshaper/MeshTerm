@@ -529,6 +529,14 @@ State: `typecheck`, `lint`, `format`, `test` (655), `test:e2e` (151 passed, 6 sk
 
 State: `typecheck`, `lint`, `format`, `test` (679), `test:e2e` (163 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
 
+## Fix: applies reported "failed" although the node kept the changes (2026-10-21)
+
+- **Report:** on the real node, changes stuck but the apply said they weren't applied.
+- **Cause:** over Wi-Fi a node that reboots after the commit sends no FIN, so the link still looks up. After 15 s without a drop MeshTerm assumed "no reboot", asked the node for the changed sections, got no answer within 8 s and ended "failed".
+- **Fix:** when that re-read gets no answer (or the link drops), MeshTerm reconnects and verifies against the new handshake (`rebooting → reconnecting → verifying`), or ends in recovery after 3 minutes.
+- "Failed" now says some changes may already be on the node.
+- FakeNode `silentRebootOnCommit` reproduces it; an integration test covers it (fails without the fix).
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.
