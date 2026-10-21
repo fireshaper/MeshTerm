@@ -415,6 +415,15 @@ State: `typecheck`, `lint`, `format`, `test` (577), `test:e2e` (125 passed, 6 sk
 - FakeNode gained ack mode `implicit`.
 - Tests: the hop limit on the transmitted packet; implicit-only ACK → relayed, sent, no timeout failure; recipient ACK after an implicit one → acked.
 
+## Diagnostics: messages to my node that can't be decrypted (2026-10-20)
+
+- The user's test message from another node never appeared. Their traffic for that hour showed no TEXT_MESSAGE_APP packets and one ENCRYPTED packet: their node received something it couldn't decrypt. The likely causes are a PKI DM made with an outdated public key for their node, or a channel their node doesn't have.
+- New radio event `radio.undecryptable`: the decoder reports encrypted packets instead of ignoring them.
+  - For one addressed to our node: a server warning ("…the sender may have an outdated public key for our node…").
+  - And an activity feed entry `message.undecryptable` (sender, channel field), at most one per sender every 10 minutes and only while connected.
+  - Encrypted broadcasts on other channels stay silent.
+- Tests: recorder (only DMs to us, throttled); pipeline (an encrypted DM from FakeNode lands in the feed).
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

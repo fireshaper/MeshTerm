@@ -242,6 +242,7 @@ export const ACTIVITY_KINDS = [
   "power.changed",
   "connection.lost",
   "connection.restored",
+  "message.undecryptable",
 ] as const;
 
 /**

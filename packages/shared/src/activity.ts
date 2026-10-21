@@ -17,6 +17,11 @@ export const ActivityKind = z.enum([
   "connection.lost",
   /** The link came back (`value` = downtime ms). */
   "connection.restored",
+  /**
+   * A packet addressed to my node arrived that it couldn't decrypt (`nodeNum` = sender,
+   * `value` = the packet's channel field), e.g. a DM encrypted with an outdated key.
+   */
+  "message.undecryptable",
 ]);
 export type ActivityKind = z.infer<typeof ActivityKind>;
 

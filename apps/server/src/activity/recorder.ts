@@ -8,6 +8,8 @@ import type { Hub } from "../events/events.js";
 /** The feed keeps a week, and at most this many events per connection. */
 export const ACTIVITY_MAX_AGE_MS = 7 * 24 * 3600_000;
 export const ACTIVITY_MAX_ROWS = 2_000;
+/** At most one "couldn't decrypt" feed entry per sender this often. */
+export const UNDECRYPTABLE_EVERY_MS = 10 * 60_000;
 /** Prune after this many inserts per connection (pruning on every insert is wasteful). */
 const PRUNE_EVERY = 50;
 const PREVIEW_CHARS = 80;
@@ -50,6 +52,8 @@ export function attachActivity(hub: Hub, db: Db, options: ActivityOptions = {}):
   const lostAt = new Map<number, number>();
   const memory = new Map<number, Map<number, NodeMemory>>();
   const inserts = new Map<number, number>();
+  /** Last "couldn't decrypt" entry per connection and sender. */
+  const undecryptable = new Map<string, number>();
 
   /** What we knew about each node before anything happened (loaded once per connection). */
   const nodesOf = (connectionId: number): Map<number, NodeMemory> => {
@@ -172,6 +176,19 @@ export function attachActivity(hub: Hub, db: Db, options: ActivityOptions = {}):
           detail: `${prev.power}→${power}`,
         });
       }
+    }),
+
+    hub.subscribe("radio.undecryptable", ({ connectionId, from, to, channel }) => {
+      const me = myNodeNum(connectionId);
+      // Only what was meant for us: other channels' broadcasts are normal on a busy mesh.
+      if (me === null || to !== me || from === me) return;
+      if (states.get(connectionId) !== "connected") return;
+      const key = `${connectionId}:${from}`;
+      const at = now();
+      const last = undecryptable.get(key);
+      if (last !== undefined && at - last < UNDECRYPTABLE_EVERY_MS) return;
+      undecryptable.set(key, at);
+      record(connectionId, "message.undecryptable", { nodeNum: from, value: channel });
     }),
 
     hub.subscribe("message.new", ({ message }) => {

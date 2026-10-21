@@ -75,6 +75,27 @@ describe("DM ingest", () => {
     expect(row("odd channel")).toMatchObject({ peer: RIDGE, channelIndex: 0 });
   });
 
+  it("a DM the node couldn't decrypt shows up in the activity feed", async () => {
+    t.node.sendFromRadio({
+      case: "packet",
+      value: {
+        from: TRAIL,
+        to: ME,
+        channel: 0x5a,
+        id: 888,
+        payloadVariant: { case: "encrypted", value: new Uint8Array([1, 2, 3, 4]) },
+      },
+    });
+    const feed = async () =>
+      (await t.app.inject({ url: "/api/connections/1/events" })).json<{
+        events: { kind: string; nodeNum: number | null }[];
+      }>().events;
+    await expect
+      .poll(async () => (await feed()).find((e) => e.kind === "message.undecryptable")?.nodeNum)
+      .toBe(TRAIL);
+    expect(rows()).toHaveLength(0);
+  });
+
   it("a DM our own node sent from another client is an outgoing DM to the recipient", async () => {
     t.node.injectText(ME, { to: TRAIL }, "sent from my phone");
     await until(() => row("sent from my phone") !== undefined, 2_000);

@@ -35,6 +35,8 @@ export interface RadioEvents {
   "radio.lora": { connectionId: number; modemPreset: string | null; hopLimit: number | null };
   /** Our node's firmware version, from the handshake's DeviceMetadata. */
   "radio.metadata": { connectionId: number; firmware: string | null };
+  /** A packet the node passed on still encrypted: it had no key that decrypts it. */
+  "radio.undecryptable": { connectionId: number; from: number; to: number; channel: number };
   /** An inbound text message, not yet deduplicated. */
   "radio.text": { message: Message };
   /**

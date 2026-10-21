@@ -71,6 +71,15 @@ export function attachPersistence(
       hub.publish("channel.upsert", { channel });
     }),
 
+    hub.subscribe("radio.undecryptable", ({ connectionId, from, to, channel }) => {
+      const me = getMyNodeNum(db, connectionId);
+      if (me === null || to !== me || from === me) return;
+      logger.warn(
+        { connectionId, from: nodeIdFromNum(from), channel },
+        "a packet addressed to our node couldn't be decrypted: the sender may have an outdated public key for our node, or uses a channel key we don't have",
+      );
+    }),
+
     hub.subscribe("radio.text", ({ message: decoded }) => {
       const message = classifyDm(decoded, getMyNodeNum(db, decoded.connectionId));
       if (insertMessage(db, message) === "duplicate") {

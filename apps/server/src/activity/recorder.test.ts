@@ -60,6 +60,24 @@ afterEach(() => {
 });
 
 describe("activity recorder", () => {
+  it("reports a packet to my node that couldn't be decrypted, once per sender per 10 min", () => {
+    setup();
+    state("connected", "configuring");
+    const undecryptable = (from: number, to: number) => {
+      hub.publish("radio.undecryptable", { connectionId: 1, from, to, channel: 0x5a });
+    };
+    undecryptable(RIDGE, ME);
+    undecryptable(RIDGE, ME); // the same sender again right away: no new entry
+    undecryptable(RIDGE, 0xffff_ffff); // someone else's channel broadcast: normal, not news
+    undecryptable(NEW, 0x22222222); // a DM between other nodes
+    expect(published.map((e) => [e.kind, e.nodeNum, e.value])).toEqual([
+      ["message.undecryptable", RIDGE, 0x5a],
+    ]);
+    now += 11 * 60_000;
+    undecryptable(RIDGE, ME);
+    expect(published).toHaveLength(2);
+  });
+
   it("records a lost link and its restoration with the downtime", () => {
     setup();
     state("configuring", "connecting");

@@ -81,7 +81,21 @@ export function decodeFromRadio(message: FromRadio, ctx: DecodeContext): DecodeR
 }
 
 function decodePacket(packet: Mesh.MeshPacket, ctx: DecodeContext): DecodeResult {
-  if (packet.payloadVariant.case !== "decoded") return ignore("encrypted packet");
+  if (packet.payloadVariant.case !== "decoded") {
+    // The node couldn't decrypt it either (no matching channel key, or a PKI DM made
+    // with an outdated key). Worth reporting when it was addressed to us.
+    return decoded([
+      {
+        type: "radio.undecryptable",
+        payload: {
+          connectionId: ctx.connectionId,
+          from: packet.from,
+          to: packet.to,
+          channel: packet.channel,
+        },
+      },
+    ]);
+  }
   const data = packet.payloadVariant.value;
   switch (data.portnum) {
     case Portnums.PortNum.TEXT_MESSAGE_APP: {

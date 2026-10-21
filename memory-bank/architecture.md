@@ -391,16 +391,16 @@ Index `signal_log_node_idx` (`connection_id`, `node_num`, `time`). Written by `a
 
 ### `activity` — feed (ring buffer)
 
-| Column          | Type                     | Notes                                                                                                                 |
-| --------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `id`            | INTEGER PK AUTOINCREMENT | page cursor                                                                                                           |
-| `connection_id` | INTEGER NOT NULL         | FK → `connections.id` ON DELETE CASCADE                                                                               |
-| `time`          | INTEGER NOT NULL         | when it happened                                                                                                      |
-| `kind`          | TEXT NOT NULL            | `message.in` / `message.out` / `node.new` / `node.back` / `power.changed` / `connection.lost` / `connection.restored` |
-| `node_num`      | INTEGER                  | the node concerned                                                                                                    |
-| `message_id`    | TEXT                     | for message events                                                                                                    |
-| `value`         | REAL                     | quiet ms, downtime ms, battery level, or the channel of a broadcast                                                   |
-| `detail`        | TEXT                     | message preview, `from→to` power states, disconnect reason                                                            |
+| Column          | Type                     | Notes                                                                                                                                           |
+| --------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`            | INTEGER PK AUTOINCREMENT | page cursor                                                                                                                                     |
+| `connection_id` | INTEGER NOT NULL         | FK → `connections.id` ON DELETE CASCADE                                                                                                         |
+| `time`          | INTEGER NOT NULL         | when it happened                                                                                                                                |
+| `kind`          | TEXT NOT NULL            | `message.in` / `message.out` / `node.new` / `node.back` / `power.changed` / `connection.lost` / `connection.restored` / `message.undecryptable` |
+| `node_num`      | INTEGER                  | the node concerned                                                                                                                              |
+| `message_id`    | TEXT                     | for message events                                                                                                                              |
+| `value`         | REAL                     | quiet ms, downtime ms, battery level, or the channel of a broadcast                                                                             |
+| `detail`        | TEXT                     | message preview, `from→to` power states, disconnect reason                                                                                      |
 
 Index: `activity_time_idx` (`connection_id`, `time`). Kept 7 days, at most 2 000 rows per connection.
 

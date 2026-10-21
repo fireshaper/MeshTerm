@@ -10,6 +10,7 @@ import { Link } from "@tanstack/react-router";
 import {
   BatteryCharging,
   CircleDot,
+  LockKeyhole,
   MessageSquare,
   PlugZap,
   Send,
@@ -32,6 +33,7 @@ const ICONS: Record<ActivityKind, LucideIcon> = {
   "power.changed": BatteryCharging,
   "connection.lost": Unplug,
   "connection.restored": PlugZap,
+  "message.undecryptable": LockKeyhole,
 };
 
 const POWER_TEXT: Record<string, (level: number | null) => string> = {
@@ -70,6 +72,8 @@ export function describeActivity(
       return event.value === null
         ? "Connection restored"
         : `Connection restored after ${formatDuration(event.value / 1000)}`;
+    case "message.undecryptable":
+      return "Couldn't decrypt a message to my node (the sender may have an outdated key for it)";
   }
 }
 
