@@ -72,6 +72,8 @@ export interface AppDeps {
   secretKey?: Buffer;
   /** Apply timing overrides (tests). */
   applyTiming?: { noRebootGraceMs?: number; recoveryAfterMs?: number };
+  /** Apply/refresh rate limit (default one per 30 s per client); e2e tests relax it. */
+  configRateLimit?: { max: number; timeWindow: number };
 }
 
 /** What routes need, available as `app.meshterm`. */
@@ -269,7 +271,15 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
     logger: app.log,
   });
   await app.register(sendRoutes(sender));
-  await app.register(configRoutes({ store: configStore, applier, admins, secretKey }));
+  await app.register(
+    configRoutes({
+      store: configStore,
+      applier,
+      admins,
+      secretKey,
+      ...(deps.configRateLimit ? { rateLimit: deps.configRateLimit } : {}),
+    }),
+  );
   const gateway = new WsGateway(hub, handle.db, connections, app.log);
   await app.register(wsRoutes(gateway));
 

@@ -489,6 +489,20 @@ State: `typecheck`, `lint`, `format`, `test` (599), `test:e2e` (131 passed, 6 sk
 
 State: `typecheck`, `lint`, `format`, `test` (617), `test:e2e` (131 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
 
+### Phase D2: device settings UI, core sections (done 2026-10-21)
+
+- **Page:** `/settings/device` (Settings → Device; `/settings` opens it). Section list beside the form on desktop, tabs above it on mobile; unsaved-edit badges; connection line (owner, firmware, state).
+- **Forms:** the field list comes from the server's protobuf reflection (`GET /api/config/schema`), so new firmware fields appear on their own (under "Other", behind "Show advanced"). A registry adds labels, help, units, ranges, UTF-8 byte limits, enum labels, reboot and danger tags, warnings, conditional fields (custom modem settings only without a preset, smart-broadcast details, Bluetooth PIN) and validation. Sections: User, Device, LoRa, Position (fields only; coordinates come with D3), Power, Display, Bluetooth.
+- **Staging:** changed fields highlighted with "was:" and reset; a pending tray (count, sections, "node will reboot", Discard all, Review & apply).
+- **Review:** diff by section with secrets shown as "(changed)", warn-class notes, apply blocked while anything is invalid or conflicting (an unset region blocks other LoRa changes), typed short name for lockout-class changes (managed mode).
+- **Apply:** progress from `config.apply` events (sending → rebooting → reconnecting → verifying), then "Applied and verified", "Applied with differences" (sent vs node table), failed (edits kept), or the recovery panel after 3 min. Edits clear when our apply lands.
+- **Conflicts and locking:** a field whose node value changes under an edit is marked "Changed on device" with "Use node's value" / "Keep mine"; while any apply runs the editor is read-only ("Apply in progress by …" in other browsers).
+- **Viewers:** read-only, secrets masked by the server.
+- **Fix:** visually hidden text inside a scroll container needs a positioned ancestor (it stretched the document and shifted the header).
+- **Tests:** unit (edits store, change builder, summary, registry validation), component (8: route, stage → review → apply → verified, conditional and unknown fields, conflict, typed confirm, lock, recovery, viewer), e2e `config.spec.ts` on its own instance (`CONFIG_PORT` 4196/4197, relaxed apply rate limit): LoRa + Device + Display → reboot → verified with the exact admin message order and no mesh transmit; clamped TX power → differences; typed confirm; two browsers (lock, then conflict). FakeNode control: `POST /admin-options`, `GET /admin-log`. Visual baseline `device-settings` (win32 + linux).
+
+State: `typecheck`, `lint`, `format`, `test` (632), `test:e2e` (141 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

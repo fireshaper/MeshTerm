@@ -116,3 +116,40 @@ export const ConfigSnapshotSummary = z.object({
   firmware: z.string().nullable(),
 });
 export type ConfigSnapshotSummary = z.infer<typeof ConfigSnapshotSummary>;
+
+/**
+ * One protobuf field as the editor needs it (`GET /api/config/schema`), by reflection
+ * on the pinned protobufs, so new firmware fields show up without code changes.
+ * `name` is the proto JSON name (lowerCamelCase). 64-bit integers are strings in JSON.
+ */
+export interface FieldSchema {
+  name: string;
+  kind: "bool" | "int" | "uint" | "float" | "int64" | "string" | "bytes" | "enum" | "message";
+  /** A repeated field. */
+  list: boolean;
+  /** Enum value names, in protobuf order. */
+  enumValues?: string[] | undefined;
+  /** A nested message's fields. */
+  fields?: FieldSchema[] | undefined;
+}
+export const FieldSchema: z.ZodType<FieldSchema> = z.lazy(() =>
+  z.object({
+    name: z.string(),
+    kind: z.enum(["bool", "int", "uint", "float", "int64", "string", "bytes", "enum", "message"]),
+    list: z.boolean(),
+    enumValues: z.array(z.string()).optional(),
+    fields: z.array(FieldSchema).optional(),
+  }),
+);
+
+export const ConfigSchemaDTO = z.object({
+  /** `User` (the owner). */
+  owner: z.array(FieldSchema),
+  /** `Config` sections in protobuf order. */
+  config: z.record(z.string(), z.array(FieldSchema)),
+  /** `ModuleConfig` sections in protobuf order. */
+  moduleConfig: z.record(z.string(), z.array(FieldSchema)),
+  /** `Channel` (with its `settings`). */
+  channel: z.array(FieldSchema),
+});
+export type ConfigSchemaDTO = z.infer<typeof ConfigSchemaDTO>;

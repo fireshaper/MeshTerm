@@ -2,6 +2,7 @@ import { Admin } from "@meshterm/protocol";
 import {
   ApplyBody,
   ApplyStatusDTO,
+  ConfigSchemaDTO,
   ConfigSnapshotSummary,
   DeviceConfigDTO,
 } from "@meshterm/shared";
@@ -11,6 +12,7 @@ import { auditRequest } from "../auth/plugin.js";
 import type { AdminClient, AdminVariant } from "../config/admin.js";
 import { applyAdminResponse, type ConfigApplier } from "../config/applier.js";
 import { listSnapshots, loadSnapshot } from "../config/snapshots.js";
+import { configSchema } from "../config/schema.js";
 import type { ConfigStore } from "../config/store.js";
 import { HttpError } from "./http-error.js";
 
@@ -24,6 +26,8 @@ export interface ConfigRouteDeps {
   applier: ConfigApplier;
   admins: ReadonlyMap<number, AdminClient>;
   secretKey: Buffer;
+  /** Default `CONFIG_RATE_LIMIT`; e2e tests relax it. */
+  rateLimit?: { max: number; timeWindow: number };
 }
 
 /** Every section a full re-read asks for (`sessionkey` isn't readable config). */
@@ -58,9 +62,14 @@ function refreshRequests(): {
 
 /** Device config (CR-002 §8.2): read (secrets masked for viewers), refresh, apply, snapshots. */
 export function configRoutes(deps: ConfigRouteDeps): FastifyPluginAsyncZod {
+  const rateLimit = deps.rateLimit ?? CONFIG_RATE_LIMIT;
   return (app) => {
     const { db, clock } = app.meshterm;
     const { store, applier, admins } = deps;
+
+    app.get("/api/config/schema", { schema: { response: { 200: ConfigSchemaDTO } } }, () =>
+      configSchema(),
+    );
 
     app.get(
       "/api/connections/:id/config",
@@ -80,7 +89,7 @@ export function configRoutes(deps: ConfigRouteDeps): FastifyPluginAsyncZod {
     app.post(
       "/api/connections/:id/config/refresh",
       {
-        config: { role: "admin", rateLimit: CONFIG_RATE_LIMIT },
+        config: { role: "admin", rateLimit },
         schema: { params: Params, response: { 200: DeviceConfigDTO } },
       },
       async (req) => {
@@ -117,7 +126,7 @@ export function configRoutes(deps: ConfigRouteDeps): FastifyPluginAsyncZod {
     app.post(
       "/api/connections/:id/config/apply",
       {
-        config: { role: "admin", rateLimit: CONFIG_RATE_LIMIT },
+        config: { role: "admin", rateLimit },
         schema: { params: Params, body: ApplyBody, response: { 202: ApplyStatusDTO } },
       },
       (req, reply) => {

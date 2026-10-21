@@ -14,6 +14,10 @@ export interface ConversationData {
 export const queryKeys = {
   connections: ["connections"] as const,
   me: ["me"] as const,
+  configSchema: ["configSchema"] as const,
+  deviceConfig: (connectionId: number) => ["deviceConfig", connectionId] as const,
+  /** The latest `config.apply` status seen for a connection (from WS or the apply response). */
+  configApply: (connectionId: number) => ["configApply", connectionId] as const,
   users: ["users"] as const,
   audit: ["audit"] as const,
   nodes: (connectionId: number) => ["nodes", connectionId] as const,

@@ -11,13 +11,9 @@ import { nodeIdFromNum } from "@meshterm/shared";
 
 import { ChannelThread, DmThread, MessagesIndex, MessagesPage } from "./messages/MessagesPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
-import {
-  AccountPage,
-  AuditPage,
-  SettingsIndex,
-  SettingsPage,
-  UsersPage,
-} from "./settings/SettingsPages.js";
+import { AccountPage, AuditPage, SettingsPage, UsersPage } from "./settings/SettingsPages.js";
+import { DeviceSettingsPage } from "./settings/device/DeviceSettings.js";
+import { SECTIONS } from "./settings/device/registry.js";
 import { NodesPage } from "./pages/NodesPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { AppShell } from "./shell/AppShell.js";
@@ -132,7 +128,20 @@ export const settingsRoute = createRoute({
 const settingsIndexRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/",
-  component: SettingsIndex,
+  beforeLoad: () => {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error -- TanStack Router's redirect API
+    throw redirect({ to: "/settings/device" });
+  },
+});
+/** `?section=lora` picks the section (CR-002 §5.1). */
+export const deviceSettingsRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/device",
+  validateSearch: (search: Record<string, unknown>): { section?: string } =>
+    typeof search.section === "string" && SECTIONS.some((s) => s.id === search.section)
+      ? { section: search.section }
+      : {},
+  component: DeviceSettingsPage,
 });
 const accountRoute = createRoute({
   getParentRoute: () => settingsRoute,
@@ -158,7 +167,13 @@ const routeTree = rootRoute.addChildren([
   legacyChannelRoute,
   nodesRoute,
   legacyDmRoute,
-  settingsRoute.addChildren([settingsIndexRoute, accountRoute, usersRoute, auditRoute]),
+  settingsRoute.addChildren([
+    settingsIndexRoute,
+    deviceSettingsRoute,
+    accountRoute,
+    usersRoute,
+    auditRoute,
+  ]),
 ]);
 
 /** The app's router; tests pass a memory history starting at a given path. */

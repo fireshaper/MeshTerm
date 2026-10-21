@@ -65,7 +65,7 @@ The user chose (2026-10-20) to **build login first**: CR-002 depends on admin/vi
   - Clamping, and a "moves to a new address" / "never comes back" mode.
 - No-transmit audit: no admin message without an explicit apply.
 
-## Phase D2: settings UI (core sections)
+## Phase D2: settings UI (core sections) (done 2026-10-21)
 
 - `/settings/device`: section nav (desktop list / mobile tabs), dirty badges, connection line.
 - Forms generated from protobuf reflection plus the `registry.ts` overlay:

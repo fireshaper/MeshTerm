@@ -35,7 +35,10 @@ const config = parseConfig({
   // Accounts off unless a spec's instance asks for them (E2E_AUTH=local).
   MESHTERM_AUTH: process.env.E2E_AUTH ?? "none",
 });
-const app = await buildApp(config);
+// Specs apply config many times a minute; the server allows one per 30 s per client.
+const app = await buildApp(config, {
+  ...(process.env.E2E_CONFIG_SPECS ? { configRateLimit: { max: 1000, timeWindow: 1000 } } : {}),
+});
 const historyDays = Number(process.env.E2E_HISTORY_DAYS ?? 0);
 if (historyDays > 0) {
   // Backdated telemetry (FakeNode historyPackets), stored before /healthz answers.

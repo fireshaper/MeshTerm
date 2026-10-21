@@ -21,6 +21,10 @@ export const HISTORY_CONTROL_PORT = 4193;
 export const AUTH_PORT = 4194;
 export const AUTH_CONTROL_PORT = 4195;
 
+/** serve.ts for the device-config specs (they change its FakeNode's settings). */
+export const CONFIG_PORT = 4196;
+export const CONFIG_CONTROL_PORT = 4197;
+
 /** serve.ts on the generated 300-node `large` scenario. */
 export const LARGE_PORT = 4184;
 export const LARGE_CONTROL_PORT = 4185;

@@ -12,13 +12,14 @@ import { useUiStore } from "../data/ui-store.js";
 const errorText = (err: unknown) =>
   err instanceof ApiError ? err.message : "Couldn't reach MeshTerm. Try again.";
 
-/** Settings layout: section links (Account; Users and Audit log for admins). */
+/** Settings layout: section links (Device, Account; Users and Audit log for admins). */
 export function SettingsPage() {
   const me = useMe();
   const admin = useIsAdmin();
   const { pathname } = useLocation();
   const local = me?.mode === "local";
   const items = [
+    { to: "/settings/device" as const, label: "Device" },
     ...(local ? [{ to: "/settings/account" as const, label: "Account" }] : []),
     ...(admin ? [{ to: "/settings/users" as const, label: "Users" }] : []),
     ...(admin ? [{ to: "/settings/audit" as const, label: "Audit log" }] : []),
@@ -28,7 +29,7 @@ export function SettingsPage() {
       <PageHeader title="Settings" />
       <nav data-mt="settings-nav" aria-label="Settings">
         {items.map((item) => {
-          const active = pathname === item.to;
+          const active = pathname.startsWith(item.to);
           return (
             <Link
               key={item.to}
@@ -47,20 +48,6 @@ export function SettingsPage() {
       </div>
     </section>
   );
-}
-
-/** `/settings` with nothing chosen. */
-export function SettingsIndex() {
-  const me = useMe();
-  if (me?.mode !== "local") {
-    return (
-      <p data-mt="detail-note">
-        Accounts are off (<code>MESHTERM_AUTH=none</code>): everyone who can open MeshTerm is an
-        admin. Set <code>MESHTERM_AUTH=local</code> to require sign-in.
-      </p>
-    );
-  }
-  return <p data-mt="detail-note">Choose a section.</p>;
 }
 
 export function AccountPage() {

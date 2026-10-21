@@ -250,6 +250,17 @@ export function applyServerMessage(
       return;
     }
 
+    case "config.updated": {
+      // The editor re-reads; pending edits whose base changed become conflicts.
+      void qc.invalidateQueries({ queryKey: queryKeys.deviceConfig(message.connectionId) });
+      return;
+    }
+
+    case "config.apply": {
+      qc.setQueryData(queryKeys.configApply(message.status.connectionId), message.status);
+      return;
+    }
+
     case "activity.new": {
       const { activity } = message;
       qc.setQueryData<ActivityPage>(queryKeys.activity(activity.connectionId), (data) => {

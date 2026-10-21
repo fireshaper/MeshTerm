@@ -5,6 +5,8 @@ import {
   DASHBOARD_PORT,
   AUTH_CONTROL_PORT,
   AUTH_PORT,
+  CONFIG_CONTROL_PORT,
+  CONFIG_PORT,
   E2E_PORT,
   HISTORY_CONTROL_PORT,
   HISTORY_PORT,
@@ -76,6 +78,7 @@ export default defineConfig({
     serve(VISUAL_DASHBOARD_PORT, VISUAL_DASHBOARD_CONTROL_PORT, "dashboard"),
     serve(LARGE_PORT, LARGE_CONTROL_PORT, "large"),
     serve(AUTH_PORT, AUTH_CONTROL_PORT, "default", { E2E_AUTH: "local" }),
+    serve(CONFIG_PORT, CONFIG_CONTROL_PORT, "default", { E2E_CONFIG_SPECS: "1" }),
     // Injecting 30 days of history takes a while; nothing may change it afterwards.
     {
       ...serve(HISTORY_PORT, HISTORY_CONTROL_PORT, "dashboard", { E2E_HISTORY_DAYS: "30" }),

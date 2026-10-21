@@ -27,6 +27,11 @@
     --mt-status-error: LinkText;
     --mt-status-info: AccentColor;
 
+    /* Device settings: staged, conflicting and dangerous changes */
+    --mt-field-changed-bg: color-mix(in srgb, var(--mt-accent) 12%, transparent);
+    --mt-field-conflict-bg: color-mix(in srgb, var(--mt-status-warn) 18%, transparent);
+    --mt-danger-surface: color-mix(in srgb, var(--mt-status-error) 12%, transparent);
+
     /* Message bubbles */
     --mt-bubble-in-bg: Field;
     --mt-bubble-in-text: FieldText;

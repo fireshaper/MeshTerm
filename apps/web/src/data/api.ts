@@ -1,6 +1,10 @@
 import { CSRF_HEADER } from "@meshterm/shared";
 import type {
   ActivityPage,
+  ApplyBody,
+  ApplyStatusDTO,
+  ConfigSchemaDTO,
+  DeviceConfigDTO,
   AuditPage,
   MeDTO,
   Role,
@@ -158,6 +162,19 @@ export const api = {
   /** Download link for raw telemetry (not fetched by the app). */
   telemetryCsvUrl: (connectionId: number, num: number, from: number, to: number) =>
     `/api/connections/${connectionId}/nodes/${num}/telemetry.csv?from=${from}&to=${to}`,
+
+  configSchema: () => request<ConfigSchemaDTO>("/api/config/schema"),
+  deviceConfig: (connectionId: number) =>
+    request<DeviceConfigDTO>(`/api/connections/${connectionId}/config`),
+  applyConfig: (connectionId: number, body: ApplyBody) =>
+    request<ApplyStatusDTO>(`/api/connections/${connectionId}/config/apply`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  applyStatus: (connectionId: number, applyId: string) =>
+    request<ApplyStatusDTO>(`/api/connections/${connectionId}/config/apply/${applyId}`),
+  refreshConfig: (connectionId: number) =>
+    request<DeviceConfigDTO>(`/api/connections/${connectionId}/config/refresh`, { method: "POST" }),
 
   conversations: (connectionId: number) =>
     request<ConversationsDTO>(`/api/connections/${connectionId}/conversations`),

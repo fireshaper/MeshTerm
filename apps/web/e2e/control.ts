@@ -46,6 +46,9 @@ export function controlClient(port: number) {
       call<{ packetId: number }>("POST", "/inject-position", { from, lat, lon }),
     setAckMode: (mode: "ack" | "nak" | "silent", reason?: string) =>
       call("POST", "/ack-mode", { mode, reason }),
+    adminOptions: (options: { rebootOnCommitMs?: number; clampTxPowerTo?: number | null }) =>
+      call("POST", "/admin-options", options),
+    adminLog: () => call<{ log: string[] }>("GET", "/admin-log"),
     clearInbound: () => call("POST", "/clear-inbound"),
     inbound: () => call<InboundAudit>("GET", "/inbound"),
   };

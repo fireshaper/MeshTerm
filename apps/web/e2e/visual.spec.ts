@@ -1,4 +1,4 @@
-// Visual baselines (Step 11.2, D7.3): channel view, node list, DM view and dashboard in
+// Visual baselines (Step 11.2, D7.3): channel view, node list, DM view, dashboard and device settings in
 // the Default theme, at 1280 px (visual-desktop) and 390 px (visual-mobile).
 //
 // Runs against its own server instance (VISUAL_PORT) seeded once with fixed content,
@@ -246,4 +246,18 @@ test("map", async ({ page }) => {
     maxDiffPixelRatio: 0.03,
     threshold: 0.3,
   });
+});
+
+test("device settings", async ({ page }) => {
+  await ready(page, "/settings/device?section=lora");
+  // A staged edit (never applied): the changed field, "was:", the nav badge and the tray.
+  const hops = page.getByLabel("Hop limit", { exact: true });
+  await expect(hops).toBeEditable();
+  await hops.fill("4");
+  await expect(page.getByRole("region", { name: "Pending changes" })).toBeVisible();
+  await page.locator("[data-mt=config-field][data-path='config.lora.hopLimit']").evaluate((el) => {
+    el.scrollIntoView({ block: "center" });
+  });
+  await freeze(page);
+  await expect(page).toHaveScreenshot("device-settings.png", { mask: MASKS(page) });
 });

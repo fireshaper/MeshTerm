@@ -7,7 +7,7 @@ export const DEFAULT_CONTROL_PORT = 4404;
 
 /** What `GET /inbound` returns: the transmit audit plus a summary of each transmit. */
 export interface InboundReport {
-  counts: { handshake: number; heartbeat: number; transmit: number; other: number };
+  counts: { handshake: number; heartbeat: number; transmit: number; admin: number; other: number };
   transmits: { to: number; channel: number; portnum: number; text: string | null }[];
 }
 
@@ -30,6 +30,8 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
  * - `POST /reboot` `{downMs}`
  * - `POST /inject-history` `{days?}` → `{packets}`: backdated telemetry (`historyPackets`)
  * - `POST /ack-mode` `{mode: "ack" | "nak" | "silent", reason?}` (`reason`: NAK `Routing.Error` name)
+ * - `POST /admin-options` `{rebootOnCommitMs?, clampTxPowerTo?}`: admin module behaviour (CR-002)
+ * - `GET /admin-log` → `{log}`: the admin message cases the node received, in order
  * - `POST /clear-inbound`
  * - `GET /inbound` → {@link InboundReport}
  */
@@ -89,6 +91,36 @@ export function startControlServer(node: FakeNode, port: number, host = "127.0.0
               0,
               typeof body.reason === "string" ? body.reason : undefined,
             );
+            break;
+          case "POST /admin-options": {
+            const clampTo = body.clampTxPowerTo;
+            node.setAdminOptions({
+              ...(body.rebootOnCommitMs === undefined
+                ? {}
+                : { rebootOnCommitMs: Number(body.rebootOnCommitMs) }),
+              ...(clampTo === undefined
+                ? {}
+                : {
+                    clamp:
+                      clampTo === null
+                        ? null
+                        : (c) =>
+                            c.payloadVariant.case === "lora" &&
+                            c.payloadVariant.value.txPower > Number(clampTo)
+                              ? {
+                                  ...c,
+                                  payloadVariant: {
+                                    case: "lora",
+                                    value: { ...c.payloadVariant.value, txPower: Number(clampTo) },
+                                  },
+                                }
+                              : c,
+                  }),
+            });
+            break;
+          }
+          case "GET /admin-log":
+            result = { log: node.admin.log };
             break;
           case "POST /clear-inbound":
             node.clearInbound();
