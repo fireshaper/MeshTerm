@@ -24,7 +24,12 @@ import {
   applyPosition,
   applyTelemetry,
 } from "./dashboard-cache.js";
-import { applyMessageToConversations, applyStatusToConversations } from "./conversations-cache.js";
+import {
+  applyMessageToConversations,
+  applyReadToConversations,
+  applyStateToConversations,
+  applyStatusToConversations,
+} from "./conversations-cache.js";
 import {
   applyNodeToDetail,
   applyPositionToDetail,
@@ -181,9 +186,39 @@ export function applyServerMessage(
         },
       );
       patchDashboard(qc, m.connectionId, (d) => applyMessage(d, m));
+      const nodes = qc.getQueryData<MeshNode[]>(queryKeys.nodes(m.connectionId)) ?? [];
+      const ignored = new Set(nodes.filter((n) => n.isIgnored).map((n) => n.num));
       qc.setQueryData<ConversationsDTO>(queryKeys.conversations(m.connectionId), (d) =>
-        d ? applyMessageToConversations(d, m) : d,
+        d ? applyMessageToConversations(d, m, ignored) : d,
       );
+      return;
+    }
+
+    case "conversation.read": {
+      const { connectionId, kind, key, lastReadRxTime } = message;
+      const result = { stale: false };
+      qc.setQueryData<ConversationsDTO>(queryKeys.conversations(connectionId), (d) => {
+        if (!d) return d;
+        const next = applyReadToConversations(d, kind, key, lastReadRxTime);
+        result.stale = next.stale;
+        return next.data;
+      });
+      // Read only part of the way: the server has the exact count.
+      if (result.stale)
+        void qc.invalidateQueries({ queryKey: queryKeys.conversations(connectionId) });
+      return;
+    }
+
+    case "conversation.updated": {
+      const { connectionId, kind, key, state } = message;
+      qc.setQueryData<ConversationsDTO>(queryKeys.conversations(connectionId), (d) =>
+        d ? applyStateToConversations(d, kind, key, state) : d,
+      );
+      if (kind === "dm") {
+        // A delete hides history: re-read the list and the thread.
+        void qc.invalidateQueries({ queryKey: queryKeys.conversations(connectionId) });
+        void qc.invalidateQueries({ queryKey: queryKeys.messages(connectionId, { peer: key }) });
+      }
       return;
     }
 

@@ -75,3 +75,43 @@ test("desktop: both panes show, and /messages reopens the last conversation", as
   await page.goto("/messages");
   await expect(page).toHaveURL(/\/messages\/channel\/1$/);
 });
+
+// ------------------------------------------------------------- read state (CR-003 N0)
+
+test("an unread DM badges its row, the nav and the title; reading it in another browser clears them", async ({
+  page,
+  browser,
+}, info) => {
+  const TRAIL = 0x1a2b3c4d;
+  const subscribed = socketSubscribed(page);
+  await page.goto("/dashboard");
+  await subscribed;
+  const text = `unread ${info.project.name} ${Date.now()}`;
+  await fakeNode.injectText(TRAIL, { to: ME }, text);
+
+  // The title counts it, whatever else is unread on the shared node.
+  await expect(page).toHaveTitle(/^\(\d+\+?\) MeshTerm$/);
+  if (narrow(page)) {
+    await expect(page.locator("[data-mt=menu-button] [data-mt=nav-badge]")).toBeVisible();
+  } else {
+    await expect(
+      page.locator("[data-mt=sidebar] [data-mt=nav-badge][data-mt-state=priority]"),
+    ).toBeVisible();
+  }
+
+  // The row shows its own count without opening it.
+  const other = await (await browser.newContext()).newPage();
+  await other.goto("/messages");
+  const row = other.locator(`[data-mt=conversation-row][data-node-num="${TRAIL}"]`);
+  await expect(row.locator("[data-mt=unread-badge]")).toBeVisible();
+  await expect(row).toHaveAttribute("data-mt-state", /\bunread\b/);
+
+  // Reading it in the second browser clears the first one's row too.
+  const firstRow = page.locator(`[data-mt=conversation-row][data-node-num="${TRAIL}"]`);
+  await page.goto("/messages");
+  await expect(firstRow.locator("[data-mt=unread-badge]")).toBeVisible();
+  await row.click();
+  await expect(other.locator("[data-mt=message]", { hasText: text })).toBeVisible();
+  await expect(firstRow.locator("[data-mt=unread-badge]")).toHaveCount(0, { timeout: 10_000 });
+  await other.context().close();
+});

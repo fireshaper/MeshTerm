@@ -88,6 +88,8 @@ export interface PublicEvents {
   "activity.new": Payload<ServerMessageOf<"activity.new">>;
   "config.updated": Payload<ServerMessageOf<"config.updated">>;
   "config.apply": Payload<ServerMessageOf<"config.apply">>;
+  "conversation.read": Payload<ServerMessageOf<"conversation.read">>;
+  "conversation.updated": Payload<ServerMessageOf<"conversation.updated">>;
   /** Not in the WS protocol yet; snapshots carry channels. */
   "channel.upsert": { channel: Channel };
 }

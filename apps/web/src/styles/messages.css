@@ -368,3 +368,131 @@
     }
   }
 }
+
+/* Read state (CR-003 N0): unread badges, row flags and menu, nav badge. */
+@layer base {
+  [data-mt="conversation-item"] {
+    position: relative;
+  }
+
+  [data-mt="conversation-row"][data-mt-state~="unread"] [data-mt="conversation-name"],
+  [data-mt="conversation-row"][data-mt-state~="unread"] [data-mt="conversation-preview-text"] {
+    color: var(--mt-text);
+    font-weight: var(--mt-font-weight-bold);
+  }
+
+  [data-mt="conversation-meta"] {
+    display: inline-flex;
+    gap: var(--mt-space-1);
+    align-items: center;
+
+    /* Room for the row menu button. */
+    padding-inline-end: var(--mt-space-4);
+  }
+
+  [data-mt="conversation-meta"] [data-mt="icon"] {
+    inline-size: 0.9em;
+    block-size: 0.9em;
+    color: var(--mt-text-muted);
+  }
+
+  [data-mt="unread-badge"],
+  [data-mt="nav-badge"] {
+    min-inline-size: 1.4em;
+    padding: 0 var(--mt-space-1);
+    border-radius: var(--mt-radius-lg);
+    background: var(--mt-badge-bg);
+    color: var(--mt-badge-text);
+    font-size: var(--mt-font-size-xs);
+    font-weight: var(--mt-font-weight-bold);
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  [data-mt="unread-badge"][data-mt-variant="muted"] {
+    background: var(--mt-surface-sunken);
+    color: var(--mt-text-muted);
+  }
+
+  [data-mt="nav-badge"] {
+    margin-inline-start: auto;
+  }
+
+  [data-mt="nav-badge"][data-mt-state="priority"] {
+    background: var(--mt-badge-priority-bg);
+  }
+
+  /* On the menu button: a dot only. */
+  [data-mt="nav-badge"][data-mt-variant="dot"] {
+    position: absolute;
+    inset-block-start: var(--mt-space-1);
+    inset-inline-end: var(--mt-space-1);
+    min-inline-size: 0;
+    inline-size: 0.6em;
+    block-size: 0.6em;
+    padding: 0;
+  }
+
+  [data-mt="menu-button"] {
+    position: relative;
+  }
+
+  [data-mt="conversation-menu-button"] {
+    position: absolute;
+    inset-block-start: var(--mt-space-1);
+    inset-inline-end: var(--mt-space-1);
+    display: inline-flex;
+    padding: var(--mt-space-1);
+    border: none;
+    border-radius: var(--mt-radius-sm);
+    background: none;
+    color: var(--mt-text-muted);
+    cursor: pointer;
+    opacity: 0.6;
+  }
+
+  [data-mt="conversation-menu-button"]:focus-visible,
+  [data-mt="conversation-menu-button"][data-state="open"] {
+    background: var(--mt-surface-raised);
+    color: var(--mt-text);
+    opacity: 1;
+  }
+
+  [data-mt="conversation-item"]:hover [data-mt="conversation-menu-button"] {
+    background: var(--mt-surface-raised);
+    color: var(--mt-text);
+    opacity: 1;
+  }
+
+  [data-mt="show-ignored"] {
+    display: flex;
+    gap: var(--mt-space-1);
+    align-items: center;
+    padding: 0 var(--mt-space-2) var(--mt-space-1);
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-xs);
+  }
+}
+
+/* Icon-only sidebar (collapsed, or auto at tablet widths): the badge sits on the icon. */
+@layer base {
+  @media (width >= 768px) {
+    [data-mt="app-shell"][data-mt-state="collapsed"] [data-mt="sidebar"] [data-mt="nav-badge"] {
+      position: absolute;
+      inset-block-start: 0;
+      inset-inline-end: 0;
+      min-inline-size: 1.2em;
+      font-size: var(--mt-font-size-xs);
+    }
+  }
+
+  @media (width >= 768px) and (width < 1024px) {
+    [data-mt="app-shell"][data-mt-state="auto"] [data-mt="sidebar"] [data-mt="nav-badge"] {
+      position: absolute;
+      inset-block-start: 0;
+      inset-inline-end: 0;
+      min-inline-size: 1.2em;
+      font-size: var(--mt-font-size-xs);
+    }
+  }
+}

@@ -19,8 +19,24 @@ const TRAIL = 0x1a2b3c4d;
 
 const list: ConversationsDTO = {
   channels: [
-    { index: 0, name: "LongFast", role: "PRIMARY", encryption: "default", lastMessage: null },
-    { index: 1, name: "Friends", role: "SECONDARY", encryption: "custom", lastMessage: null },
+    {
+      index: 0,
+      name: "LongFast",
+      role: "PRIMARY",
+      encryption: "default",
+      lastMessage: null,
+      unread: 0,
+      state: { lastReadRxTime: 0, muted: false, favorite: false },
+    },
+    {
+      index: 1,
+      name: "Friends",
+      role: "SECONDARY",
+      encryption: "custom",
+      lastMessage: null,
+      unread: 0,
+      state: { lastReadRxTime: 0, muted: false, favorite: false },
+    },
   ],
   dms: [
     {
@@ -34,6 +50,9 @@ const list: ConversationsDTO = {
         pkiEncrypted: true,
         status: null,
       },
+      unread: 0,
+      state: { lastReadRxTime: 0, muted: false, favorite: false },
+      ignored: false,
     },
     {
       peer: TRAIL,
@@ -46,6 +65,9 @@ const list: ConversationsDTO = {
         pkiEncrypted: false,
         status: "acked",
       },
+      unread: 0,
+      state: { lastReadRxTime: 0, muted: false, favorite: false },
+      ignored: false,
     },
   ],
 };

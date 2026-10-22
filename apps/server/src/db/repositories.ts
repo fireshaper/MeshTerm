@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import {
   nodeIdFromNum,
   type Channel,
@@ -266,11 +266,29 @@ export function listDmMessages(
   connectionId: number,
   peer: number,
   page: PageOptions = {},
+  /** Only messages after this time (a deleted conversation's cut-off). */
+  after = 0,
 ): Message[] {
   return listMessages(
     db,
-    and(eq(messages.connectionId, connectionId), eq(messages.peer, peer)),
+    and(
+      eq(messages.connectionId, connectionId),
+      eq(messages.peer, peer),
+      after > 0 ? gt(messages.rxTime, after) : undefined,
+    ),
     page,
+  );
+}
+
+/** Node numbers the user chose to ignore. */
+export function ignoredNodes(db: Db, connectionId: number): Set<number> {
+  return new Set(
+    db
+      .select({ num: nodes.num })
+      .from(nodes)
+      .where(and(eq(nodes.connectionId, connectionId), eq(nodes.isIgnored, true)))
+      .all()
+      .map((r) => r.num),
   );
 }
 

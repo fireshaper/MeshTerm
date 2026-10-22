@@ -24,6 +24,7 @@ import {
   type MessageCursor,
 } from "../db/repositories.js";
 import { buildConversations } from "../messaging/conversations.js";
+import { getState } from "../messaging/read-state.js";
 import { HttpError } from "./http-error.js";
 
 /** The opaque `before`/`nextCursor` string of message pages; see `messageCursor`. */
@@ -124,7 +125,13 @@ export const apiRoutes: FastifyPluginAsyncZod = (app) => {
       const messages =
         channel !== undefined
           ? listChannelMessages(db, id, channel, page)
-          : listDmMessages(db, id, peer ?? 0, page);
+          : listDmMessages(
+              db,
+              id,
+              peer ?? 0,
+              page,
+              getState(db, id, "dm", peer ?? 0).deletedBefore,
+            );
       const next = nextCursor(messages, limit);
       return { messages, nextCursor: next ? encodeCursor(next) : null };
     },

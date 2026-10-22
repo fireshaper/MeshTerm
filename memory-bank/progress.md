@@ -542,6 +542,19 @@ State: `typecheck`, `lint`, `format`, `test` (679), `test:e2e` (163 passed, 6 sk
 - The user pasted CR-003 (saved as `memory-bank/cr-003-notifications.md`). Plan: `memory-bank/cr-003-plan.md`.
 - Its prerequisite (read state, unread counts, `conversation.read`) was Messages Phase 3, which isn't built; it becomes Phase N0.
 
+### Phase N0: read state and unread (done 2026-10-21)
+
+- This is Messages Phase 3, the prerequisite CR-003 assumed.
+- **Server:** `POST …/conversations/:kind/:key/read` (any signed-in user; never backwards, capped at the newest message), `PATCH …` mute/favorite and `DELETE …/dm/:peer` (admins; MeshTerm's copy only). WS `conversation.read` / `conversation.updated`. The conversation list carries unread counts (incoming, not reactions, not from ignored nodes), state and `ignored`.
+- **Web:**
+  - Unread badges on rows (99+, muted ones subdued) and bold unread rows.
+  - Messages nav badge (red "priority" while a DM is unread), a dot on the phone menu button, and `(N) MeshTerm` in the title. Muted and ignored conversations don't count.
+  - A thread is marked read once its newest message has been in view (at the bottom, tab visible and focused) for 1 s. Reading anywhere clears badges in every browser.
+  - Row menu: Mark read; admins also Mute, Favorite (favorite DMs go first), Delete. "Show ignored" for DMs from ignored nodes.
+- **Tests:** server integration (counts, read mark never backwards, mute/favorite, delete and return, bad keys), cache units, component tests (badges, title, mark read after 1 s only while focused, cross-browser read, row menu, viewers, ignored), e2e (DM badges the row, nav and title; reading it in another browser clears it). The visual seed marks everything read so no badge depends on test order.
+
+State: `typecheck`, `lint`, `format`, `test` (694), `test:e2e` (165 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

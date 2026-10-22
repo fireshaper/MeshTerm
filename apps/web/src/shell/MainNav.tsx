@@ -1,4 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
+import { badgeText } from "../data/conversations-cache.js";
+import { useUnreadTotals } from "../messages/unread.js";
 import {
   LayoutGrid,
   Map as MapIcon,
@@ -39,6 +41,7 @@ const ITEMS: Item[] = [
 
 export function MainNav({ variant, onNavigate }: MainNavProps) {
   const { pathname } = useLocation();
+  const unread = useUnreadTotals();
 
   return (
     <nav data-mt={variant === "sidebar" ? "sidebar-nav" : "drawer-nav"} aria-label="Main">
@@ -56,6 +59,15 @@ export function MainNav({ variant, onNavigate }: MainNavProps) {
           >
             <Icon data-mt="icon" {...ICON} />
             <span data-mt="nav-label">{label}</span>
+            {prefix === "/messages" && unread.total > 0 && (
+              <span
+                data-mt="nav-badge"
+                data-mt-state={unread.dm ? "priority" : undefined}
+                aria-label={`${unread.total} unread`}
+              >
+                {badgeText(unread.total)}
+              </span>
+            )}
           </Link>
         );
       })}

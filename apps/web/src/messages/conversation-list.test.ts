@@ -65,20 +65,42 @@ describe("search", () => {
 
   it("filters channels by name (a leading # is ignored) and DMs by node", () => {
     const channels = [
-      { index: 0, name: "LongFast", role: "PRIMARY" as const, encryption: null, lastMessage: null },
+      {
+        index: 0,
+        name: "LongFast",
+        role: "PRIMARY" as const,
+        encryption: null,
+        lastMessage: null,
+        unread: 0,
+        state: { lastReadRxTime: 0, muted: false, favorite: false },
+      },
       {
         index: 1,
         name: "Friends",
         role: "SECONDARY" as const,
         encryption: null,
         lastMessage: null,
+        unread: 0,
+        state: { lastReadRxTime: 0, muted: false, favorite: false },
       },
     ];
     expect(filterChannels(channels, "#fri").map((c) => c.index)).toEqual([1]);
     expect(filterChannels(channels, "")).toHaveLength(2);
     const dms = [
-      { peer: ridge.num, lastMessage: preview },
-      { peer: 0x1a2b3c4d, lastMessage: preview },
+      {
+        peer: ridge.num,
+        lastMessage: preview,
+        unread: 0,
+        state: { lastReadRxTime: 0, muted: false, favorite: false },
+        ignored: false,
+      },
+      {
+        peer: 0x1a2b3c4d,
+        lastMessage: preview,
+        unread: 0,
+        state: { lastReadRxTime: 0, muted: false, favorite: false },
+        ignored: false,
+      },
     ];
     expect(filterDms(dms, new Map([[ridge.num, ridge]]), "rdg").map((d) => d.peer)).toEqual([
       ridge.num,

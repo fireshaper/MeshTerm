@@ -60,8 +60,21 @@ async function seed(): Promise<void> {
     .toBe("acked");
 }
 
+/** Everything read, so no unread badge depends on which screen opened a thread first. */
+async function readAll(): Promise<void> {
+  for (const path of ["channel/0", "channel/1", `dm/${RIDGE}`]) {
+    const res = await fetch(`${BASE}/api/connections/1/conversations/${path}/read`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(res.status).toBe(200);
+  }
+}
+
 test.beforeAll(async () => {
   await seed();
+  await readAll();
 });
 
 /** Everything whose text depends on the time (or on FakeNode's random port). */

@@ -10,6 +10,18 @@ import {
   type Channel,
 } from "./domain.js";
 
+export const ConversationKind = z.enum(["channel", "dm"]);
+export type ConversationKind = z.infer<typeof ConversationKind>;
+
+/** Read state and list preferences of a conversation (shared by every user of the node). */
+export const ConversationState = z.object({
+  /** Messages received up to this time (epoch ms) have been read. */
+  lastReadRxTime: z.number().int().nonnegative(),
+  muted: z.boolean(),
+  favorite: z.boolean(),
+});
+export type ConversationState = z.infer<typeof ConversationState>;
+
 /** The newest message of a conversation, for its row in the list. */
 export const MessagePreview = z.object({
   id: z.uuid(),
@@ -30,6 +42,9 @@ export const ChannelConversation = z.object({
   role: ChannelRole,
   encryption: ChannelEncryption.nullable(),
   lastMessage: MessagePreview.nullable(),
+  /** Incoming messages after the read mark (reactions and ignored nodes don't count). */
+  unread: z.number().int().nonnegative(),
+  state: ConversationState,
 });
 export type ChannelConversation = z.infer<typeof ChannelConversation>;
 
@@ -37,6 +52,10 @@ export const DmConversation = z.object({
   /** The other node's number. */
   peer: Uint32,
   lastMessage: MessagePreview,
+  unread: z.number().int().nonnegative(),
+  state: ConversationState,
+  /** The peer is an ignored node: listed only with "Show ignored". */
+  ignored: z.boolean(),
 });
 export type DmConversation = z.infer<typeof DmConversation>;
 

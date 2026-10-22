@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ApplyStatusDTO } from "./device-config.js";
 import { ActivityEvent } from "./activity.js";
+import { ConversationKind, ConversationState } from "./conversations.js";
 import {
   Channel,
   ChannelIndex,
@@ -102,6 +103,26 @@ export const ActivityNewMessage = z.object({
   activity: ActivityEvent,
 });
 
+/** A conversation was read (in any browser): badges and counts clear everywhere. */
+export const ConversationReadMessage = z.object({
+  type: z.literal("conversation.read"),
+  connectionId: ConnectionId,
+  kind: ConversationKind,
+  /** Channel index or DM peer number. */
+  key: z.number().int().nonnegative(),
+  lastReadRxTime: z.number().int().nonnegative(),
+});
+
+/** Mute/favorite changed, or a DM was deleted (`deletedBefore` moved). */
+export const ConversationUpdatedMessage = z.object({
+  type: z.literal("conversation.updated"),
+  connectionId: ConnectionId,
+  kind: ConversationKind,
+  key: z.number().int().nonnegative(),
+  state: ConversationState,
+  deletedBefore: z.number().int().nonnegative(),
+});
+
 export const ServerMessage = z.discriminatedUnion("type", [
   SnapshotMessage,
   ConnectionStateMessage,
@@ -113,6 +134,8 @@ export const ServerMessage = z.discriminatedUnion("type", [
   ActivityNewMessage,
   ConfigUpdatedMessage,
   ConfigApplyMessage,
+  ConversationReadMessage,
+  ConversationUpdatedMessage,
   ErrorMessage,
 ]);
 export type ServerMessage = z.infer<typeof ServerMessage>;

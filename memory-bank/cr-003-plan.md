@@ -12,7 +12,7 @@ CR: [cr-003-notifications.md](cr-003-notifications.md). Stop after each phase, r
 - **Toasts:** a simple `ui-store` toast (`toast(text, kind)`) exists for app messages; nothing for message notifications.
 - **Auth:** with `MESHTERM_AUTH=none` everyone is the single built-in admin (user id 0), so per-user prefs still work.
 
-## Phase N0: read state and unread (Messages Phase 3, the CR's prerequisite)
+## Phase N0: read state and unread (Messages Phase 3, the CR's prerequisite) (done 2026-10-21)
 
 - `POST /api/connections/:id/conversations/:kind/:key/read` `{upTo}`, `PATCH …/conversations/:kind/:key` (`muted`, `favorite`; `notifyLevel` in N1), `DELETE …/conversations/dm/:peer`.
 - Unread counts in `ConversationsDTO` (and mention counts from N1), WS `conversation.read` and `conversation.updated`; the client patches the cache.

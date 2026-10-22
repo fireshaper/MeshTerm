@@ -24,6 +24,7 @@ import { MessageSender } from "./messaging/sender.js";
 import { activityRoutes } from "./routes/activity.js";
 import { nodeDetailRoutes } from "./routes/node-detail.js";
 import { apiRoutes } from "./routes/api.js";
+import { conversationRoutes } from "./routes/conversations.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { healthRoutes } from "./routes/health.js";
 import { HttpError } from "./routes/http-error.js";
@@ -256,6 +257,7 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
 
   await app.register(healthRoutes);
   await app.register(apiRoutes);
+  await app.register(conversationRoutes);
   await app.register(dashboardRoutes);
   await app.register(activityRoutes);
   await app.register(nodeDetailRoutes);

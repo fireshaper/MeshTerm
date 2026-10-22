@@ -69,6 +69,8 @@ export async function renderApp(path: string, seed: Seed = {}) {
           role: c.role,
           encryption: c.encryption,
           lastMessage: null,
+          unread: 0,
+          state: { lastReadRxTime: 0, muted: false, favorite: false },
         })),
       dms: [],
     },

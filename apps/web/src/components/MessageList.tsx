@@ -4,6 +4,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Conversation } from "../data/keys.js";
 import { loadOlder, useConversation, useNodes } from "../data/queries.js";
+import { useMarkRead } from "../messages/unread.js";
 import { MessageItem, senderName } from "./MessageItem.js";
 import { useNow } from "./useNow.js";
 
@@ -78,6 +79,8 @@ export function MessageList({ connectionId, conversation }: MessageListProps) {
       });
     }
   };
+
+  useMarkRead(connectionId, conversation, messages, atBottom);
 
   // Reset per conversation.
   useEffect(() => {

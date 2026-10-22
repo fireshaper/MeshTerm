@@ -163,6 +163,16 @@ function toServerMessage(
         connectionId: event.payload.status.connectionId,
         message: { type: "config.apply", ...event.payload },
       };
+    case "conversation.read":
+      return {
+        connectionId: event.payload.connectionId,
+        message: { type: "conversation.read", ...event.payload },
+      };
+    case "conversation.updated":
+      return {
+        connectionId: event.payload.connectionId,
+        message: { type: "conversation.updated", ...event.payload },
+      };
     default:
       return null;
   }

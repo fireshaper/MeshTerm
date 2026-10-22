@@ -5,6 +5,7 @@ import { useState } from "react";
 import { UserMenu } from "../auth/UserMenu.js";
 import { NodeDrawer } from "../node-drawer/NodeDrawer.js";
 import { ConnectionIndicator, useDeviceInfo } from "./ConnectionIndicator.js";
+import { useUnreadTitle, useUnreadTotals } from "../messages/unread.js";
 import { MainNav } from "./MainNav.js";
 import { Toaster } from "./Toaster.js";
 
@@ -49,6 +50,8 @@ function NavFooter() {
  * sidebar from 768 px, a navigation drawer below it, and the content area.
  */
 export function AppShell() {
+  useUnreadTitle();
+  const unread = useUnreadTotals();
   const [sidebar, setSidebar] = useState<SidebarPref>(readSidebarPref);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -72,8 +75,22 @@ export function AppShell() {
       <header data-mt="header">
         <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
           <Dialog.Trigger asChild>
-            <button type="button" data-mt="menu-button" aria-label="Open navigation">
+            <button
+              type="button"
+              data-mt="menu-button"
+              aria-label={
+                unread.total > 0 ? `Open navigation (${unread.total} unread)` : "Open navigation"
+              }
+            >
               <Menu data-mt="icon" {...ICON} />
+              {unread.total > 0 && (
+                <span
+                  data-mt="nav-badge"
+                  data-mt-variant="dot"
+                  data-mt-state={unread.dm ? "priority" : undefined}
+                  aria-hidden
+                />
+              )}
             </button>
           </Dialog.Trigger>
           <Dialog.Portal>

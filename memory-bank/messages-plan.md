@@ -47,7 +47,7 @@ Checked against the spec's five causes:
 - Mobile: the list, then the thread with a back button.
 - Last conversation remembered.
 
-## Phase 3: read state and unread
+## Phase 3: read state and unread (done 2026-10-21 as CR-003 Phase N0)
 
 - `POST …/read`, `PATCH`, `DELETE dm`; WS `conversation.read` and `conversation.updated`.
 - Marked read after the thread has been at the bottom for 1 s while focused.

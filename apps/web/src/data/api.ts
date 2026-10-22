@@ -4,6 +4,8 @@ import type {
   ApplyBody,
   ApplyStatusDTO,
   ChannelUrlDTO,
+  ConversationKind,
+  ConversationState,
   ConfigSnapshotSummary,
   ImportedConfigDTO,
   MaintenanceAction,
@@ -219,6 +221,28 @@ export const api = {
   refreshConfig: (connectionId: number) =>
     request<DeviceConfigDTO>(`/api/connections/${connectionId}/config/refresh`, { method: "POST" }),
 
+  markRead: (connectionId: number, kind: ConversationKind, key: number, upTo?: number) =>
+    request<ConversationState>(
+      `/api/connections/${connectionId}/conversations/${kind}/${key}/read`,
+      { method: "POST", body: JSON.stringify(upTo === undefined ? {} : { upTo }) },
+    ),
+  updateConversation: (
+    connectionId: number,
+    kind: ConversationKind,
+    key: number,
+    patch: { muted?: boolean; favorite?: boolean },
+  ) =>
+    request<ConversationState>(`/api/connections/${connectionId}/conversations/${kind}/${key}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+  deleteDm: (connectionId: number, peer: number) =>
+    request<{ deletedBefore: number }>(
+      `/api/connections/${connectionId}/conversations/dm/${peer}`,
+      {
+        method: "DELETE",
+      },
+    ),
   conversations: (connectionId: number) =>
     request<ConversationsDTO>(`/api/connections/${connectionId}/conversations`),
 
