@@ -209,3 +209,43 @@ test("canvas and code-drawn colors follow a switch without a reload", async ({ p
     .toBe(true);
   await page.emulateMedia({ colorScheme: "dark" });
 });
+
+test("THEMING.md's first-theme walkthrough produces a working theme", async ({ page }) => {
+  // The CSS blocks of steps 3 and 4, exactly as the guide shows them.
+  const guide = readFileSync(new URL("../../../THEMING.md", import.meta.url), "utf8");
+  const walkthrough = guide.slice(
+    guide.indexOf("## Your first theme in 10 minutes"),
+    guide.indexOf("## How styling works"),
+  );
+  const blocks = [...walkthrough.matchAll(/```css\n([\s\S]*?)```/g)].map((m) =>
+    m[1]?.replace(/^ {3}/gm, ""),
+  );
+  expect(blocks).toHaveLength(2);
+  const [tokens = "", hook = ""] = blocks;
+  const css = tokens.replace(/\}\s*$/, `\n${hook}}\n`);
+  const dir = join(USER_THEMES, "harbor");
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "theme.json"),
+    JSON.stringify({
+      id: "harbor",
+      name: "Harbor",
+      version: "1.0.0",
+      colorScheme: "dark",
+      preview: { bg: "#0d1b24", surface: "#13293a", accent: "#2ec4b6", text: "#e6f1f7" },
+    }),
+  );
+  writeFileSync(join(dir, "theme.css"), css);
+  try {
+    await openAppearance(page);
+    await card(page, /Harbor/).click();
+    await expect.poll(() => bodyBg(page)).toBe("rgb(13, 27, 36)");
+    const active = page.locator("[data-mt=nav-item][data-mt-state=active]").first();
+    await expect(active).toHaveCSS("border-left-color", "rgb(46, 196, 182)");
+    await card(page, /^Default/).click();
+    await expect.poll(() => bodyBg(page)).toBe(DEFAULT_DARK_BG);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

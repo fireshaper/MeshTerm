@@ -4,6 +4,7 @@ import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import { themeHooksPlugin } from "./eslint/theme-hooks.js";
 import { themingRestrictedSyntax } from "./eslint/theming-rules.js";
 
 export default tseslint.config(
@@ -62,6 +63,13 @@ export default tseslint.config(
   {
     files: ["apps/web/src/**/*.tsx"],
     rules: { "no-restricted-syntax": ["error", ...themingRestrictedSyntax] },
+  },
+  {
+    // Hooks are public API (CR-004 Phase B): only registered ones.
+    files: ["apps/web/src/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}", "apps/web/src/test/**"],
+    plugins: { "theme-hooks": themeHooksPlugin },
+    rules: { "theme-hooks/registered": "error" },
   },
   prettier,
 );

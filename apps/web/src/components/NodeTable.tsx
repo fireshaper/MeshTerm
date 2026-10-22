@@ -132,7 +132,7 @@ export function NodeTable({ cards, columns, onFavorite, ...ctx }: NodeTableProps
           {cards.length} {cards.length === 1 ? "node" : "nodes"}
         </caption>
         <thead>
-          <tr>
+          <tr data-mt="node-table-head">
             <th scope="col">
               <span data-mt="visually-hidden">Favorite</span>
             </th>
@@ -205,6 +205,7 @@ const NodeRow = memo(function NodeRow({ card, columns, ctx, onFavorite }: NodeRo
           </>
         ) : (
           <Link
+            data-mt="node-dm-link"
             to="/messages/dm/$nodeId"
             params={{ nodeId: nodeIdFromNum(card.num) }}
             onClick={(e) => {

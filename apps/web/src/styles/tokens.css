@@ -2,100 +2,99 @@
  * Base-app design tokens. Every component style uses only these.
  * Colors fall back to CSS system colors so the app is usable with no theme;
  * themes (themes/<id>/theme.css, in @layer theme) set the real values.
- * The Default theme is the reference for every token: see THEMING.md (later).
+ * The Default theme is the reference for every token.
+ *
+ * THEMING.md's token reference is generated from this file (`pnpm docs:tokens`):
+ * `@group Name: description` comments start a group, and a comment at the end of a
+ * token's line says what uses it.
  */
 @layer base {
   :root {
-    /* Surface */
-    --mt-surface-bg: Canvas;
-    --mt-surface-raised: Canvas;
-    --mt-surface-sunken: Canvas;
-    --mt-surface-elevated: var(--mt-surface-raised);
-    --mt-sidebar-bg: var(--mt-surface-raised);
-    --mt-border-color: GrayText;
+    /* @group Surface: page and panel backgrounds, borders */
+    --mt-surface-bg: Canvas; /* the page background */
+    --mt-surface-raised: Canvas; /* panels, cards, inputs */
+    --mt-surface-sunken: Canvas; /* wells: code, raw JSON, table stripes */
+    --mt-surface-elevated: var(--mt-surface-raised); /* popovers, menus, dialogs */
+    --mt-sidebar-bg: var(--mt-surface-raised); /* the navigation sidebar */
+    --mt-border-color: GrayText; /* borders and dividers everywhere */
+    --mt-shadow-popover: none; /* menus, popovers, dialogs */
 
-    /* Text */
-    --mt-text: CanvasText;
-    --mt-text-muted: GrayText;
-    --mt-text-inverse: Canvas;
+    /* @group Text */
+    --mt-text: CanvasText; /* body text */
+    --mt-text-muted: GrayText; /* secondary text, labels, axes */
+    --mt-text-inverse: Canvas; /* text on accent or status fills */
 
-    /* Accent and status */
-    --mt-accent: AccentColor;
-    --mt-accent-text: AccentColorText;
-    --mt-status-ok: AccentColor;
-    --mt-status-warn: Mark;
-    --mt-status-error: LinkText;
-    --mt-status-info: AccentColor;
+    /* @group Accent and status: links, focus, primary buttons; ok / warn / error / info */
+    --mt-accent: AccentColor; /* links, focus rings, active tabs, primary buttons */
+    --mt-accent-text: AccentColorText; /* text on the accent */
+    --mt-status-ok: AccentColor; /* connected, acked, good battery */
+    --mt-status-warn: Mark; /* warnings, stale */
+    --mt-status-error: LinkText; /* errors, failed messages, danger */
+    --mt-status-info: AccentColor; /* information */
 
-    /* Device settings: staged, conflicting and dangerous changes */
-    --mt-field-changed-bg: color-mix(in srgb, var(--mt-accent) 12%, transparent);
-    --mt-field-conflict-bg: color-mix(in srgb, var(--mt-status-warn) 18%, transparent);
-    --mt-danger-surface: color-mix(in srgb, var(--mt-status-error) 12%, transparent);
+    /* @group Message bubbles */
+    --mt-bubble-in-bg: Field; /* received messages */
+    --mt-bubble-in-text: FieldText;
+    --mt-bubble-out-bg: AccentColor; /* sent messages */
+    --mt-bubble-out-text: AccentColorText;
 
-    /* Unread badges (CR-003): count badges, and DMs/mentions with priority */
-    --mt-badge-bg: var(--mt-accent);
+    /* @group Badges and mentions: unread counts (CR-003) */
+    --mt-badge-bg: var(--mt-accent); /* unread count badges, favicon dot */
     --mt-badge-text: var(--mt-accent-text);
-    --mt-badge-priority-bg: var(--mt-status-error);
+    --mt-badge-priority-bg: var(--mt-status-error); /* badges with a DM or mention */
+    --mt-mention-bg: color-mix(
+      in srgb,
+      var(--mt-accent) 25%,
+      transparent
+    ); /* @mentions in bubbles */
+    --mt-mention-text: inherit;
 
-    /* Notification toasts and mentions (CR-003) */
+    /* @group Toasts: notification popups (CR-003) */
     --mt-toast-bg: var(--mt-surface-elevated);
     --mt-toast-border: var(--mt-border-color);
     --mt-toast-shadow: var(--mt-shadow-popover);
     --mt-toast-width: 22rem;
+    --mt-toast-enter: mt-toast-enter; /* animation name; `none` turns it off */
+    --mt-toast-exit: none; /* animation name */
 
-    /* Animation names; a theme can set `none`. */
-    --mt-toast-enter: mt-toast-enter;
-    --mt-toast-exit: none;
-    --mt-mention-bg: color-mix(in srgb, var(--mt-accent) 25%, transparent);
-    --mt-mention-text: inherit;
-    --mt-qr-fg: CanvasText;
-    --mt-qr-bg: Canvas;
-
-    /* Message bubbles */
-    --mt-bubble-in-bg: Field;
-    --mt-bubble-in-text: FieldText;
-    --mt-bubble-out-bg: AccentColor;
-    --mt-bubble-out-text: AccentColorText;
-
-    /* Dashboard cards */
+    /* @group Cards: dashboard and node cards */
     --mt-card-bg: var(--mt-surface-raised);
     --mt-card-border: var(--mt-border-color);
     --mt-card-radius: var(--mt-radius-md);
     --mt-card-shadow: none;
-    --mt-card-self-accent: var(--mt-accent);
-    --mt-card-min-width: 17.5rem;
-    --mt-battery-low: var(--mt-status-warn);
-    --mt-battery-critical: var(--mt-status-error);
-    --mt-chart-1: var(--mt-accent);
-    --mt-chart-2: var(--mt-status-ok);
-    --mt-chart-3: var(--mt-accent);
-    --mt-chart-4: var(--mt-status-warn);
-    --mt-chart-5: var(--mt-text-muted);
-    --mt-chart-6: var(--mt-status-info);
+    --mt-card-self-accent: var(--mt-accent); /* the edge of your own node's card */
+    --mt-card-min-width: 17.5rem; /* the card grid's column width */
+    --mt-battery-low: var(--mt-status-warn); /* battery meters below the warning level */
+    --mt-battery-critical: var(--mt-status-error); /* battery meters below the danger level */
 
-    /* Telemetry charts (CR-001, canvas: read through useChartTokens) */
-    --mt-chart-grid: color-mix(in srgb, var(--mt-border-color) 60%, transparent);
-    --mt-chart-axis: var(--mt-text-muted);
-    --mt-chart-crosshair: var(--mt-text-muted);
-    --mt-chart-band-alpha: 0.2;
-    --mt-chart-threshold-warn: var(--mt-status-warn);
-    --mt-chart-threshold-danger: var(--mt-status-error);
-    --mt-chart-powered: var(--mt-status-ok);
-    --mt-chart-reboot: var(--mt-status-warn);
-    --mt-shadow-popover: none;
-
-    /* How recently a node was heard */
+    /* @group Signal: how recently a node was heard (status dots) */
     --mt-signal-online: var(--mt-status-ok);
     --mt-signal-recent: var(--mt-status-info);
     --mt-signal-stale: var(--mt-status-warn);
     --mt-signal-offline: var(--mt-text-muted);
 
-    /* Mini maps */
+    /* @group Charts: sparklines, dashboard charts and telemetry charts (canvas: read through chart-tokens.ts) */
+    --mt-chart-1: var(--mt-accent); /* first series; sparklines */
+    --mt-chart-2: var(--mt-status-ok);
+    --mt-chart-3: var(--mt-accent);
+    --mt-chart-4: var(--mt-status-warn);
+    --mt-chart-5: var(--mt-text-muted); /* "other" in packet-type charts */
+    --mt-chart-6: var(--mt-status-info);
+    --mt-chart-grid: color-mix(in srgb, var(--mt-border-color) 60%, transparent);
+    --mt-chart-axis: var(--mt-text-muted);
+    --mt-chart-crosshair: var(--mt-text-muted);
+    --mt-chart-band-alpha: 0.2; /* opacity of min–max bands and the Powered band (0–1) */
+    --mt-chart-threshold-warn: var(--mt-status-warn);
+    --mt-chart-threshold-danger: var(--mt-status-error);
+    --mt-chart-powered: var(--mt-status-ok); /* external power band */
+    --mt-chart-reboot: var(--mt-status-warn); /* reboot markers */
+
+    /* @group Mini maps: the static maps on node cards */
     --mt-mini-map-height: 10rem;
     --mt-map-marker: var(--mt-accent);
     --mt-map-marker-self: var(--mt-status-error);
 
-    /* Map page (bridged into MapLibre's canvas; see map/map-tokens.ts) */
+    /* @group Map page: dots, labels and clusters (canvas: read through map-tokens.ts) */
     --mt-map-node-online: var(--mt-signal-online);
     --mt-map-node-recent: var(--mt-signal-recent);
     --mt-map-node-stale: var(--mt-signal-stale);
@@ -104,14 +103,19 @@
     --mt-map-label-halo: var(--mt-surface-bg);
     --mt-map-cluster-bg: var(--mt-accent);
     --mt-map-cluster-text: var(--mt-accent-text);
-    --mt-font-map: var(--mt-font-body);
+    --mt-font-map: var(--mt-font-body); /* node labels on the map */
 
-    /* Typography */
+    /* @group Device settings: staged, conflicting and dangerous changes; QR codes */
+    --mt-field-changed-bg: color-mix(in srgb, var(--mt-accent) 12%, transparent);
+    --mt-field-conflict-bg: color-mix(in srgb, var(--mt-status-warn) 18%, transparent);
+    --mt-danger-surface: color-mix(in srgb, var(--mt-status-error) 12%, transparent);
+    --mt-qr-fg: CanvasText; /* keep QR codes dark on light: scanners expect it */
+    --mt-qr-bg: Canvas;
+
+    /* @group Typography */
     --mt-font-body: system-ui, sans-serif;
-    --mt-font-mono: ui-monospace, monospace;
-
-    /* Headings (page titles, section and card headers); Cyberpunk swaps in a display face. */
-    --mt-font-display: var(--mt-font-body);
+    --mt-font-mono: ui-monospace, monospace; /* ids, numbers, raw data */
+    --mt-font-display: var(--mt-font-body); /* headings: page titles, section and card headers */
     --mt-font-size-xs: 0.75rem;
     --mt-font-size-sm: 0.875rem;
     --mt-font-size-md: 1rem;
@@ -121,32 +125,32 @@
     --mt-font-weight-bold: 600;
     --mt-line-height: 1.5;
 
-    /* Shape */
+    /* @group Shape */
     --mt-radius-sm: 0.25rem;
     --mt-radius-md: 0.5rem;
     --mt-radius-lg: 1rem;
     --mt-border-width: 1px;
 
-    /* Spacing */
+    /* @group Spacing */
     --mt-space-1: 0.25rem;
     --mt-space-2: 0.5rem;
     --mt-space-3: 1rem;
     --mt-space-4: 1.5rem;
 
-    /* Layout */
+    /* @group Layout */
     --mt-header-height: 3rem;
     --mt-tab-bar-height: 3.5rem;
     --mt-sidebar-width: 14rem;
+    --mt-sidebar-collapsed-width: 4rem;
     --mt-conversation-list-width: 20rem;
+    --mt-drawer-width: min(18rem, 85vw); /* the mobile navigation drawer */
 
-    /* Node details drawer (CR-001): width from 768 px (resizable 400–800 px), surface. */
-    --mt-node-drawer-width: 30rem;
+    /* @group Node drawer: node details (CR-001) */
+    --mt-node-drawer-width: 30rem; /* from 768 px; users can resize it (400–800 px) */
     --mt-drawer-bg: var(--mt-sidebar-bg);
     --mt-drawer-shadow: var(--mt-shadow-popover);
-    --mt-sidebar-collapsed-width: 4rem;
-    --mt-drawer-width: min(18rem, 85vw);
 
-    /* Motion */
+    /* @group Motion: 0 under prefers-reduced-motion */
     --mt-duration-fast: 120ms;
     --mt-duration-normal: 200ms;
     --mt-easing: cubic-bezier(0.2, 0, 0, 1);

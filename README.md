@@ -66,6 +66,12 @@ To get desktop notifications, put MeshTerm behind HTTPS, for example:
 
 Then open MeshTerm at the `https://` address and enable desktop notifications in Settings → Notifications (or from the banner on the Messages page after your first DM).
 
+## Themes
+
+Everything you see comes from a theme. Pick one in **Settings → Appearance**, along with light or dark mode for Default; admins also choose the server default, which browsers use until they pick their own.
+
+To add a theme, put its folder in `/data/themes/<id>/` (a `theme.json` and a `theme.css`, no JavaScript). It appears in the picker within seconds, and edits to it apply to open browsers while you watch. Admins can also duplicate any theme there as a starting point. [THEMING.md](THEMING.md) explains how to write one, with every token and hook. If a theme ever makes the page unusable, add `?theme=default` to the address.
+
 ## Try it without a radio
 
 [`compose.test.yml`](compose.test.yml) builds MeshTerm from source and runs it against **FakeNode**, a simulated Meshtastic node:

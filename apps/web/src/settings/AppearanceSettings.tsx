@@ -87,7 +87,15 @@ export function AppearanceSettingsPage() {
         <p data-mt="detail-note">
           Your choice is kept in this browser. To add a theme, put its folder in{" "}
           <code>/data/themes</code>: it shows up here within seconds, and edits apply while you
-          watch.
+          watch.{" "}
+          <a
+            data-mt="theming-guide-link"
+            href="https://github.com/fireshaper/MeshTerm/blob/main/THEMING.md"
+            target="_blank"
+            rel="noreferrer"
+          >
+            How to make a theme
+          </a>
         </p>
       </div>
     </section>

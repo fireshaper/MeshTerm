@@ -66,7 +66,7 @@ CR: [cr-004-themes.md](cr-004-themes.md). Stop after each phase, report, commit 
   - e2e: dropping a folder into the data dir shows it in the picker, and editing its CSS updates an open page.
 - **Visual baselines:** Appearance (Default Dark) and Default Light for the existing screens.
 
-## Phase B: THEMING.md, generated references, hook registry
+## Phase B: THEMING.md, generated references, hook registry (done 2026-10-22)
 
 - `packages/shared/src/theme-hooks.ts`: every hook with its states and variants. Components switch to it (`hook("toast")` or a typed constant) in one sweep.
 - An ESLint rule (local plugin) flags a literal `data-mt` value that isn't in the registry.

@@ -1,0 +1,150 @@
+// Writes the generated parts of THEMING.md (CR-004 §5.1): the token reference from
+// apps/web/src/styles/tokens.css (with the Default theme's values) and the hook
+// reference from packages/shared/src/theme-hooks.ts. `--check` only compares, for CI.
+//
+//   pnpm docs:tokens          rewrite THEMING.md
+//   pnpm docs:tokens --check  fail if THEMING.md is out of date
+import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import * as prettier from "prettier";
+import { THEME_HOOKS } from "../packages/shared/src/theme-hooks.ts";
+
+/** @param {string} path */
+const root = (path) => fileURLToPath(new URL(`../${path}`, import.meta.url));
+const DOC = root("THEMING.md");
+const check = process.argv.includes("--check");
+
+/**
+ * Tokens in tokens.css's first `:root` block, by `@group`.
+ * @returns {{ name: string, description: string, tokens: { name: string, value: string, note: string }[] }[]}
+ */
+function readTokens() {
+  const css = readFileSync(root("apps/web/src/styles/tokens.css"), "utf8");
+  const block = css.slice(css.indexOf(":root {"), css.indexOf("@media"));
+  /** @type {{ name: string, description: string, tokens: { name: string, value: string, note: string }[] }[]} */
+  const groups = [];
+  for (const line of block.split("\n")) {
+    const group = /\/\* @group ([^:*]+?)(?:: (.+?))? \*\//.exec(line);
+    if (group) {
+      groups.push({ name: group[1].trim(), description: group[2]?.trim() ?? "", tokens: [] });
+      continue;
+    }
+    const token = /^\s*(--mt-[a-z0-9-]+):\s*(.+?);\s*(?:\/\* (.+?) \*\/)?\s*$/.exec(line);
+    if (token) {
+      const current = groups.at(-1);
+      if (!current) throw new Error(`${token[1]} is before the first @group`);
+      current.tokens.push({ name: token[1], value: token[2], note: token[3] ?? "" });
+    }
+  }
+  return groups;
+}
+
+/** The Default theme's values: shared, dark and light. */
+/** @returns {{ shared: Map<string, string>, dark: Map<string, string>, light: Map<string, string> }} */
+function readDefault() {
+  const css = readFileSync(root("themes/default/theme.css"), "utf8");
+  const values = { shared: new Map(), dark: new Map(), light: new Map() };
+  const re = /([^{}]+)\{([^{}]*)\}/g;
+  for (const [, selector, body] of css.matchAll(re)) {
+    const sel = selector.replace(/\s+/g, " ").trim();
+    const target = sel.includes('"light"')
+      ? values.light
+      : sel.includes('"dark"')
+        ? values.dark
+        : sel === ":root"
+          ? values.shared
+          : null;
+    if (!target) continue;
+    for (const [, name, value] of body.matchAll(/(--mt-[a-z0-9-]+):\s*([^;]+);/g)) {
+      target.set(name, value.trim());
+    }
+  }
+  return values;
+}
+
+/** @param {string} s */
+const code = (s) => `\`${s.replace(/\|/g, "\\|")}\``;
+/** @param {string} s */
+const cell = (s) => s.replace(/\|/g, "\\|");
+
+function tokenSection() {
+  const theme = readDefault();
+  const out = [];
+  for (const group of readTokens()) {
+    out.push(`### ${group.name}`, "");
+    if (group.description)
+      out.push(`${group.description[0].toUpperCase()}${group.description.slice(1)}.`, "");
+    out.push(
+      "| Token | Default (dark) | Default (light) | Without a theme | Used for |",
+      "| --- | --- | --- | --- | --- |",
+    );
+    for (const t of group.tokens) {
+      const dark = theme.dark.get(t.name) ?? theme.shared.get(t.name);
+      const light = theme.light.get(t.name) ?? theme.shared.get(t.name) ?? dark;
+      out.push(
+        `| ${code(t.name)} | ${dark ? code(dark) : "—"} | ${light ? code(light) : "—"} | ${code(t.value)} | ${cell(t.note)} |`,
+      );
+    }
+    out.push("");
+  }
+  return out.join("\n");
+}
+
+function hookSection() {
+  /** @type {Map<string, [string, import("../packages/shared/src/theme-hooks.ts").ThemeHook][]>} */
+  const byArea = new Map();
+  for (const [name, hook] of Object.entries(THEME_HOOKS)) {
+    if (!byArea.has(hook.area)) byArea.set(hook.area, []);
+    byArea.get(hook.area)?.push([name, hook]);
+  }
+  /** @param {readonly string[] | undefined} list @param {boolean | undefined} open */
+  const values = (list, open) => {
+    const shown = (list ?? []).map(code).join(", ");
+    if (open) return shown ? `${shown}, … (from data)` : "(from data)";
+    return shown;
+  };
+  const out = [];
+  for (const area of [...byArea.keys()].sort()) {
+    out.push(
+      `### ${area}`,
+      "",
+      "| `data-mt` | Element | `data-mt-state` | `data-mt-variant` |",
+      "| --- | --- | --- | --- |",
+    );
+    for (const [name, hook] of (byArea.get(area) ?? []).sort(([a], [b]) => a.localeCompare(b))) {
+      out.push(
+        `| ${code(name)} | ${cell(hook.element ?? "")} | ${values(hook.states, hook.openStates)} | ${values(hook.variants, hook.openVariants)} |`,
+      );
+    }
+    out.push("");
+  }
+  return out.join("\n");
+}
+
+/** @param {string} text @param {string} marker @param {string} content */
+function replaceBetween(text, marker, content) {
+  const start = `<!-- ${marker}:start (generated by pnpm docs:tokens; don't edit by hand) -->`;
+  const end = `<!-- ${marker}:end -->`;
+  const i = text.indexOf(start);
+  const j = text.indexOf(end);
+  if (i < 0 || j < i) throw new Error(`THEMING.md needs the ${marker} markers`);
+  return `${text.slice(0, i + start.length)}\n\n${content}\n${text.slice(j)}`;
+}
+
+const current = readFileSync(DOC, "utf8");
+let next = replaceBetween(current, "tokens", tokenSection());
+next = replaceBetween(next, "hooks", hookSection());
+next = await prettier.format(next, { ...(await prettier.resolveConfig(DOC)), filepath: DOC });
+
+if (check) {
+  if (next !== current) {
+    console.error("THEMING.md is out of date: run `pnpm docs:tokens` and commit it.");
+    process.exit(1);
+  }
+  console.log("THEMING.md is up to date.");
+} else if (next !== current) {
+  writeFileSync(DOC, next);
+  console.log("THEMING.md updated.");
+} else {
+  console.log("THEMING.md already up to date.");
+}

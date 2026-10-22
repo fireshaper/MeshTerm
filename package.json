@@ -16,6 +16,7 @@
     "lint:css": "stylelint \"**/*.css\" --allow-empty-input",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "docs:tokens": "node scripts/docs-tokens.mjs",
     "test": "vitest run",
     "test:unit": "vitest run --exclude \"**/*.int.test.ts\"",
     "test:int": "vitest run .int.test.ts --passWithNoTests",

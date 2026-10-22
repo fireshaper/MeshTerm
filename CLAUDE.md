@@ -54,6 +54,8 @@ pnpm test:visual                     # visual baselines (dashboard, map, node dr
 pnpm test:visual:update              # rewrite this platform's baselines after an intended UI change
 pnpm test:visual:linux               # rewrite the Linux (CI) baselines in the Playwright Docker image
 UPDATE=all pnpm test:visual:linux    # same, rewriting every baseline (changes under the 1% threshold too)
+UPDATE=all GREP=<test> pnpm test:visual:linux   # same, only the visual tests whose name matches
+pnpm docs:tokens                     # regenerate THEMING.md's token and hook reference (CI runs --check)
 
 # Run locally
 pnpm dev                             # server + web dev servers (copy .env.example to .env first)

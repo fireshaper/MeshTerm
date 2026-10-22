@@ -28,6 +28,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm format:check
+      - run: pnpm docs:tokens --check
       - name: Unit tests
         run: pnpm test:unit
       - name: Integration tests

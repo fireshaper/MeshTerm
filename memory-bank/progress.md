@@ -658,6 +658,17 @@ State: `typecheck`, `lint`, `test` (798, 1 skipped), `test:e2e` (186 passed, 7 s
 
 State: `typecheck`, `lint`, `test` (810, 1 skipped), `test:e2e` green.
 
+### CR-004 Phase B: THEMING.md and the hook audit (done 2026-10-22)
+
+- **Hook registry:** `packages/shared/src/theme-hooks.ts` lists all 490 hooks with their states and variants (generated once from the code and the architecture table, then curated). An ESLint rule checks every literal hook, state and variant against it; the e2e crawl (`hooks.spec.ts`) checks what the screens render.
+- **Gaps the crawl found, fixed:** the node table's header row (`node-table-head`) and name links (`node-dm-link`), the map's OpenStreetMap credit link (`map-attribution-link`); registry entries for `traffic-window`, the `select` variants of the toolbar filters and the chart `range` / `zoomed` states.
+- **Tokens:** `tokens.css` regrouped under `@group` comments with a note per token (values unchanged, checked).
+- **THEMING.md** (CR §5.1, all ten topics) with generated token and hook references (`pnpm docs:tokens`, `--check` in CI). README section "Themes"; Settings → Appearance links to the guide.
+- **Walkthrough test:** an e2e test takes the walkthrough's CSS straight from THEMING.md, installs it as a user theme and checks the result.
+- `scripts/visual-baselines-linux.sh` takes `GREP` to rewrite only matching tests.
+
+State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test` (818, 1 skipped), `test:e2e` green apart from one mobile dashboard activity-feed run that passed 3/3 on its own (watching it).
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

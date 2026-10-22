@@ -416,7 +416,12 @@ export function MapPage() {
       )}
       <div data-mt="map-attribution">
         ©{" "}
-        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+        <a
+          data-mt="map-attribution-link"
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noreferrer"
+        >
           OpenStreetMap
         </a>{" "}
         contributors
