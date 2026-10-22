@@ -53,6 +53,7 @@ pnpm test:gate                       # base-app gate spec, three runs in a row
 pnpm test:visual                     # visual baselines (dashboard, map, node drawer + charts, nodes cards/table, channel, node list, DM, device settings/channels/network/maintenance × 1280/390 px)
 pnpm test:visual:update              # rewrite this platform's baselines after an intended UI change
 pnpm test:visual:linux               # rewrite the Linux (CI) baselines in the Playwright Docker image
+UPDATE=all pnpm test:visual:linux    # same, rewriting every baseline (changes under the 1% threshold too)
 
 # Run locally
 pnpm dev                             # server + web dev servers (copy .env.example to .env first)

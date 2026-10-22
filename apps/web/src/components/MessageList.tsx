@@ -6,6 +6,7 @@ import type { Conversation } from "../data/keys.js";
 import { loadOlder, useConversation, useNodes } from "../data/queries.js";
 import { useMarkRead } from "../messages/unread.js";
 import { useNotifyCenter } from "../notifications/center.js";
+import { useMentionTerms } from "../notifications/mention-terms.js";
 import { MessageItem, senderName } from "./MessageItem.js";
 import { useNow } from "./useNow.js";
 
@@ -26,6 +27,7 @@ export function MessageList({ connectionId, conversation }: MessageListProps) {
   const { data, isPending } = useConversation(connectionId, conversation);
   const { data: nodeList } = useNodes(connectionId);
   const now = useNow();
+  const mentions = useMentionTerms(connectionId);
   const messages = useMemo(() => data?.messages ?? [], [data]);
   const nodes = useMemo(
     () => new Map<number, MeshNode>((nodeList ?? []).map((n) => [n.num, n])),
@@ -150,6 +152,7 @@ export function MessageList({ connectionId, conversation }: MessageListProps) {
                 message={message}
                 sender={senderName(message.fromNum, nodes)}
                 now={now}
+                mentions={mentions}
               />
             </div>
           );

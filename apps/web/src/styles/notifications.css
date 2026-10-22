@@ -1,0 +1,319 @@
+/* Message notifications (CR-003): toasts, the bell, mentions. Tokens only. */
+@layer base {
+  @keyframes mt-toast-enter {
+    from {
+      opacity: 0;
+      transform: translateY(calc(-1 * var(--mt-space-2)));
+    }
+  }
+
+  [data-mt="toast-region"] {
+    position: fixed;
+    inset-block-start: calc(var(--mt-header-height) + var(--mt-space-2));
+    inset-inline: var(--mt-space-2);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-2);
+    pointer-events: none;
+  }
+
+  [data-mt="toast-region"]:empty {
+    display: none;
+  }
+
+  @media (width >= 768px) {
+    [data-mt="toast-region"] {
+      inset-inline: auto var(--mt-space-3);
+      inline-size: var(--mt-toast-width);
+    }
+
+    [data-mt="toast-region"][data-mt-variant="top-left"],
+    [data-mt="toast-region"][data-mt-variant="bottom-left"] {
+      inset-inline: calc(var(--mt-sidebar-width) + var(--mt-space-3)) auto;
+    }
+
+    [data-mt="toast-region"][data-mt-variant^="bottom"] {
+      inset-block: auto var(--mt-space-3);
+      flex-direction: column-reverse;
+    }
+  }
+
+  [data-mt="toast-region"] [data-mt="toast"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--mt-space-1) var(--mt-space-2);
+    align-items: start;
+    padding: var(--mt-space-2) var(--mt-space-3);
+    border: var(--mt-border-width) solid var(--mt-toast-border);
+    border-radius: var(--mt-radius-md);
+    background: var(--mt-toast-bg);
+    color: var(--mt-text);
+    box-shadow: var(--mt-toast-shadow);
+    pointer-events: auto;
+    animation: var(--mt-toast-enter) var(--mt-duration-normal) var(--mt-easing);
+  }
+
+  [data-mt="toast-region"] [data-mt="toast"][data-mt-variant="mention"],
+  [data-mt="toast-region"] [data-mt="toast"][data-mt-variant="dm"] {
+    border-inline-start: var(--mt-space-1) solid var(--mt-badge-priority-bg);
+  }
+
+  [data-mt="toast-open"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-1);
+    min-inline-size: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  [data-mt="toast-title"] {
+    display: flex;
+    gap: var(--mt-space-2);
+    align-items: center;
+    font-size: var(--mt-font-size-sm);
+    font-weight: var(--mt-font-weight-bold);
+  }
+
+  [data-mt="toast-dot"] {
+    inline-size: 0.5em;
+    block-size: 0.5em;
+    border-radius: 50%;
+    background: var(--mt-badge-bg);
+  }
+
+  [data-mt="toast"][data-mt-variant="dm"] [data-mt="toast-dot"],
+  [data-mt="toast"][data-mt-variant="mention"] [data-mt="toast-dot"] {
+    background: var(--mt-badge-priority-bg);
+  }
+
+  [data-mt="toast-body"] {
+    overflow: hidden;
+    font-size: var(--mt-font-size-sm);
+    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+  }
+
+  [data-mt="toast-actions"],
+  [data-mt="toast-reply"] {
+    display: flex;
+    grid-column: 1 / -1;
+    gap: var(--mt-space-2);
+    align-items: center;
+  }
+
+  [data-mt="toast-actions"] [data-mt="button"] {
+    display: inline-flex;
+    gap: var(--mt-space-1);
+    align-items: center;
+    padding: var(--mt-space-1) var(--mt-space-2);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-radius-sm);
+    background: var(--mt-surface-raised);
+    color: var(--mt-text);
+    font-size: var(--mt-font-size-xs);
+    cursor: pointer;
+  }
+
+  [data-mt="toast-time"] {
+    margin-inline-start: auto;
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-xs);
+  }
+
+  [data-mt="toast-sent"] {
+    display: inline-flex;
+    gap: var(--mt-space-1);
+    align-items: center;
+    color: var(--mt-status-ok);
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="toast-reply"] input {
+    flex: 1;
+    min-inline-size: 0;
+    padding: var(--mt-space-1) var(--mt-space-2);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-radius-sm);
+    background: var(--mt-surface-raised);
+    color: var(--mt-text);
+  }
+
+  [data-mt="toast-reply"] [data-mt="byte-counter"] {
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-xs);
+  }
+
+  [data-mt="toast-reply"] [data-mt="byte-counter"][data-mt-state="over"] {
+    color: var(--mt-status-error);
+  }
+
+  [data-mt="toast-more"] {
+    align-self: flex-end;
+    padding: var(--mt-space-1) var(--mt-space-2);
+    border: var(--mt-border-width) solid var(--mt-toast-border);
+    border-radius: var(--mt-radius-sm);
+    background: var(--mt-toast-bg);
+    color: var(--mt-text);
+    font-size: var(--mt-font-size-xs);
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  /* The bell */
+  [data-mt="notification-bell"] {
+    position: relative;
+    display: inline-flex;
+    gap: var(--mt-space-1);
+    align-items: center;
+    padding: var(--mt-space-1) var(--mt-space-2);
+    border: var(--mt-border-width) solid transparent;
+    border-radius: var(--mt-radius-md);
+    background: none;
+    color: var(--mt-text);
+    cursor: pointer;
+  }
+
+  [data-mt="notification-bell"]:hover,
+  [data-mt="notification-bell"][data-state="open"] {
+    border-color: var(--mt-border-color);
+  }
+
+  [data-mt="notification-bell"][data-mt-state="dnd"] {
+    color: var(--mt-text-muted);
+  }
+
+  [data-mt="notification-bell"] [data-mt="nav-badge"] {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    margin: 0;
+  }
+
+  [data-mt="dnd-indicator"] {
+    font-size: var(--mt-font-size-xs);
+    font-weight: var(--mt-font-weight-bold);
+  }
+
+  [data-mt="notification-center"] {
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    inline-size: min(24rem, calc(100vw - 2 * var(--mt-space-3)));
+    max-block-size: min(32rem, 80vh);
+    padding: var(--mt-space-1);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-radius-md);
+    background: var(--mt-surface-elevated);
+    color: var(--mt-text);
+    box-shadow: var(--mt-shadow-popover);
+  }
+
+  [data-mt="notification-center-header"] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  [data-mt="notification-list"] {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  [data-mt="notification-center-empty"] {
+    margin: 0;
+    padding: var(--mt-space-3);
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="notification-item"] {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0 var(--mt-space-2);
+    align-items: baseline;
+    padding: var(--mt-space-2);
+    border-radius: var(--mt-radius-sm);
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-sm);
+    cursor: pointer;
+    outline: none;
+  }
+
+  [data-mt="notification-item"][data-highlighted] {
+    background: var(--mt-surface-raised);
+  }
+
+  [data-mt="notification-item"][data-mt-state="unread"] {
+    color: var(--mt-text);
+  }
+
+  [data-mt="notification-dot"] {
+    grid-column: 1;
+    inline-size: 0.5em;
+    block-size: 0.5em;
+    border-radius: 50%;
+    background: var(--mt-badge-bg);
+  }
+
+  [data-mt="notification-title"] {
+    grid-column: 2;
+    overflow: hidden;
+    font-weight: var(--mt-font-weight-medium);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  [data-mt="notification-time"] {
+    grid-column: 3;
+    font-size: var(--mt-font-size-xs);
+  }
+
+  [data-mt="notification-preview"] {
+    grid-column: 2 / -1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  [data-mt="menu-separator"] {
+    block-size: var(--mt-border-width);
+    margin: var(--mt-space-1) 0;
+    background: var(--mt-border-color);
+  }
+
+  /* Mentions */
+  [data-mt="mention"] {
+    padding: 0 var(--mt-space-1);
+    border-radius: var(--mt-radius-sm);
+    background: var(--mt-mention-bg);
+    color: var(--mt-mention-text);
+    font-weight: var(--mt-font-weight-bold);
+  }
+
+  [data-mt="mention-marker"] {
+    color: var(--mt-badge-priority-bg);
+    font-weight: var(--mt-font-weight-bold);
+  }
+}
+
+/* Phones: room for the bell next to the connection pill. */
+@layer base {
+  [data-mt="notification-bell"] {
+    flex: none;
+  }
+
+  @media (width < 640px) {
+    [data-mt="header"] [data-mt="user-menu-name"],
+    [data-mt="header"] [data-mt="dnd-indicator"] {
+      display: none;
+    }
+  }
+}

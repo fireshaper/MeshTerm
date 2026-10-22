@@ -36,6 +36,18 @@
     --mt-badge-bg: var(--mt-accent);
     --mt-badge-text: var(--mt-accent-text);
     --mt-badge-priority-bg: var(--mt-status-error);
+
+    /* Notification toasts and mentions (CR-003) */
+    --mt-toast-bg: var(--mt-surface-elevated);
+    --mt-toast-border: var(--mt-border-color);
+    --mt-toast-shadow: var(--mt-shadow-popover);
+    --mt-toast-width: 22rem;
+
+    /* Animation names; a theme can set `none`. */
+    --mt-toast-enter: mt-toast-enter;
+    --mt-toast-exit: none;
+    --mt-mention-bg: color-mix(in srgb, var(--mt-accent) 25%, transparent);
+    --mt-mention-text: inherit;
     --mt-qr-fg: CanvasText;
     --mt-qr-bg: Canvas;
 
@@ -141,6 +153,8 @@
     :root {
       --mt-duration-fast: 0ms;
       --mt-duration-normal: 0ms;
+      --mt-toast-enter: none;
+      --mt-toast-exit: none;
     }
   }
 }

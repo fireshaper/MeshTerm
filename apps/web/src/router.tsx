@@ -13,6 +13,7 @@ import { ChannelThread, DmThread, MessagesIndex, MessagesPage } from "./messages
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { AccountPage, AuditPage, SettingsPage, UsersPage } from "./settings/SettingsPages.js";
 import { DeviceSettingsPage } from "./settings/device/DeviceSettings.js";
+import { NotificationSettingsPage } from "./settings/NotificationSettings.js";
 import { isSectionId } from "./settings/device/registry.js";
 import { NodesPage } from "./pages/NodesPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
@@ -143,6 +144,11 @@ export const deviceSettingsRoute = createRoute({
       : {},
   component: DeviceSettingsPage,
 });
+const notificationSettingsRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/notifications",
+  component: NotificationSettingsPage,
+});
 const accountRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/account",
@@ -170,6 +176,7 @@ const routeTree = rootRoute.addChildren([
   settingsRoute.addChildren([
     settingsIndexRoute,
     deviceSettingsRoute,
+    notificationSettingsRoute,
     accountRoute,
     usersRoute,
     auditRoute,

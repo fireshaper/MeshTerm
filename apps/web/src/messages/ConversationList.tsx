@@ -212,13 +212,20 @@ function RowFlags({ row }: { row: Row }) {
 function UnreadBadge({ row }: { row: Row }) {
   if (row.unread === 0) return null;
   return (
-    <span
-      data-mt="unread-badge"
-      data-mt-variant={row.state.muted ? "muted" : undefined}
-      aria-label={`${row.unread} unread`}
-    >
-      {badgeText(row.unread)}
-    </span>
+    <>
+      {row.unreadMentions > 0 && (
+        <span data-mt="mention-marker" aria-label={`${row.unreadMentions} mentioning you`}>
+          @
+        </span>
+      )}
+      <span
+        data-mt="unread-badge"
+        data-mt-variant={row.state.muted ? "muted" : undefined}
+        aria-label={`${row.unread} unread`}
+      >
+        {badgeText(row.unread)}
+      </span>
+    </>
   );
 }
 

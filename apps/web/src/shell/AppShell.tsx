@@ -1,12 +1,16 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Outlet } from "@tanstack/react-router";
+import { nodeIdFromNum } from "@meshterm/shared";
+import { Outlet, useNavigate } from "@tanstack/react-router";
 import { Menu, PanelLeftClose, PanelLeftOpen, RadioTower, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UserMenu } from "../auth/UserMenu.js";
 import { NodeDrawer } from "../node-drawer/NodeDrawer.js";
 import { ConnectionIndicator, useDeviceInfo } from "./ConnectionIndicator.js";
 import { useUnreadTotals } from "../messages/unread.js";
 import { useNotificationRuntime } from "../notifications/runtime.js";
+import { registerOpener } from "../notifications/center.js";
+import { NotificationBell } from "../notifications/NotificationBell.js";
+import { NotificationToasts } from "../notifications/NotificationToasts.js";
 import { MainNav } from "./MainNav.js";
 import { Toaster } from "./Toaster.js";
 
@@ -53,6 +57,23 @@ function NavFooter() {
 export function AppShell() {
   const unread = useUnreadTotals();
   useNotificationRuntime(unread.total, unread.dm);
+  const navigate = useNavigate();
+  useEffect(() => {
+    registerOpener((target) => {
+      if (!target) void navigate({ to: "/messages" });
+      else if (target.kind === "channel") {
+        void navigate({ to: "/messages/channel/$index", params: { index: String(target.key) } });
+      } else {
+        void navigate({
+          to: "/messages/dm/$nodeId",
+          params: { nodeId: nodeIdFromNum(target.key) },
+        });
+      }
+    });
+    return () => {
+      registerOpener(null);
+    };
+  }, [navigate]);
   const [sidebar, setSidebar] = useState<SidebarPref>(readSidebarPref);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -121,6 +142,7 @@ export function AppShell() {
         </Dialog.Root>
         <Brand />
         <ConnectionIndicator />
+        <NotificationBell />
         <UserMenu />
       </header>
       <aside data-mt="sidebar" aria-label="Sidebar">
@@ -146,6 +168,7 @@ export function AppShell() {
       </main>
       <NodeDrawer />
       <Toaster />
+      <NotificationToasts />
     </div>
   );
 }

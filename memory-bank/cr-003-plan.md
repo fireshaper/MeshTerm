@@ -36,7 +36,7 @@ CR: [cr-003-notifications.md](cr-003-notifications.md). Stop after each phase, r
 - Leader election over `BroadcastChannel('meshterm-notify')` (focused tab first, else the most recently focused); only the leader flashes, plays sounds and shows OS notifications.
 - Per-browser settings store (localStorage with try/catch).
 
-## Phase N3: toasts, badges, bell, mentions
+## Phase N3: toasts, badges, bell, mentions (done 2026-10-22)
 
 - Toast region (top-right; top-center on mobile): stack of 3 plus "+N more", grouping per conversation within 10 s, 6 s / 10 s with pause on hover/focus, click to open and mark read, Mark read, inline Reply (200-byte counter; admins only), polite/assertive live regions.
 - Backlog summary toast; reaction toasts (in-app only).

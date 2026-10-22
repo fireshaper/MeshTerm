@@ -30,7 +30,7 @@ import {
   applyStateToConversations,
   applyStatusToConversations,
 } from "./conversations-cache.js";
-import { handleBacklog, handleMessageNew } from "../notifications/center.js";
+import { handleBacklog, handleMessageNew, markConversationRead } from "../notifications/center.js";
 import {
   applyNodeToDetail,
   applyPositionToDetail,
@@ -208,6 +208,7 @@ export function applyServerMessage(
 
     case "conversation.read": {
       const { connectionId, kind, key, lastReadRxTime } = message;
+      markConversationRead({ connectionId, kind, key });
       const result = { stale: false };
       qc.setQueryData<ConversationsDTO>(queryKeys.conversations(connectionId), (d) => {
         if (!d) return d;

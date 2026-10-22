@@ -88,7 +88,7 @@ describe("message.new in the center", () => {
     expect(document.title).toBe("(1) MeshTerm");
   });
 
-  it("nothing for the conversation being read, during DND, or for badge-only hints", () => {
+  it("nothing for the conversation being read or badge-only hints; only the bell during DND", () => {
     const client = qc();
     useNotifyCenter.getState().setViewing({ connectionId: 1, kind: "dm", key: dm.peer ?? 0 });
     handleMessageNew(client, dm, hint);
@@ -103,8 +103,11 @@ describe("message.new in the center", () => {
       matchShortName: true,
       serverUtcOffsetMinutes: 0,
     });
-    handleMessageNew(client, dm, hint);
     expect(useNotifyCenter.getState().events).toEqual([]);
+    handleMessageNew(client, dm, hint);
+    // During DND it goes to the bell, but nothing pops up or flashes (CR-003 §4.2).
+    expect(useNotifyCenter.getState().events).toHaveLength(1);
+    expect(useNotifyCenter.getState().toasts).toEqual([]);
     expect(useNotifyCenter.getState().flash).toBeNull();
   });
 });

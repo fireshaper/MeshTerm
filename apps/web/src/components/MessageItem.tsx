@@ -1,7 +1,14 @@
-import { nodeIdFromNum, type MeshNode, type Message, type MessageStatus } from "@meshterm/shared";
+import {
+  nodeIdFromNum,
+  type MentionTerms,
+  type MeshNode,
+  type Message,
+  type MessageStatus,
+} from "@meshterm/shared";
 import { formatDistanceStrict } from "date-fns";
 import { memo } from "react";
 import { openNodeDetails } from "../data/ui-store.js";
+import { splitMentions } from "../notifications/mention-terms.js";
 
 /** Status text for outgoing messages, so state never depends on color alone. */
 export const STATUS_LABELS: Record<MessageStatus, string> = {
@@ -24,9 +31,16 @@ interface MessageItemProps {
   message: Message;
   sender: string;
   now: number;
+  /** Marks mentions of this user in incoming messages (CR-003 §4.1). */
+  mentions?: MentionTerms | null;
 }
 
-export const MessageItem = memo(function MessageItem({ message, sender, now }: MessageItemProps) {
+export const MessageItem = memo(function MessageItem({
+  message,
+  sender,
+  now,
+  mentions = null,
+}: MessageItemProps) {
   const { direction, status, rxTime, text } = message;
   return (
     <article
@@ -54,7 +68,17 @@ export const MessageItem = memo(function MessageItem({ message, sender, now }: M
           {formatDistanceStrict(rxTime, Math.max(now, rxTime), { addSuffix: true })}
         </time>
       </header>
-      <p data-mt="message-text">{text}</p>
+      <p data-mt="message-text">
+        {splitMentions(text, direction === "in" ? mentions : null).map((part, i) =>
+          part.mention ? (
+            <mark key={i} data-mt="mention">
+              {part.text}
+            </mark>
+          ) : (
+            part.text
+          ),
+        )}
+      </p>
       {direction === "out" && status && (
         <span
           data-mt="message-status"

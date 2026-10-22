@@ -578,6 +578,18 @@ State: `typecheck`, `lint`, `format`, `test` (716), `test:e2e` (165 passed, 6 sk
 
 State: `typecheck`, `lint`, `format`, `test` (731), `test:e2e` (169 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
 
+### Phase N3: toasts, the bell, mentions (done 2026-10-22)
+
+- **Toasts** below the header (top-right; full width on phones): sender (or `#Channel · sender`), preview, Reply (admins; one line, 200-byte counter, Enter sends, "Sent ✓"), Mark read, time. Messages from the same conversation within 10 s update one toast ("3 new messages from RDG"). At most 3 show, the rest are "+N more" (opens the bell). 6 s (DMs 10 s), paused on hover or focus. Click opens the conversation and marks it read. DMs and mentions are announced assertively. Reactions to my messages get their own toast; the reconnect burst gets one summary toast.
+- **Bell** in the header: unread notification count, the last 50 (kept for the browser session), grouped by conversation, Mark all read (marks their conversations read everywhere), Do Not Disturb (1 hour, until tomorrow 08:00, until turned off; shows when it ends), quiet-hours status, a link to Notification settings. During DND the bell still counts; nothing pops up.
+- **Mentions** are highlighted in incoming bubbles (the node's names and your keywords), and rows with unread mentions get an `@`.
+- Reading a conversation anywhere clears its toasts and bell entries.
+- Phones: the user menu shows only its icon below 640 px so the bell fits.
+- Settings → Notifications exists as a page (filled in N5).
+- **Tests:** toasts (variants, grouping, 3 + more, Mark read, cross-browser read, inline reply, viewers, backlog summary), bell (count, list, Mark all read, DND), mention highlighting; e2e: a DM on another page → toast, reply sent from it, bell entry opens the thread. All visual baselines rewritten (the bell is in the header): `UPDATE=all pnpm test:visual:linux` rewrites every Linux baseline.
+
+State: `typecheck`, `lint`, `format`, `test` (740), `test:e2e` (171 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

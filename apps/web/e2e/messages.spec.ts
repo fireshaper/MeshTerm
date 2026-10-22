@@ -149,3 +149,37 @@ test("the title warns while the node is disconnected", async ({ page }) => {
   await expect(page).toHaveTitle(/^⚠ /, { timeout: 10_000 });
   await expect(page).toHaveTitle(/^(\(\d+\+?\) )?MeshTerm$/, { timeout: 20_000 });
 });
+
+// ------------------------------------------------- toasts and the bell (CR-003 N3)
+
+test("a DM on another page: a toast you can reply from, and an entry in the bell", async ({
+  page,
+}, info) => {
+  const subscribed = socketSubscribed(page);
+  await page.goto("/nodes");
+  await subscribed;
+  const text = `toast ${info.project.name} ${Date.now()}`;
+  await fakeNode.injectText(GARDEN, { to: ME }, text);
+
+  // It arrived (the bell counts it) before checking that it popped up.
+  await expect(page.locator("[data-mt=notification-bell]")).toHaveAttribute("aria-label", /unread/);
+  const toast = page.locator("[data-mt=toast-region] [data-mt=toast]", { hasText: text });
+  await expect(toast).toBeVisible();
+  await expect(toast).toHaveAttribute("data-mt-variant", "dm");
+  await toast.getByRole("button", { name: "Reply" }).click();
+  const reply = `reply ${info.project.name} ${Date.now()}`;
+  await toast.getByRole("textbox", { name: "Reply" }).fill(reply);
+  await toast.getByRole("textbox", { name: "Reply" }).press("Enter");
+  await expect(toast).toContainText("Sent");
+  await expect
+    .poll(async () => (await fakeNode.inbound()).transmits.some((t) => t.text === reply))
+    .toBe(true);
+
+  await page.locator("[data-mt=notification-bell]").click();
+  await expect(page.locator("[data-mt=notification-item]", { hasText: text })).toHaveAttribute(
+    "data-mt-state",
+    "unread",
+  );
+  await page.locator("[data-mt=notification-item]", { hasText: text }).click();
+  await expect(page).toHaveURL(/\/messages\/dm\/!5e6f7081$/);
+});

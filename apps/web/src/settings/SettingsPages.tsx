@@ -20,6 +20,7 @@ export function SettingsPage() {
   const local = me?.mode === "local";
   const items = [
     { to: "/settings/device" as const, label: "Device" },
+    { to: "/settings/notifications" as const, label: "Notifications" },
     ...(local ? [{ to: "/settings/account" as const, label: "Account" }] : []),
     ...(admin ? [{ to: "/settings/users" as const, label: "Users" }] : []),
     ...(admin ? [{ to: "/settings/audit" as const, label: "Audit log" }] : []),
