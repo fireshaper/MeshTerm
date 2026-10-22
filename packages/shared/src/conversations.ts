@@ -20,7 +20,7 @@ export const ConversationState = z.object({
   lastReadRxTime: z.number().int().nonnegative(),
   muted: z.boolean(),
   favorite: z.boolean(),
-  /** CR-003; the kind's default when never set (channels `mentions`, DMs `dm-default`). */
+  /** CR-003; the kind's default when never set (channels `all`, DMs `dm-default`). */
   notifyLevel: NotifyLevel,
 });
 export type ConversationState = z.infer<typeof ConversationState>;

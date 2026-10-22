@@ -82,7 +82,7 @@ export async function renderApp(path: string, seed: Seed = {}) {
           lastMessage: null,
           unread: 0,
           unreadMentions: 0,
-          state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "mentions" },
+          state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "all" },
         })),
       dms: [],
     },

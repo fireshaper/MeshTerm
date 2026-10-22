@@ -108,15 +108,13 @@ describe("per-conversation levels", () => {
   it("the thread header's bell sets All / Mentions / Nothing", async () => {
     const user = userEvent.setup();
     await renderApp("/messages/channel/0", seed());
-    await user.click(
-      screen.getByRole("button", { name: "Notifications: Mentions only (default)" }),
-    );
-    await user.click(await screen.findByRole("menuitemradio", { name: /All messages/ }));
+    await user.click(screen.getByRole("button", { name: "Notifications: All messages (default)" }));
+    await user.click(await screen.findByRole("menuitemradio", { name: "Mentions only" }));
     await waitFor(() => {
-      expect(patches()).toEqual([{ notifyLevel: "all" }]);
+      expect(patches()).toEqual([{ notifyLevel: "mentions" }]);
     });
     expect(
-      await screen.findByRole("button", { name: "Notifications: All messages" }),
+      await screen.findByRole("button", { name: "Notifications: Mentions only" }),
     ).toBeInTheDocument();
   });
 });

@@ -559,3 +559,10 @@ One entry per decision: **step**, **decision**, **reason**. Add new entries at t
 | The 5-minute limit is per node, kept in memory (it resets when MeshTerm restarts).                                                                | Simple, and a restart is rare; the limit protects airtime, not data.                         |
 | Nodes with unknown hops can be asked; only known > 3 hops are refused.                                                                            | Most directly heard nodes report hops; refusing unknown ones would hide the button for many. |
 | Only the browser that asked gets the "answered" / "timed out" toast.                                                                              | Other users didn't ask; the new values show up for everyone anyway.                          |
+
+## CR-003 — channel default level
+
+| Decision                                                                     | Reason                                                                                                                                        |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Channels default to `all` instead of `mentions` (the CR's original default). | The user's call: mentions are uncommon on Meshtastic, so a mentions-only default hid nearly all channel traffic from the badge and tab title. |
+| No migration for channels that were explicitly set to "Mentions only".       | They were stored as NULL (the old default) and can't be told apart from untouched channels.                                                   |

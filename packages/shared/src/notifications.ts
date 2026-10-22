@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 /**
- * Per-conversation notification level (CR-003 §4): `all` every message notifies,
- * `mentions` only mentions and replies (the channel default), `dm-default` DMs notify
- * (the DM default), `none` badge only (what Mute sets).
+ * Per-conversation notification level (CR-003 §4): `all` every message notifies (the
+ * channel default), `mentions` only mentions and replies, `dm-default` DMs notify (the DM
+ * default), `none` badge only (what Mute sets).
  */
 export const NotifyLevel = z.enum(["all", "mentions", "dm-default", "none"]);
 export type NotifyLevel = z.infer<typeof NotifyLevel>;

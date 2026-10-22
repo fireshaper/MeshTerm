@@ -15,8 +15,8 @@ const ICON = { "aria-hidden": true, focusable: false } as const;
 export function levelChoices(kind: ConversationKind): { level: NotifyLevel; label: string }[] {
   return kind === "channel"
     ? [
-        { level: "all", label: "All messages" },
-        { level: "mentions", label: "Mentions only (default)" },
+        { level: "all", label: "All messages (default)" },
+        { level: "mentions", label: "Mentions only" },
         { level: "none", label: "Nothing (muted)" },
       ]
     : [
@@ -37,7 +37,7 @@ export function useConversationLevel(
     kind === "channel"
       ? data?.channels.find((c) => c.index === key)
       : data?.dms.find((d) => d.peer === key);
-  return row?.state.notifyLevel ?? (kind === "channel" ? "mentions" : "dm-default");
+  return row?.state.notifyLevel ?? (kind === "channel" ? "all" : "dm-default");
 }
 
 /** Sets a conversation's level and updates the list at once. */

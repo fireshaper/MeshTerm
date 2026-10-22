@@ -276,7 +276,7 @@ export const conversationState = sqliteTable(
     deletedBefore: integer("deleted_before").notNull().default(0),
     /**
      * CR-003: `all`, `mentions`, `dm-default` or `none` (what Mute sets); NULL means the
-     * default for the kind (channels `mentions`, DMs `dm-default`).
+     * default for the kind (channels `all`, DMs `dm-default`).
      */
     notifyLevel: text("notify_level", { enum: ["all", "mentions", "dm-default", "none"] }),
   },

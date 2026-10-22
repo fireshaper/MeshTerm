@@ -24,7 +24,7 @@ const DEFAULT_STATE: StoredState = {
 
 /** CR-003 §4: channels notify on mentions only, DMs always. */
 export const defaultLevel = (kind: ConversationKind): NotifyLevel =>
-  kind === "channel" ? "mentions" : "dm-default";
+  kind === "channel" ? "all" : "dm-default";
 
 /** What the API shows: the effective level, never null. */
 export function publicState(kind: ConversationKind, s: StoredState): ConversationState {

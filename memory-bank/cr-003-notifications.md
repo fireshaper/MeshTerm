@@ -51,20 +51,20 @@ All of it is driven by one set of rules (DMs, mentions, per-conversation levels,
 
 ## 4. What triggers a notification
 
-| Event                                 | Default level           | Notes                                             |
-| ------------------------------------- | ----------------------- | ------------------------------------------------- |
-| Incoming DM                           | **Notify**              | Always, unless that DM is muted or DND is on      |
-| Channel message that mentions me      | **Notify**              | See §4.1                                          |
-| Any other channel message             | **Silent** (badge only) | Per-channel override to "All"                     |
-| Reaction to one of my messages        | **In-app only**         | Toast + bell, no sound/OS notification by default |
-| Reply to one of my messages (channel) | **Notify**              | Treated like a mention                            |
-| My own outgoing messages, ACKs        | Never                   |                                                   |
-| Messages from ignored nodes           | Never                   |                                                   |
+| Event                                 | Default level   | Notes                                                                         |
+| ------------------------------------- | --------------- | ----------------------------------------------------------------------------- |
+| Incoming DM                           | **Notify**      | Always, unless that DM is muted or DND is on                                  |
+| Channel message that mentions me      | **Notify**      | See §4.1                                                                      |
+| Any other channel message             | **Notify**      | Per-channel override to "Mentions" or "None" (changed 2026-10-22; was silent) |
+| Reaction to one of my messages        | **In-app only** | Toast + bell, no sound/OS notification by default                             |
+| Reply to one of my messages (channel) | **Notify**      | Treated like a mention                                                        |
+| My own outgoing messages, ACKs        | Never           |                                                                               |
+| Messages from ignored nodes           | Never           |                                                                               |
 
 **Per-conversation level** (stored server-side in `conversation_state.notify_level`):
 
-- `all`: every message notifies
-- `mentions`: only mentions/replies to me (channel default)
+- `all`: every message notifies (channel default)
+- `mentions`: only mentions/replies to me
 - `dm-default`: DMs notify (DM default)
 - `none`: badge only, no toast/sound/OS notification (this is what "Mute" sets)
 
@@ -230,7 +230,7 @@ Built-in themes: Cyberpunk toasts glow in on the accent color with a glitch entr
 - [ ] Incoming DM while on another page: toast appears, sound plays, Messages badge increments, title shows `(1) MeshTerm`, favicon shows a badge
 - [ ] Same DM while its thread is open and focused: no toast, no sound; it just appears
 - [ ] Tab hidden: title flashes; OS notification shows if enabled (on HTTPS); clicking it opens the conversation
-- [ ] Channel message without mention: badge only. With `@shortname`, long name, keyword, or a reply to me: full notification, mention highlighted
+- [ ] Channel message without mention: notifies (channel default `all`); badge only at `mentions`. With `@shortname`, long name, keyword, or a reply to me: full notification, mention highlighted
 - [ ] Per-conversation All / Mentions / None works for channels and DMs; Mute = None
 - [ ] DND and quiet hours suppress toasts/sounds/OS notifications but keep counts; synced across browsers
 - [ ] Reconnect with 20 queued messages produces one summary toast and at most one sound/OS notification

@@ -50,7 +50,7 @@ async function arrived(text: string): Promise<ServerMessageOf<"message.new">> {
 const patch = (url: string, payload: object) => t.app.inject({ method: "PATCH", url, payload });
 
 describe("notify hints (CR-003 N1)", () => {
-  it("a DM notifies; a channel message only when it names us", async () => {
+  it("a DM notifies; so does a channel message (a mention when it names us)", async () => {
     t.node.injectText(RIDGE, { to: ME }, "dm for you");
     expect((await arrived("dm for you")).notify).toEqual({
       level: "notify",
@@ -58,7 +58,7 @@ describe("notify hints (CR-003 N1)", () => {
       backlog: false,
     });
     t.node.injectText(RIDGE, { channel: 0 }, "hello everyone");
-    expect((await arrived("hello everyone")).notify?.level).toBe("badge");
+    expect((await arrived("hello everyone")).notify?.reason).toBe("channel-all");
     // The scenario's own node is "MeshTerm Base" (MTB).
     t.node.injectText(RIDGE, { channel: 0 }, "@MTB are you on?");
     expect((await arrived("@MTB are you on?")).notify?.reason).toBe("mention");
@@ -104,7 +104,7 @@ describe("notify hints (CR-003 N1)", () => {
       await t.app.inject({ url: "/api/connections/1/conversations" })
     ).json<ConversationsDTO>();
     expect(list.channels[0]?.state.notifyLevel).toBe("all");
-    expect(list.channels[1]?.state.notifyLevel).toBe("mentions");
+    expect(list.channels[1]?.state.notifyLevel).toBe("all");
     expect(list.dms.find((d) => d.peer === RIDGE)?.state.notifyLevel).toBe("none");
 
     // Back to the default: unmuted, and the level resets.

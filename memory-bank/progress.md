@@ -622,6 +622,14 @@ State: `typecheck`, `lint`, `format`, `test` (750), `test:e2e` (184 passed, 7 sk
 
 State: `typecheck`, `lint`, `format`, `test` (755), `test:e2e` (186 passed, 7 skipped) and `test:gate` (3/3) green.
 
+### CR-003 change: channels default to "All messages" (2026-10-22)
+
+- The user asked for it: mentions are rare on Meshtastic, so channel messages should count by default.
+- `defaultLevel("channel")` is now `all`: every channel message counts toward the Messages badge and the `(N) MeshTerm` title and notifies (toast, sound). "Mentions only" and "Nothing" stay available per channel.
+- No migration: a stored NULL means the default, so channels never changed now get `all`. A channel someone had set to "Mentions only" was also stored as NULL (it was the default) and becomes `all`; set it again if wanted.
+
+State: `typecheck`, `lint`, `test` (755), `test:e2e` (186 passed, 7 skipped) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

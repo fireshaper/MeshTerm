@@ -21,7 +21,7 @@ afterEach(async () => {
 
 const get = async <T>(path: string) =>
   (await t.app.inject({ url: `/api/connections/1/${path}` })).json<T>();
-const UNREAD_STATE = { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "mentions" };
+const UNREAD_STATE = { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "all" };
 const count = () => t.app.meshterm.db.select().from(messages).all().length;
 
 describe("GET /api/connections/:id/conversations", () => {
