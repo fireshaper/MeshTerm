@@ -1,5 +1,6 @@
 // Node detail drawer (CR-001 Phase C2): URL-driven, over any view.
 import { expect, test, type Page } from "@playwright/test";
+import { fakeNode, socketSubscribed } from "./control.js";
 import { DASHBOARD_PORT } from "./ports.js";
 
 const DASH = `http://127.0.0.1:${DASHBOARD_PORT}`;
@@ -84,4 +85,40 @@ test("phone: full screen; desktop: resizable and remembered", async ({ page }) =
   await expect
     .poll(async () => Math.round((await drawer(page).boundingBox())?.width ?? 0))
     .toBe(600);
+});
+
+// ------------------------------------------------ Request telemetry (CR-001 C4)
+
+test("Request telemetry: confirm, one request over the mesh, and the answer arrives", async ({
+  page,
+}, info) => {
+  // One node per project: a node can be asked once every 5 minutes.
+  const [num, id, name] =
+    info.project.name === "desktop"
+      ? [0x0badcafe, "!0badcafe", "Ridge Repeater"]
+      : [0x1a2b3c4d, "!1a2b3c4d", "Trail Walker"];
+  await fakeNode.clearInbound();
+  const subscribed = socketSubscribed(page);
+  await page.goto(`/nodes?node=${id}`);
+  await subscribed;
+  const dialog = page.getByRole("dialog", { name });
+  await dialog.getByRole("button", { name: "Request telemetry" }).click();
+  const confirm = page.getByRole("dialog", { name: /^Request telemetry from/ });
+  await expect(confirm).toContainText("use airtime");
+  await confirm.getByLabel("What to ask for").selectOption("environment");
+  await confirm.getByRole("button", { name: "Send request" }).click();
+  await expect(page.locator("[data-mt=toaster]")).toContainText("environment telemetry.", {
+    timeout: 10_000,
+  });
+  await expect(page.locator("[data-mt=toaster]")).toContainText("sent its environment telemetry");
+  const audit = await fakeNode.inbound();
+  expect(audit.transmits.filter((t) => t.to === num && t.portnum === 67)).toHaveLength(1);
+
+  // Again right away: refused.
+  await dialog.getByRole("button", { name: "Request telemetry" }).click();
+  await page
+    .getByRole("dialog", { name: /^Request telemetry from/ })
+    .getByRole("button", { name: "Send request" })
+    .click();
+  await expect(page.locator("[data-mt=toaster]")).toContainText("try again in");
 });

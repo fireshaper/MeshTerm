@@ -612,6 +612,16 @@ State: `typecheck`, `lint`, `format`, `test` (746), `test:e2e` (173 passed, 6 sk
 
 State: `typecheck`, `lint`, `format`, `test` (750), `test:e2e` (184 passed, 7 skipped) and `test:gate` (3/3) green.
 
+### CR-001 Phase C4: request telemetry (done 2026-10-22)
+
+- The user asked for it (it transmits on the mesh).
+- **Drawer:** "Request telemetry" for admins on other nodes up to 3 hops away. A confirmation explains it uses airtime and lets you pick the kind (device, environment, power, air quality). A toast says when the node answered, or that it didn't within 60 s.
+- **Server:** one `TELEMETRY_APP` request with `want_response` per node per 5 minutes (429 otherwise), never to our own node or nodes more than 3 hops away; the answer is stored as ordinary telemetry; WS `telemetry.request` (sent / received / timeout); every request in the audit log.
+- **FakeNode** answers telemetry requests from known nodes with sample values (`POST /telemetry-responses {enabled}` turns that off).
+- **Tests:** integration (exactly one packet with want_response, answer stored, audited; rate limit, own/unknown/far nodes refused, nothing else sent), unit (timeout, other kinds ignored), drawer component tests, e2e (confirm → one request → answer toast → refused again). Drawer visual baselines updated.
+
+State: `typecheck`, `lint`, `format`, `test` (755), `test:e2e` (186 passed, 7 skipped) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

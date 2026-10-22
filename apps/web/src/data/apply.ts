@@ -31,6 +31,7 @@ import {
   applyStatusToConversations,
 } from "./conversations-cache.js";
 import { handleBacklog, handleMessageNew, markConversationRead } from "../notifications/center.js";
+import { handleTelemetryRequest } from "../node-drawer/RequestTelemetry.js";
 import {
   applyNodeToDetail,
   applyPositionToDetail,
@@ -193,6 +194,11 @@ export function applyServerMessage(
         d ? applyMessageToConversations(d, m, ignored, message.notify) : d,
       );
       handleMessageNew(qc, m, message.notify);
+      return;
+    }
+
+    case "telemetry.request": {
+      handleTelemetryRequest(message);
       return;
     }
 

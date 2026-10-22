@@ -98,6 +98,8 @@ export class FakeNode {
   private ackMode: AckMode = "ack";
   private nakReason: Mesh.Routing_Error = Mesh.Routing_Error.MAX_RETRANSMIT;
   private ackDelayMs = 0;
+  /** Answer telemetry requests from known nodes (CR-001 C4); off to test the timeout. */
+  private telemetryResponses = true;
   private configCompleteMode: ConfigCompleteMode = "echo";
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
   private stopped = false;
@@ -301,6 +303,11 @@ export class FakeNode {
    * How to answer outgoing text messages from now on; `delayMs` postpones the answer
    * and `nakReason` (a `Routing.Error` name) is the error a NAK carries.
    */
+  /** Whether nodes answer telemetry requests (they do by default). */
+  setTelemetryResponses(enabled: boolean): void {
+    this.telemetryResponses = enabled;
+  }
+
   setAckMode(mode: AckMode, delayMs = 0, nakReason = "MAX_RETRANSMIT"): void {
     const reason = (
       Mesh.Routing_Error as unknown as Record<string, Mesh.Routing_Error | undefined>
@@ -338,6 +345,43 @@ export class FakeNode {
       this.later(downMs, resolve);
     });
     if (!this.stopped) await this.listen(this.boundPort);
+  }
+
+  /**
+   * A node asked for telemetry answers a moment later with a report of the kind asked
+   * for (sample values), as if it came back over the mesh.
+   */
+  private answerTelemetryRequest(to: number, payload: Uint8Array): void {
+    if (!this.telemetryResponses || to === this.myNodeNum || !this.nodeDb.has(to)) return;
+    let asked: Telemetry.Telemetry["variant"]["case"];
+    try {
+      asked = fromBinary(Telemetry.TelemetrySchema, payload).variant.case;
+    } catch {
+      return;
+    }
+    const samples: Record<string, TelemetryInit["variant"]> = {
+      deviceMetrics: {
+        case: "deviceMetrics",
+        value: {
+          batteryLevel: 77,
+          voltage: 3.95,
+          channelUtilization: 9.5,
+          airUtilTx: 1.25,
+          uptimeSeconds: 86_400,
+        },
+      },
+      environmentMetrics: {
+        case: "environmentMetrics",
+        value: { temperature: 21.5, relativeHumidity: 48, barometricPressure: 1012.5 },
+      },
+      powerMetrics: { case: "powerMetrics", value: { ch1Voltage: 5.1, ch1Current: 120 } },
+      airQualityMetrics: { case: "airQualityMetrics", value: { pm25Standard: 8 } },
+    };
+    const variant = asked ? samples[asked] : undefined;
+    if (!variant) return;
+    this.later(300, () => {
+      this.injectTelemetry(to, { variant });
+    });
   }
 
   /** A decoded packet as if heard over the mesh, sent to every client. */
@@ -485,6 +529,10 @@ export class FakeNode {
     const data = packet.payloadVariant.case === "decoded" ? packet.payloadVariant.value : null;
     if (data?.portnum === Portnums.PortNum.ADMIN_APP && packet.to === this.myNodeNum) {
       this.handleAdmin(socket, packet.id, data.payload);
+      return;
+    }
+    if (data?.portnum === Portnums.PortNum.TELEMETRY_APP && data.wantResponse) {
+      this.answerTelemetryRequest(packet.to, data.payload);
       return;
     }
     if (data?.portnum !== Portnums.PortNum.TEXT_MESSAGE_APP || this.ackMode === "silent") return;

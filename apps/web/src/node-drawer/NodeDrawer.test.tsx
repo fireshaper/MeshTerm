@@ -7,7 +7,7 @@ import {
 } from "@meshterm/shared";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "../data/keys.js";
 import { openNodeDetails, useUiStore } from "../data/ui-store.js";
 import { expectDataMt } from "../test/data-mt.js";
@@ -331,5 +331,59 @@ describe("<NodeDrawer />", () => {
     await waitFor(() => {
       expect(router.state.location.search).toEqual({ node: "!1a2b3c4d" });
     });
+  });
+});
+
+describe("Request telemetry (CR-001 C4)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("asks after a confirmation, then says when the answer came", async () => {
+    const calls: { url: string; body: unknown }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string, init?: RequestInit) => {
+        calls.push({ url, body: init?.body ? JSON.parse(init.body as string) : null });
+        return Promise.resolve(
+          new Response(JSON.stringify({ sentAt: NOW, timeoutMs: 60_000 }), { status: 202 }),
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    const { dialog, queryClient } = await open(RIDGE, (d) => ({ ...d, hopsAway: 1 }));
+    await user.click(within(dialog).getByRole("button", { name: "Request telemetry" }));
+    const confirm = await screen.findByRole("dialog", { name: /Request telemetry from/ });
+    expect(confirm).toHaveTextContent("use airtime");
+    await user.selectOptions(within(confirm).getByLabelText("What to ask for"), "environment");
+    await user.click(within(confirm).getByRole("button", { name: "Send request" }));
+    await waitFor(() => {
+      expect(calls).toEqual([
+        {
+          url: `/api/connections/1/nodes/${RIDGE}/request-telemetry`,
+          body: { kind: "environment" },
+        },
+      ]);
+    });
+    const { applyServerMessage } = await import("../data/apply.js");
+    act(() => {
+      applyServerMessage(queryClient, {
+        type: "telemetry.request",
+        connectionId: 1,
+        nodeNum: RIDGE,
+        kind: "environment",
+        state: "received",
+      });
+    });
+    expect(useUiStore.getState().toasts.map((t) => t.text)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/sent its environment telemetry/)]),
+    );
+  });
+
+  it("isn't offered for our own node, far nodes, or viewers", async () => {
+    let { dialog } = await open(RIDGE, (d) => ({ ...d, hopsAway: 4 }));
+    expect(within(dialog).queryByRole("button", { name: "Request telemetry" })).toBeNull();
+    ({ dialog } = await open(ME));
+    expect(within(dialog).queryByRole("button", { name: "Request telemetry" })).toBeNull();
   });
 });

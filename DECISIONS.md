@@ -550,3 +550,12 @@ One entry per decision: **step**, **decision**, **reason**. Add new entries at t
 | Visual baselines of toasts and the bell feed a `message.new` into the page's WebSocket (`routeWebSocket`).             | Nothing reaches the shared visual server, so the other baselines don't change.                                               |
 | Built-in Cyberpunk and Retro styles and sounds for notifications wait for those themes.                                | Only Default exists; tokens (`--mt-toast-*`, `--mt-mention-*`, `--mt-badge-*`) and `theme.json` `sounds` are ready for them. |
 | A message counts as received while the link was down only if its `rx_time` is at least a second before the handshake.  | `rx_time` is whole seconds; a live message in the handshake's second was misclassified as backlog.                           |
+
+## CR-001 — Phase C4 (request telemetry)
+
+| Decision                                                                                                                                          | Reason                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| The request is a `TELEMETRY_APP` packet with an empty variant of the wanted kind and `want_response`, on channel 0 like a DM, without `want_ack`. | That's how the Meshtastic apps ask; the answer is the confirmation.                          |
+| The 5-minute limit is per node, kept in memory (it resets when MeshTerm restarts).                                                                | Simple, and a restart is rare; the limit protects airtime, not data.                         |
+| Nodes with unknown hops can be asked; only known > 3 hops are refused.                                                                            | Most directly heard nodes report hops; refusing unknown ones would hide the button for many. |
+| Only the browser that asked gets the "answered" / "timed out" toast.                                                                              | Other users didn't ask; the new values show up for everyone anyway.                          |

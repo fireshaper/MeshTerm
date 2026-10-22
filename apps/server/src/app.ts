@@ -44,6 +44,8 @@ import { TileCache } from "./tiles/tile-cache.js";
 import { isReservedPath, NO_CACHE, staticRoutes } from "./routes/static.js";
 import { resolveThemesDir, resolveWebDir } from "./paths.js";
 import { sendRoutes } from "./routes/send.js";
+import { telemetryRequestRoutes } from "./routes/telemetry-request.js";
+import { TelemetryRequester } from "./messaging/telemetry-request.js";
 import { wsRoutes } from "./routes/ws.js";
 import { TcpTransport } from "./transport/tcp-transport.js";
 import type { Transport } from "./transport/transport.js";
@@ -284,6 +286,15 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
     logger: app.log,
   });
   await app.register(sendRoutes(sender));
+  const telemetryRequester = new TelemetryRequester({
+    db: handle.db,
+    hub,
+    connections,
+    clock,
+    random,
+    logger: app.log,
+  });
+  await app.register(telemetryRequestRoutes(telemetryRequester));
   await app.register(
     configRoutes({
       store: configStore,
@@ -312,6 +323,7 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
     gateway.close();
     sender.close();
     backlog.close();
+    telemetryRequester.close();
     await Promise.all([...connections.values()].map((c) => c.stop()));
     handle.close();
   });

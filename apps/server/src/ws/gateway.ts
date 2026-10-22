@@ -222,6 +222,11 @@ function toServerMessage(
         connectionId: event.payload.connectionId,
         message: { type: "conversation.updated", ...event.payload },
       };
+    case "telemetry.request":
+      return {
+        connectionId: event.payload.connectionId,
+        message: { type: "telemetry.request", ...event.payload },
+      };
     case "notifications.backlog":
       return {
         connectionId: event.payload.connectionId,

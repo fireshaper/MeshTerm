@@ -32,6 +32,7 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
  * - `POST /ack-mode` `{mode: "ack" | "nak" | "silent", reason?}` (`reason`: NAK `Routing.Error` name)
  * - `POST /admin-options` `{rebootOnCommitMs?, clampTxPowerTo?}`: admin module behaviour (CR-002)
  * - `GET /admin-log` → `{log}`: the admin message cases the node received, in order
+ * - `POST /telemetry-responses` `{enabled}`: whether nodes answer telemetry requests
  * - `POST /clear-inbound`
  * - `GET /inbound` → {@link InboundReport}
  */
@@ -121,6 +122,9 @@ export function startControlServer(node: FakeNode, port: number, host = "127.0.0
           }
           case "GET /admin-log":
             result = { log: node.admin.log };
+            break;
+          case "POST /telemetry-responses":
+            node.setTelemetryResponses(body.enabled !== false);
             break;
           case "POST /clear-inbound":
             node.clearInbound();

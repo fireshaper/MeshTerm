@@ -27,6 +27,7 @@ import { OverviewTab } from "./OverviewTab.js";
 import { CopyButton, ICON, useCopy } from "./parts.js";
 import { readRange, writeRange, type NodeRange } from "./charts/series-data.js";
 import { RawTab } from "./RawTab.js";
+import { canRequestTelemetry, RequestTelemetry } from "./RequestTelemetry.js";
 import { clampWidth, DRAWER_WIDTH, readDrawerWidth, writeDrawerWidth } from "./width.js";
 import { useIsAdmin, VIEWER_HINT } from "../auth/me.js";
 
@@ -223,6 +224,13 @@ function Actions({ node }: { node: NodeDetailDTO }) {
           <MapPin data-mt="icon" {...ICON} />
           Show on map
         </Link>
+      )}
+      {canRequestTelemetry(node) && (
+        <RequestTelemetry
+          num={node.num}
+          shortName={node.shortName || id.slice(-4)}
+          kinds={node.telemetryKinds}
+        />
       )}
     </footer>
   );

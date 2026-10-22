@@ -182,6 +182,11 @@ export const api = {
   telemetryCsvUrl: (connectionId: number, num: number, from: number, to: number) =>
     `/api/connections/${connectionId}/nodes/${num}/telemetry.csv?from=${from}&to=${to}`,
 
+  requestTelemetry: (connectionId: number, num: number, kind: TelemetryKind) =>
+    request<{ sentAt: number; timeoutMs: number }>(
+      `/api/connections/${connectionId}/nodes/${num}/request-telemetry`,
+      { method: "POST", body: JSON.stringify({ kind }) },
+    ),
   configSchema: () => request<ConfigSchemaDTO>("/api/config/schema"),
   deviceConfig: (connectionId: number) =>
     request<DeviceConfigDTO>(`/api/connections/${connectionId}/config`),

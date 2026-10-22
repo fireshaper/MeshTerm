@@ -81,7 +81,7 @@ CR: [cr-001-node-drawer.md](cr-001-node-drawer.md). Stop after each phase, repor
 - Accessibility: summaries plus a "View as table" option.
 - Visual baselines.
 
-## Phase C4 (optional, transmits): request telemetry
+## Phase C4 (optional, transmits): request telemetry (done 2026-10-22)
 
 - Sends `TELEMETRY_APP` with `want_response` after a confirmation.
 - Limits: once per node per 5 min, hidden for nodes more than 3 hops away, a 60 s timeout toast, covered by the no-transmit audit.

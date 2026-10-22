@@ -12,6 +12,7 @@ import {
   Message,
   MessageStatus,
   NodePosition,
+  TelemetryKind,
   TelemetryReport,
   Uint32,
 } from "./domain.js";
@@ -147,6 +148,15 @@ export const ConversationUpdatedMessage = z.object({
   deletedBefore: z.number().int().nonnegative(),
 });
 
+/** A telemetry request to a node (CR-001 C4): sent, answered, or no answer in 60 s. */
+export const TelemetryRequestMessage = z.object({
+  type: z.literal("telemetry.request"),
+  connectionId: ConnectionId,
+  nodeNum: Uint32,
+  kind: TelemetryKind,
+  state: z.enum(["sent", "received", "timeout"]),
+});
+
 export const ServerMessage = z.discriminatedUnion("type", [
   SnapshotMessage,
   ConnectionStateMessage,
@@ -162,6 +172,7 @@ export const ServerMessage = z.discriminatedUnion("type", [
   ConversationUpdatedMessage,
   NotificationsBacklogMessage,
   NotificationPrefsUpdatedMessage,
+  TelemetryRequestMessage,
   ErrorMessage,
 ]);
 export type ServerMessage = z.infer<typeof ServerMessage>;
