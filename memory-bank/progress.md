@@ -537,6 +537,11 @@ State: `typecheck`, `lint`, `format`, `test` (679), `test:e2e` (163 passed, 6 sk
 - "Failed" now says some changes may already be on the node.
 - FakeNode `silentRebootOnCommit` reproduces it; an integration test covers it (fails without the fix).
 
+## CR-003 Message notifications (planned 2026-10-21)
+
+- The user pasted CR-003 (saved as `memory-bank/cr-003-notifications.md`). Plan: `memory-bank/cr-003-plan.md`.
+- Its prerequisite (read state, unread counts, `conversation.read`) was Messages Phase 3, which isn't built; it becomes Phase N0.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.
