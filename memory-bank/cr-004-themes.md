@@ -96,38 +96,41 @@ Asset paths must be relative and stay inside the theme folder (reject `..`, abso
 
 ### 4.3 Server
 
-| Item                                      | Behavior                                                                                                                                                                   |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Loader                                    | On start, scans both sources, validates manifests, builds a registry `{ id → manifest, source, path, hash }`. `hash` = content hash of the folder, used for cache busting. |
-| `GET /api/themes`                         | Lists themes: manifest fields + `source`, `hash`, `valid`, `error?` (error only for admins)                                                                                |
-| `GET /api/themes/default` / `PUT` (admin) | Server-wide default theme id (stored in `settings`)                                                                                                                        |
-| Static                                    | `/themes/<id>/<file>?v=<hash>`; `Cache-Control: public, max-age=31536000, immutable` when `v` matches the current hash, otherwise `no-cache`                               |
-| Hot reload                                | chokidar watches `/data/themes` (debounce 300 ms), re-validates the changed theme, updates the registry and broadcasts WS `theme.changed { id, hash, removed? }`           |
-| CSP                                       | Fonts and images from `'self'` only; unchanged                                                                                                                             |
+| Item                                      | Behavior                                                                                                                                                                                                                                                                             |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Loader                                    | On start, scans both sources, validates manifests, builds a registry `{ id → manifest, source, path, hash }`. `hash` = content hash of the folder, used for cache busting.                                                                                                           |
+| `GET /api/themes`                         | Lists themes: manifest fields + `source`, `hash`, `valid`, `error?` (error only for admins)                                                                                                                                                                                          |
+| `GET /api/themes/default` / `PUT` (admin) | Server-wide default theme id (stored in `settings`)                                                                                                                                                                                                                                  |
+| Static                                    | `/themes/<id>/<file>?v=<hash>`; `Cache-Control: public, max-age=31536000, immutable` when `v` matches the current hash, otherwise `no-cache`                                                                                                                                         |
+| Hot reload                                | chokidar (new dependency) watches `/data/themes` (debounce 300 ms; `MESHTERM_THEMES_POLL=1` enables polling for NFS/SMB/bind mounts where file events are unreliable), re-validates the changed theme, updates the registry and broadcasts WS `theme.changed { id, hash, removed? }` |
+| CSP                                       | Fonts and images from `'self'` only; unchanged                                                                                                                                                                                                                                       |
 
 ### 4.4 Client loading (no flash)
 
-Replace the hard-coded stylesheet link in `index.html` with:
+Replace the hard-coded stylesheet link in `index.html` with a stylesheet link plus a **blocking external** boot script (no `defer`/`async`), so it runs before first paint without needing an inline-script CSP exception:
 
 ```html
 <link id="mt-theme" rel="stylesheet" href="/themes/default/theme.css" />
-<script>
-  // Inline, runs before first paint. Keep tiny and dependency-free.
-  (function () {
-    try {
-      var t = localStorage.getItem("mt.theme"); // {"id":"retro-terminal","hash":"abc123","mode":"dark"}
-      if (t) {
-        t = JSON.parse(t);
-        document.getElementById("mt-theme").href = "/themes/" + t.id + "/theme.css?v=" + t.hash;
-        document.documentElement.dataset.mtTheme = t.id;
-        if (t.mode) document.documentElement.dataset.mtMode = t.mode;
-      }
-    } catch (e) {}
-  })();
-</script>
+<script src="/theme-boot.js"></script>
 ```
 
-- The server injects a per-response nonce or hash for this inline script so CSP stays strict (`script-src 'self' 'sha256-…'`).
+`/theme-boot.js` (< 1 KB, served from the app's own origin, cacheable):
+
+```js
+(function () {
+  try {
+    var t = localStorage.getItem("meshterm.theme"); // {"id":"retro-terminal","hash":"abc123","mode":"dark"}
+    if (t) {
+      t = JSON.parse(t);
+      document.getElementById("mt-theme").href = "/themes/" + t.id + "/theme.css?v=" + t.hash;
+      document.documentElement.dataset.mtTheme = t.id;
+      if (t.mode) document.documentElement.dataset.mtMode = t.mode;
+    }
+  } catch (e) {}
+})();
+```
+
+- CSP stays `script-src 'self'`; no hash or nonce needed. (If the script is ever inlined instead, its hash must be generated at build time by a Vite plugin, never hand-maintained.)
 - On boot the app fetches `/api/themes`. If the stored theme no longer exists, it falls back to the server default, then to `default`.
 - Extra mode CSS (`modes.light` / `modes.dark`) and font files are loaded via additional `<link>`/`FontFace` entries managed by a `ThemeProvider`.
 
@@ -158,6 +161,9 @@ When `theme.changed` arrives over WS for the active theme (a user edited it in `
 ### 4.6 Default: light / dark / system
 
 - Change Default's manifest to `colorScheme: "auto"`.
+- Rename the existing `data-mt-scheme` attribute to `data-mt-mode` (only Default uses it; no alias needed).
+- Add the missing `--mt-font-display` token in this phase (default `var(--mt-font-ui)`) and apply it to headings via hooks.
+- Convert the existing token re-read hook (currently used only by map and charts, never exercised) into the `theme:applied` listener described in §4.5.
 - `theme.css` holds shared tokens plus the dark palette under `:root:where([data-mt-mode="dark"])` and the light palette under `:root:where([data-mt-mode="light"])`.
 - **Mode** is a separate per-browser setting: `System` (default; follows `prefers-color-scheme` and updates live on change) · `Light` · `Dark`. For System, the provider sets `data-mt-mode` from the media query.
 - Themes with `colorScheme: "dark"` or `"light"` ignore the mode setting, and the picker greys it out for them.
@@ -340,8 +346,12 @@ Implement the `mapStyle` manifest field:
 - Extend the Playwright visual suite to every built-in theme and mode: **Default Light, Default Dark, Retro Terminal, Retro Terminal Amber, Cyberpunk**, at 1280 and 390 px.
 - Screens: Dashboard, Map, Messages (list + DM thread with reply, reaction, failed message), Node drawer (Overview + Telemetry), Settings → Device (one section with a changed field), Settings → Appearance, a toast, the notification center.
 - Run the effects-on variant for Retro and Cyberpunk at 1280 only; mask animated regions.
-- Contrast check: run axe-core color-contrast rules per theme and fail on AA violations in text.
+- Contrast check: run axe-core color-contrast rules (`@axe-core/playwright`, new dev dependency) per theme and fail on AA violations in text.
 - CI publishes the screenshots as an artifact for review.
+- **CI cost control** (the full matrix is ~5× the current baselines):
+  - **Every PR:** Default Light + Default Dark on all screens at both widths, plus a smoke set of Retro Terminal and Cyberpunk on Dashboard and Messages at 1280 px. Axe contrast for all themes (cheap).
+  - **Full matrix:** nightly, and on any PR that touches `themes/**`, `tokens.css` or the hook registry (CI path filters).
+  - Shard Playwright across parallel jobs.
 
 ### 9.1 Phase F acceptance
 
@@ -353,21 +363,23 @@ Implement the `mapStyle` manifest field:
 
 ## 10. Data and API summary
 
-| Item                             | Change                                                                            |
-| -------------------------------- | --------------------------------------------------------------------------------- |
-| `settings`                       | Add `theme.default` (theme id)                                                    |
-| `GET /api/themes`                | New                                                                               |
-| `GET/PUT /api/themes/default`    | New (PUT admin)                                                                   |
-| `POST /api/themes/:id/duplicate` | New (admin): `{ newId, name }` → copies to `/data/themes`                         |
-| `/themes/<id>/<file>?v=<hash>`   | Existing route; add allowlist, path safety, hash-based caching, user-theme source |
-| WS `theme.changed`               | New: `{ id, hash, removed? }`                                                     |
-| localStorage `mt.theme`          | `{ id, hash, mode }`; `mt.effects` boolean                                        |
+| Item                             | Change                                                                                       |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
+| `settings`                       | Add `theme.default` (theme id)                                                               |
+| `GET /api/themes`                | New                                                                                          |
+| `GET/PUT /api/themes/default`    | New (PUT admin)                                                                              |
+| `POST /api/themes/:id/duplicate` | New (admin): `{ newId, name }` → copies to `/data/themes`                                    |
+| `/themes/<id>/<file>?v=<hash>`   | Existing route; add allowlist, path safety, hash-based caching, user-theme source            |
+| WS `theme.changed`               | New: `{ id, hash, removed? }`                                                                |
+| localStorage `meshterm.theme`    | `{ id, hash, mode }`; `meshterm.effects` boolean (same `meshterm.*` prefix as existing keys) |
 
 ## 11. Theming hooks / tokens added by this CR
 
 Hooks: `data-mt="appearance-settings"`, `"theme-card"` (state `active`, `previewing`, `broken`; variant `builtin|user|override`), `"theme-swatch"`, `"mode-toggle"`, `"effects-toggle"`, `"fx-layer"`.
 
-Tokens: `--mt-z-fx`, `--mt-chart-1-dash` … `--mt-chart-6-dash` (if added in Phase C), `--mt-font-display` (exists; ensure Cyberpunk uses it).
+Tokens: `--mt-z-fx`, `--mt-chart-1-dash` … `--mt-chart-6-dash` (if added in Phase C), `--mt-font-display` (new in Phase A; default `var(--mt-font-ui)`; Cyberpunk overrides it).
+
+Attributes: `data-mt-mode` replaces the existing `data-mt-scheme` (Phase A rename).
 
 ## 12. Risks
 

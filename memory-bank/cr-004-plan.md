@@ -5,20 +5,20 @@ CR: [cr-004-themes.md](cr-004-themes.md). Stop after each phase, report, commit 
 ## Where the code is today (2026-10-22)
 
 - **Serving:** [static.ts](../apps/server/src/routes/static.ts) serves the built-in `themes/` folder with `@fastify/static` at `/themes/`, `no-cache`, with no file-type allowlist and no `?v=` caching. [paths.ts](../apps/server/src/paths.ts) resolves only the built-in folder. `/data` is `MESHTERM_DATA_DIR`; there's no `/data/themes` yet.
-- **index.html** hard-links `/themes/default/theme.css` (`data-mt="theme-link"`) and has an inline `<style>` with the layer order, allowed by hash. Script CSP is `'self'` only, so the no-flash inline script needs its own `sha256` hash, computed from the built `index.html` the same way as `inlineStyleHashes`.
+- **index.html** hard-links `/themes/default/theme.css` (`data-mt="theme-link"`) and has an inline `<style>` with the layer order, allowed by hash. Script CSP is `'self'` only; the updated CR uses a blocking external `/theme-boot.js`, so the CSP doesn't change.
 - **Default theme:** dark under `:root`, light under `:root[data-mt-scheme="light"]` (unused). The CR uses `data-mt-mode`, so the attribute is renamed. Nothing outside Default uses it.
 - **Re-reading tokens:** [useThemeChange.ts](../apps/web/src/components/useThemeChange.ts) already watches `href` on the theme link and the `data-mt-theme` / `data-mt-scheme` attributes on `<html>` with a MutationObserver. Map (`MapPage`) and charts (`ChartTabs`) use it. Mini maps, sparklines, the favicon badge (`tab.ts`), `MapPicker` and theme sounds (`sounds.ts` reads the link's `href`) don't, and nothing has ever really switched a theme. It becomes the `theme:applied` listener.
-- **Tokens:** about 100 in [tokens.css](../apps/web/src/styles/tokens.css). `--mt-font-display` doesn't exist yet (the CR assumes it does), and there are no `--mt-z-fx` or chart dash tokens.
+- **Tokens:** about 100 in [tokens.css](../apps/web/src/styles/tokens.css). No `--mt-font-display` (added in A2), `--mt-z-fx` or chart dash tokens. There's no `--mt-font-ui` either: the body font is `--mt-font-body`.
 - **Hooks:** string literals in components; the list is in `architecture.md`. There's no registry and no lint rule.
 - **Missing dependencies:** `chokidar` (named in tech-stack.md, not installed) and `@axe-core/playwright` (Phase F).
-- **Storage keys:** existing per-browser keys are `meshterm.*` (`meshterm.notifications`, `meshterm.nodes`). The CR names `mt.theme` / `mt.effects`.
+- **Storage keys:** `meshterm.theme` and `meshterm.effects`, like the existing `meshterm.*` keys (updated CR).
 
 ## Phase A1: server — registry, user themes, safe serving, hot reload, API
 
 - `apps/server/src/themes/`:
   - `manifest.ts`: the Zod `ThemeManifest` (in `shared`, so the web uses it too). It checks the id against the folder name, relative paths inside the folder (no `..`, absolute paths or URLs) and the preview colors.
   - `registry.ts`: scans the built-in folder and `<dataDir>/themes` (created if missing). A user theme with a built-in's id overrides it (warning). Each theme gets a content hash of its allowed files. Broken themes are kept with their error. It warns on `url(http…)` in CSS.
-  - `watcher.ts`: chokidar on `<dataDir>/themes`, debounced 300 ms per theme folder. It rescans that folder and publishes hub `theme.changed {id, hash, removed?}`.
+  - `watcher.ts`: chokidar (new dependency) on `<dataDir>/themes`, debounced 300 ms per theme folder; `MESHTERM_THEMES_POLL=1` switches to polling (NFS/SMB/bind mounts). The env var goes into `.env.example`, the README and the config schema. It rescans that folder and publishes hub `theme.changed {id, hash, removed?}`.
 - **Static route:** replace the `@fastify/static` theme root with a handler that looks the id up in the registry. It serves only the allowlisted extensions, refuses anything else (including `.js`) with 404, and stays inside the folder (symlinks resolved). Caching is `immutable` when `?v=` matches the current hash and `no-cache` otherwise.
 - **Routes:**
   - `GET /api/themes`: the list. `error` is shown to admins only, and viewers don't see broken themes.
@@ -36,7 +36,7 @@ CR: [cr-004-themes.md](cr-004-themes.md). Stop after each phase, report, commit 
 
 ## Phase A2: client — ThemeProvider, no flash, modes, picker
 
-- **index.html:** the inline boot script from CR §4.4 also handles `?theme=<id>` (a one-load override, never saved) and sets `data-mt-mode` for System from `matchMedia`. The server adds the script's `sha256` to `script-src`, and `csp.spec` keeps walking every screen with zero violations.
+- **index.html:** the theme link plus `<script src="/theme-boot.js">` (blocking, no `defer`), from `apps/web/public/`, so Vite copies it and the server's static root serves it. The script (< 1 KB) reads `meshterm.theme`, handles `?theme=<id>` (a one-load override, never saved) and sets `data-mt-mode` for System from `matchMedia`. The CSP stays `script-src 'self'`, and `csp.spec` keeps walking every screen with zero violations.
 - **`src/theme/`:**
   - `ThemeProvider`:
     - Boot: fetch `/api/themes`. Fall back from a missing theme to the server default, then to `default`.
@@ -48,7 +48,8 @@ CR: [cr-004-themes.md](cr-004-themes.md). Stop after each phase, report, commit 
     - `theme.changed` re-applies the active theme with its new hash and refreshes the list.
   - `useThemeChange` listens for `theme:applied` instead of the MutationObserver.
   - Every consumer re-reads its tokens: map (paint properties), charts, mini maps, sparklines, the favicon badge, `MapPicker` and sounds.
-- **Default theme:** `colorScheme: "auto"`. The dark palette moves under `:root:where([data-mt-mode="dark"])` and light under `…="light"`. Add `preview` swatches.
+- **Tokens:** `--mt-font-display`, defaulting to `var(--mt-font-body)` (the CR's `--mt-font-ui` doesn't exist), applied to headings (page titles, card and drawer headers).
+- **Default theme:** `colorScheme: "auto"`; `data-mt-scheme` renamed to `data-mt-mode` with no alias. The dark palette moves under `:root:where([data-mt-mode="dark"])` and light under `…="light"`. Add `preview` swatches.
 - **Settings → Appearance** (`appearance-settings`):
   - theme cards (`theme-card` with state and variant, `theme-swatch`);
   - hover and focus preview, off under reduced motion;
@@ -116,13 +117,19 @@ CR: [cr-004-themes.md](cr-004-themes.md). Stop after each phase, report, commit 
 
 - The visual suite runs across themes: Default Light and Dark, Retro, Retro Amber and Cyberpunk, at 1280 and 390 px, on the CR §9 screens.
 - Effects-on runs for Retro and Cyberpunk at 1280 only, with animations masked.
-- `@axe-core/playwright` color-contrast checks per theme.
+- `@axe-core/playwright` (new dev dependency) color-contrast checks per theme.
 - CI uploads the screenshots as an artifact.
-- **Workload:** about 5× the current baseline count per platform, so the screens and widths may be trimmed if the runs get too slow.
+- **CI cost control** (CR §9):
+  - every PR: Default Light and Dark on all screens at both widths, Retro and Cyberpunk smoke shots (Dashboard and Messages at 1280 px), axe for all themes;
+  - the full matrix nightly (a `schedule` workflow) and on PRs or pushes that touch `themes/**`, `tokens.css` or the hook registry (path filters);
+  - Playwright sharded across parallel jobs.
 
 ## Decisions to record when building
 
-- `data-mt-scheme` is renamed to `data-mt-mode` (CR §4.6); only Default used it.
-- **Storage keys:** keep the CR's names (`mt.theme`, `mt.effects`) or follow the existing `meshterm.*` keys. The plan uses `meshterm.theme` / `meshterm.effects` for consistency unless the user prefers the CR's names.
+- `data-mt-scheme` is renamed to `data-mt-mode` with no alias (CR §4.6); only Default used it.
+- Storage keys `meshterm.theme` and `meshterm.effects` (CR §10).
+- The no-flash boot script is an external `/theme-boot.js` (CR §4.4), so the CSP doesn't change.
+- `--mt-font-display` defaults to `var(--mt-font-body)`: the CR's `--mt-font-ui` doesn't exist.
+- CR §12 still lists "inline head script with CSP hash" as the flash mitigation; §4.4 (external script) wins.
 - The theme hash covers only the allowlisted files in the folder, so it changes exactly when something served changes.
 - Viewers never see broken themes; admins see them with the error.
