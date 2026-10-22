@@ -5,6 +5,7 @@ import {
   type DashboardDTO,
   type MeDTO,
   type MeshNode,
+  type NotificationPrefsDTO,
 } from "@meshterm/shared";
 import type { QueryClient } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
@@ -57,6 +58,16 @@ export async function renderApp(path: string, seed: Seed = {}) {
     },
   ]);
   queryClient.setQueryData(queryKeys.nodes(1), seed.nodes ?? []);
+  // The user's notification settings, as the app loads them at start (CR-003).
+  queryClient.setQueryData<NotificationPrefsDTO>(queryKeys.notificationPrefs, {
+    dndUntil: null,
+    quietHours: null,
+    quietAllowDms: false,
+    mentionKeywords: [],
+    reactionsMode: "in-app",
+    matchShortName: true,
+    serverUtcOffsetMinutes: 0,
+  });
   if (seed.dashboard) queryClient.setQueryData(queryKeys.dashboard(1), seed.dashboard);
   queryClient.setQueryData<ConversationsDTO>(
     queryKeys.conversations(1),
@@ -70,6 +81,7 @@ export async function renderApp(path: string, seed: Seed = {}) {
           encryption: c.encryption,
           lastMessage: null,
           unread: 0,
+          unreadMentions: 0,
           state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "mentions" },
         })),
       dms: [],

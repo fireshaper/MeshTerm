@@ -15,6 +15,8 @@ export const queryKeys = {
   connections: ["connections"] as const,
   me: ["me"] as const,
   configSchema: ["configSchema"] as const,
+  /** The signed-in user's notification settings (CR-003). */
+  notificationPrefs: ["notificationPrefs"] as const,
   deviceConfig: (connectionId: number) => ["deviceConfig", connectionId] as const,
   /** The latest `config.apply` status seen for a connection (from WS or the apply response). */
   configApply: (connectionId: number) => ["configApply", connectionId] as const,

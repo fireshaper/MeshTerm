@@ -1,5 +1,5 @@
 import type { ConversationKind, ConversationState, NotifyLevel } from "@meshterm/shared";
-import { and, eq, gt, isNull, notExists, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, notExists, sql, type SQL } from "drizzle-orm";
 import type { Db } from "../db/database.js";
 import { conversationState, messages, nodes } from "../db/schema.js";
 
@@ -145,13 +145,13 @@ export function newestRxTime(
  * Incoming messages after `lastReadRxTime`, not counting reactions or ignored nodes
  * (CR-003 §4: those never notify, so they don't nag as unread either).
  */
-export function unreadCount(
+function unreadWhere(
   db: Db,
   connectionId: number,
   kind: ConversationKind,
   key: number,
   state: StoredState,
-): number {
+): SQL | undefined {
   const ignored = db
     .select({ one: sql`1` })
     .from(nodes)
@@ -162,20 +162,53 @@ export function unreadCount(
         eq(nodes.isIgnored, true),
       ),
     );
+  return and(
+    conversationWhere(connectionId, kind, key, state.deletedBefore),
+    eq(messages.direction, "in"),
+    eq(messages.emoji, false),
+    gt(messages.rxTime, state.lastReadRxTime),
+    notExists(ignored),
+  );
+}
+
+export function unreadCount(
+  db: Db,
+  connectionId: number,
+  kind: ConversationKind,
+  key: number,
+  state: StoredState,
+): number {
   const [row] = db
     .select({ n: sql<number>`count(*)` })
     .from(messages)
-    .where(
-      and(
-        conversationWhere(connectionId, kind, key, state.deletedBefore),
-        eq(messages.direction, "in"),
-        eq(messages.emoji, false),
-        gt(messages.rxTime, state.lastReadRxTime),
-        notExists(ignored),
-      ),
-    )
+    .where(unreadWhere(db, connectionId, kind, key, state))
     .all();
   return row?.n ?? 0;
+}
+
+/** Looked at for mentions: unread beyond this many is rare and counted as is. */
+const MENTION_SCAN_LIMIT = 1_000;
+
+/**
+ * Unread messages that mention the user (their matcher: the owner's names, their
+ * keywords and short-name setting) or reply to one of our messages (CR-003 §5).
+ */
+export function unreadMentions(
+  db: Db,
+  connectionId: number,
+  kind: ConversationKind,
+  key: number,
+  state: StoredState,
+  mentions: (text: string) => boolean,
+): number {
+  return db
+    .select({ text: messages.text, reply: messages.isReplyToMe })
+    .from(messages)
+    .where(unreadWhere(db, connectionId, kind, key, state))
+    .orderBy(desc(messages.rxTime))
+    .limit(MENTION_SCAN_LIMIT)
+    .all()
+    .filter((m) => m.reply || mentions(m.text)).length;
 }
 
 /**

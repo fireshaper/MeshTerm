@@ -5,6 +5,7 @@ import type {
   Message,
   MessagePreview,
   MessageStatus,
+  NotifyHint,
 } from "@meshterm/shared";
 
 export const NEW_STATE: ConversationState = {
@@ -43,8 +44,11 @@ export function applyMessageToConversations(
   data: ConversationsDTO,
   m: Message,
   ignored: ReadonlySet<number> = new Set(),
+  /** The server's hint for this user: a mention or reply also counts as an unread mention. */
+  hint?: NotifyHint,
 ): ConversationsDTO {
   const counts = (state: ConversationState) => countsUnread(m, state) && !ignored.has(m.fromNum);
+  const mention = hint?.reason === "mention" || hint?.reason === "reply";
   if (m.peer === null) {
     const i = data.channels.findIndex((c) => c.index === m.channelIndex);
     const channel = data.channels[i];
@@ -57,6 +61,7 @@ export function applyMessageToConversations(
       ...channel,
       ...(newer ? { lastMessage: toPreview(m) } : {}),
       unread: channel.unread + (unread ? 1 : 0),
+      unreadMentions: channel.unreadMentions + (unread && mention ? 1 : 0),
     };
     return { ...data, channels };
   }
@@ -69,6 +74,7 @@ export function applyMessageToConversations(
     peer: m.peer,
     lastMessage: newer ? toPreview(m) : existing.lastMessage,
     unread: (existing?.unread ?? 0) + (unread ? 1 : 0),
+    unreadMentions: (existing?.unreadMentions ?? 0) + (unread && mention ? 1 : 0),
     state,
     ignored: existing?.ignored ?? ignored.has(m.peer),
   };
@@ -120,6 +126,7 @@ export function applyReadToConversations(
       ...row,
       state: { ...row.state, lastReadRxTime: Math.max(row.state.lastReadRxTime, lastReadRxTime) },
       unread: allRead ? 0 : row.unread,
+      unreadMentions: allRead ? 0 : row.unreadMentions,
     };
   });
   return { data: next, stale: result.stale };

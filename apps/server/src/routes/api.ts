@@ -101,7 +101,7 @@ export const apiRoutes: FastifyPluginAsyncZod = (app) => {
     (req) => {
       const { id } = req.params;
       requireConnection(id);
-      return buildConversations(db, id);
+      return buildConversations(db, id, req.auth?.id ?? 0);
     },
   );
 

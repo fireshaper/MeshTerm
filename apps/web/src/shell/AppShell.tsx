@@ -5,7 +5,8 @@ import { useState } from "react";
 import { UserMenu } from "../auth/UserMenu.js";
 import { NodeDrawer } from "../node-drawer/NodeDrawer.js";
 import { ConnectionIndicator, useDeviceInfo } from "./ConnectionIndicator.js";
-import { useUnreadTitle, useUnreadTotals } from "../messages/unread.js";
+import { useUnreadTotals } from "../messages/unread.js";
+import { useNotificationRuntime } from "../notifications/runtime.js";
 import { MainNav } from "./MainNav.js";
 import { Toaster } from "./Toaster.js";
 
@@ -50,8 +51,8 @@ function NavFooter() {
  * sidebar from 768 px, a navigation drawer below it, and the content area.
  */
 export function AppShell() {
-  useUnreadTitle();
   const unread = useUnreadTotals();
+  useNotificationRuntime(unread.total, unread.dm);
   const [sidebar, setSidebar] = useState<SidebarPref>(readSidebarPref);
   const [drawerOpen, setDrawerOpen] = useState(false);
 

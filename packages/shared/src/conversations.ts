@@ -47,6 +47,8 @@ export const ChannelConversation = z.object({
   lastMessage: MessagePreview.nullable(),
   /** Incoming messages after the read mark (reactions and ignored nodes don't count). */
   unread: z.number().int().nonnegative(),
+  /** Of those, mentions of this user and replies to us (CR-003 §5). */
+  unreadMentions: z.number().int().nonnegative(),
   state: ConversationState,
 });
 export type ChannelConversation = z.infer<typeof ChannelConversation>;
@@ -56,6 +58,8 @@ export const DmConversation = z.object({
   peer: Uint32,
   lastMessage: MessagePreview,
   unread: z.number().int().nonnegative(),
+  /** Of those, mentions of this user and replies to us (CR-003 §5). */
+  unreadMentions: z.number().int().nonnegative(),
   state: ConversationState,
   /** The peer is an ignored node: listed only with "Show ignored". */
   ignored: z.boolean(),

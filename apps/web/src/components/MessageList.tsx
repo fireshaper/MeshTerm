@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Conversation } from "../data/keys.js";
 import { loadOlder, useConversation, useNodes } from "../data/queries.js";
 import { useMarkRead } from "../messages/unread.js";
+import { useNotifyCenter } from "../notifications/center.js";
 import { MessageItem, senderName } from "./MessageItem.js";
 import { useNow } from "./useNow.js";
 
@@ -69,7 +70,9 @@ export function MessageList({ connectionId, conversation }: MessageListProps) {
   const onScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
-    atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < EDGE;
+    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight < EDGE;
+    if (bottom !== atBottom.current) reportViewing(bottom);
+    atBottom.current = bottom;
     if (el.scrollTop < EDGE && cursor && !loading.current) {
       loading.current = true;
       setLoadingOlder(true);
@@ -81,6 +84,31 @@ export function MessageList({ connectionId, conversation }: MessageListProps) {
   };
 
   useMarkRead(connectionId, conversation, messages, atBottom);
+
+  // Notifications skip the conversation the reader is looking at (CR-003 §4).
+  const reportViewing = (bottom: boolean) => {
+    useNotifyCenter
+      .getState()
+      .setViewing(
+        bottom
+          ? "channel" in conversation
+            ? { connectionId, kind: "channel", key: conversation.channel }
+            : { connectionId, kind: "dm", key: conversation.peer }
+          : null,
+      );
+  };
+  useEffect(() => {
+    useNotifyCenter
+      .getState()
+      .setViewing(
+        "channel" in conversation
+          ? { connectionId, kind: "channel", key: conversation.channel }
+          : { connectionId, kind: "dm", key: conversation.peer },
+      );
+    return () => {
+      useNotifyCenter.getState().setViewing(null);
+    };
+  }, [connectionId, conversation]);
 
   // Reset per conversation.
   useEffect(() => {

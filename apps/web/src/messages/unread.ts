@@ -2,36 +2,21 @@ import type { ConversationsDTO, Message } from "@meshterm/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, type RefObject } from "react";
 import { api } from "../data/api.js";
-import {
-  applyReadToConversations,
-  unreadTotals,
-  badgeText,
-  type UnreadTotals,
-} from "../data/conversations-cache.js";
+import { applyReadToConversations, type UnreadTotals } from "../data/conversations-cache.js";
+import { titleCount } from "../notifications/rules.js";
 import { queryKeys, type Conversation } from "../data/keys.js";
 import { useConversationList } from "../data/queries.js";
 import { useLiveStore } from "../data/store.js";
 
-/** Unread messages across conversations (not muted, not ignored), for badges and the title. */
+/**
+ * What the Messages badge and the tab count (CR-003 §5): unread DMs, channels set to
+ * "all", and mentions everywhere else; `dm` when a DM or mention is among them.
+ */
 export function useUnreadTotals(): UnreadTotals {
   const connectionId = useLiveStore((s) => s.connectionId);
   const { data } = useConversationList(connectionId);
-  return unreadTotals(data);
-}
-
-export const BASE_TITLE = "MeshTerm";
-
-/** `(N) MeshTerm` while there are unread messages (CR-003 §5; 99+ past 99). */
-export function titleFor(total: number): string {
-  return total > 0 ? `(${badgeText(total)}) ${BASE_TITLE}` : BASE_TITLE;
-}
-
-/** Keeps the tab title in step with the unread count. */
-export function useUnreadTitle(): void {
-  const { total } = useUnreadTotals();
-  useEffect(() => {
-    document.title = titleFor(total);
-  }, [total]);
+  const { total, priority } = titleCount(data);
+  return { total, dm: priority };
 }
 
 /** How long the newest message must have been in view before it counts as read. */

@@ -1,13 +1,17 @@
 import {
   channelDisplayName,
+  mentionMatcher,
   type ConversationsDTO,
   type Message,
   type MessagePreview,
 } from "@meshterm/shared";
 import type { Db } from "../db/database.js";
-import { allStates, publicState, stateFrom, unreadCount } from "./read-state.js";
+import { allStates, publicState, stateFrom, unreadCount, unreadMentions } from "./read-state.js";
+import { loadPrefs } from "./notify.js";
 import {
   getModemPreset,
+  getMyNodeNum,
+  getNode,
   ignoredNodes,
   listChannelMessages,
   listChannels,
@@ -32,11 +36,27 @@ export function toPreview(m: Message): MessagePreview {
  * DM peer with a message (newest first), each with its newest message. One indexed
  * `LIMIT 1` query per conversation.
  */
-export function buildConversations(db: Db, connectionId: number): ConversationsDTO {
+export function buildConversations(
+  db: Db,
+  connectionId: number,
+  /** Whose mentions count (their keywords); 0 with accounts off. */
+  userId = 0,
+): ConversationsDTO {
   const preset = getModemPreset(db, connectionId);
   const newest = (page: Message[]) => page[0] ?? null;
   const states = allStates(db, connectionId);
   const ignored = ignoredNodes(db, connectionId);
+  const me = getMyNodeNum(db, connectionId);
+  const own = me === null ? null : getNode(db, connectionId, me);
+  const prefs = loadPrefs(db, userId, 0);
+  const mentions = own
+    ? mentionMatcher({
+        longName: own.longName,
+        shortName: own.shortName,
+        matchShortName: prefs.matchShortName,
+        keywords: prefs.mentionKeywords,
+      })
+    : () => false;
   return {
     channels: listChannels(db, connectionId)
       .filter((c) => c.role !== "DISABLED")
@@ -50,6 +70,7 @@ export function buildConversations(db: Db, connectionId: number): ConversationsD
           encryption: c.encryption,
           lastMessage: last ? toPreview(last) : null,
           unread: unreadCount(db, connectionId, "channel", c.index, state),
+          unreadMentions: unreadMentions(db, connectionId, "channel", c.index, state, mentions),
           state: publicState("channel", state),
         };
       }),
@@ -65,6 +86,7 @@ export function buildConversations(db: Db, connectionId: number): ConversationsD
           peer,
           lastMessage: toPreview(last),
           unread: unreadCount(db, connectionId, "dm", peer, state),
+          unreadMentions: unreadMentions(db, connectionId, "dm", peer, state, mentions),
           state: publicState("dm", state),
           ignored: ignored.has(peer),
         },

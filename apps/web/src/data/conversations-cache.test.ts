@@ -24,6 +24,7 @@ function dto(): ConversationsDTO {
         encryption: "default",
         lastMessage: null,
         unread: 0,
+        unreadMentions: 0,
         state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "dm-default" },
       },
     ],
@@ -32,6 +33,7 @@ function dto(): ConversationsDTO {
         peer: TRAIL,
         lastMessage: toPreview(msg({ id: "00000000-0000-4000-8000-000000000001", rxTime: 5_000 })),
         unread: 0,
+        unreadMentions: 0,
         state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "dm-default" },
         ignored: false,
       },
@@ -75,7 +77,11 @@ describe("conversation list cache", () => {
     expect(part.stale).toBe(true);
     const all = applyReadToConversations(d, "dm", TRAIL, 9_500);
     expect(all).toMatchObject({ stale: false });
-    expect(all.data.dms[0]).toMatchObject({ unread: 0, state: { lastReadRxTime: 9_500 } });
+    expect(all.data.dms[0]).toMatchObject({
+      unread: 0,
+      unreadMentions: 0,
+      state: { lastReadRxTime: 9_500 },
+    });
   });
 
   it("totals leave out muted and ignored conversations and flag DMs", () => {
@@ -91,6 +97,24 @@ describe("conversation list cache", () => {
     });
     expect(unreadTotals(d)).toEqual({ total: 1, dm: false });
     expect(badgeText(100)).toBe("99+");
+  });
+
+  it("a mention or reply hint also counts as an unread mention; reading clears both", () => {
+    const m = msg({ peer: null, rxTime: 9_000 });
+    let d = applyMessageToConversations(dto(), m, new Set(), {
+      level: "notify",
+      reason: "mention",
+      backlog: false,
+    });
+    d = applyMessageToConversations(
+      d,
+      msg({ id: "00000000-0000-4000-8000-00000000000a", peer: null, rxTime: 9_100 }),
+      new Set(),
+      { level: "badge", reason: null, backlog: false },
+    );
+    expect(d.channels[0]).toMatchObject({ unread: 2, unreadMentions: 1 });
+    const read = applyReadToConversations(d, "channel", 0, 9_100).data;
+    expect(read.channels[0]).toMatchObject({ unread: 0, unreadMentions: 0 });
   });
 
   it("a DM from a new peer adds a row on top; a message on another channel is ignored", () => {

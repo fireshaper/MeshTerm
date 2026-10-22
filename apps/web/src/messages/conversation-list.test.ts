@@ -72,6 +72,7 @@ describe("search", () => {
         encryption: null,
         lastMessage: null,
         unread: 0,
+        unreadMentions: 0,
         state: {
           lastReadRxTime: 0,
           muted: false,
@@ -86,6 +87,7 @@ describe("search", () => {
         encryption: null,
         lastMessage: null,
         unread: 0,
+        unreadMentions: 0,
         state: {
           lastReadRxTime: 0,
           muted: false,
@@ -101,6 +103,7 @@ describe("search", () => {
         peer: ridge.num,
         lastMessage: preview,
         unread: 0,
+        unreadMentions: 0,
         state: {
           lastReadRxTime: 0,
           muted: false,
@@ -113,6 +116,7 @@ describe("search", () => {
         peer: 0x1a2b3c4d,
         lastMessage: preview,
         unread: 0,
+        unreadMentions: 0,
         state: {
           lastReadRxTime: 0,
           muted: false,

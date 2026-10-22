@@ -567,6 +567,17 @@ State: `typecheck`, `lint`, `format`, `test` (694), `test:e2e` (165 passed, 6 sk
 
 State: `typecheck`, `lint`, `format`, `test` (716), `test:e2e` (165 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
 
+### Phase N2: rules and the browser tab (done 2026-10-22)
+
+- **Rules in the browser:** the server's hint, then Do Not Disturb, quiet hours (DMs may pass), this browser's settings, and nothing for the conversation open at the bottom of a visible, focused tab. The backlog is left to its one summary; reactions stay in the app unless the user wants them to notify.
+- **Counts:** the nav badge and the title now follow CR-003 §5: unread DMs, channels set to All, and unread mentions/replies everywhere else (the server counts mentions per user, with their keywords). Muted and ignored never count.
+- **The tab:** `(N) MeshTerm`; `⚠ ` while the node is disconnected; while hidden, the title alternates with "💬 K7AB: …" every 1.5 s until the tab is back; a favicon badge (count up to 9, then a dot) drawn on a new `favicon.svg`.
+- **Several tabs:** a leader is elected over `BroadcastChannel` (focused tab, else the most recently focused); only it flashes (and plays sounds / shows OS notifications from N4). All tabs update counts.
+- **Browser settings store** for N3–N5 (localStorage), the user's prefs loaded at start and updated over WS.
+- **Tests:** rules (DND, quiet hours, reactions, settings, open conversation), title count, leader election with three tabs, title/favicon/flash logic, the center with a hidden tab; server unread-mention count with keywords; e2e: a DM while hidden flashes the title and badges the favicon, and a rebooting node shows ⚠.
+
+State: `typecheck`, `lint`, `format`, `test` (731), `test:e2e` (169 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

@@ -115,3 +115,37 @@ test("an unread DM badges its row, the nav and the title; reading it in another 
   await expect(firstRow.locator("[data-mt=unread-badge]")).toHaveCount(0, { timeout: 10_000 });
   await other.context().close();
 });
+
+// ------------------------------------------------------------- the tab (CR-003 N2)
+
+/** Pretends the tab went to the background (headless pages are always "visible"). */
+async function hideTab(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    Object.defineProperty(document, "hasFocus", { configurable: true, value: () => false });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+}
+
+test("a DM while the tab is hidden: the title flashes and the favicon gets a badge", async ({
+  page,
+}, info) => {
+  const TRAIL = 0x1a2b3c4d;
+  const subscribed = socketSubscribed(page);
+  await page.goto("/nodes");
+  await subscribed;
+  await hideTab(page);
+  const text = `flash ${info.project.name} ${Date.now()}`;
+  await fakeNode.injectText(TRAIL, { to: ME }, text);
+  await expect(page).toHaveTitle(/^💬 TRL: flash/, { timeout: 5_000 });
+  await expect(page).toHaveTitle(/^\(\d+\+?\) MeshTerm$/, { timeout: 5_000 });
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", /^data:image\/png/);
+});
+
+test("the title warns while the node is disconnected", async ({ page }) => {
+  await page.goto("/nodes");
+  await expect(page).toHaveTitle(/^(\(\d+\+?\) )?MeshTerm$/);
+  await fakeNode.reboot(3_000);
+  await expect(page).toHaveTitle(/^⚠ /, { timeout: 10_000 });
+  await expect(page).toHaveTitle(/^(\(\d+\+?\) )?MeshTerm$/, { timeout: 20_000 });
+});

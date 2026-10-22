@@ -30,6 +30,7 @@ import {
   applyStateToConversations,
   applyStatusToConversations,
 } from "./conversations-cache.js";
+import { handleBacklog, handleMessageNew } from "../notifications/center.js";
 import {
   applyNodeToDetail,
   applyPositionToDetail,
@@ -189,8 +190,19 @@ export function applyServerMessage(
       const nodes = qc.getQueryData<MeshNode[]>(queryKeys.nodes(m.connectionId)) ?? [];
       const ignored = new Set(nodes.filter((n) => n.isIgnored).map((n) => n.num));
       qc.setQueryData<ConversationsDTO>(queryKeys.conversations(m.connectionId), (d) =>
-        d ? applyMessageToConversations(d, m, ignored) : d,
+        d ? applyMessageToConversations(d, m, ignored, message.notify) : d,
       );
+      handleMessageNew(qc, m, message.notify);
+      return;
+    }
+
+    case "notifications.backlog": {
+      handleBacklog(qc, message);
+      return;
+    }
+
+    case "notification-prefs.updated": {
+      qc.setQueryData(queryKeys.notificationPrefs, message.prefs);
       return;
     }
 

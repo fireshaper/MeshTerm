@@ -29,7 +29,7 @@ CR: [cr-003-notifications.md](cr-003-notifications.md). Stop after each phase, r
 - `message.new` gets `notify {level, reason, backlog}`, per WebSocket user (the conversation level, ignored nodes, reactions mode, keywords).
 - `GET/PATCH /api/me/notification-prefs` (DND until, quiet hours + allow DMs, keywords, reactions mode, short-name matching); a WS event so DND syncs across a user's browsers.
 
-## Phase N2: rules engine and the tab
+## Phase N2: rules engine and the tab (done 2026-10-22)
 
 - Client rules: the server hint, plus per-browser settings, DND/quiet hours, and suppression when the conversation is open, at the bottom and focused.
 - Tab: title count (same rule as the nav badge, 99+), `⚠ ` while disconnected, favicon badge on a canvas (tokens `--mt-badge-*`), title flash while hidden.

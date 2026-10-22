@@ -42,6 +42,7 @@ describe("GET /api/connections/:id/conversations", () => {
         encryption: "default",
         lastMessage: null,
         unread: 0,
+        unreadMentions: 0,
         state: UNREAD_STATE,
       },
       {
@@ -51,6 +52,7 @@ describe("GET /api/connections/:id/conversations", () => {
         encryption: "custom",
         lastMessage: expect.objectContaining({ text: "hello friends", direction: "in" }) as unknown,
         unread: 1,
+        unreadMentions: 0,
         state: UNREAD_STATE,
       },
     ]);
@@ -149,6 +151,20 @@ describe("read state (CR-003 N0)", () => {
     await until(() => count() === 2, 2_000);
     dto = await get<ConversationsDTO>("conversations");
     expect(dto.dms.map((d) => [d.lastMessage.text, d.unread])).toEqual([["after delete", 1]]);
+  });
+
+  it("counts unread mentions for the user, with their keywords, and replies to us", async () => {
+    await t.app.inject({
+      method: "PATCH",
+      url: "/api/me/notification-prefs",
+      payload: { mentionKeywords: ["pancakes"] },
+    });
+    t.node.injectText(RIDGE, { channel: 1 }, "@MTB hello");
+    t.node.injectText(RIDGE, { channel: 1 }, "pancakes at 8");
+    t.node.injectText(RIDGE, { channel: 1 }, "nothing for you");
+    await until(() => count() === 3, 2_000);
+    const dto = await get<ConversationsDTO>("conversations");
+    expect(dto.channels.find((c) => c.index === 1)).toMatchObject({ unread: 3, unreadMentions: 2 });
   });
 
   it("refuses bad keys and unknown connections", async () => {

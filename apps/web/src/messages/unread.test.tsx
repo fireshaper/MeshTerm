@@ -7,7 +7,7 @@ import { byDataMt } from "../test/data-mt.js";
 import { TEST_VIEWER } from "../test/me.js";
 import { renderApp } from "../test/render-app.js";
 import { scenarioChannels, scenarioNodes, SCENARIO_MY_NODE } from "../test/scenario.js";
-import { titleFor } from "./unread.js";
+import { tabTitle } from "../notifications/tab.js";
 
 const NOW = Date.now();
 const RIDGE = 0x0badcafe;
@@ -36,6 +36,7 @@ const list = (over: Partial<ConversationsDTO["dms"][number]> = {}): Conversation
       encryption: "default",
       lastMessage: null,
       unread: 3,
+      unreadMentions: 0,
       state: { ...STATE, muted: true },
     },
   ],
@@ -52,6 +53,7 @@ const list = (over: Partial<ConversationsDTO["dms"][number]> = {}): Conversation
         status: null,
       },
       unread: 2,
+      unreadMentions: 0,
       state: STATE,
       ignored: false,
       ...over,
@@ -105,8 +107,8 @@ describe("unread", () => {
     // A DM is unread: the badge has priority.
     expect(badge).toHaveAttribute("data-mt-state", "priority");
     expect(document.title).toBe("(2) MeshTerm");
-    expect(titleFor(120)).toBe("(99+) MeshTerm");
-    expect(titleFor(0)).toBe("MeshTerm");
+    expect(tabTitle(120, false)).toBe("(99+) MeshTerm");
+    expect(tabTitle(0, true)).toBe("⚠ MeshTerm");
   });
 
   it("a row shows its count and state tokens; muted rows are subdued", async () => {
