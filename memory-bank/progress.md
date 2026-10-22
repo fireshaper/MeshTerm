@@ -634,6 +634,18 @@ State: `typecheck`, `lint`, `test` (755), `test:e2e` (186 passed, 7 skipped) gre
 
 - The user pasted CR-004 (theme loader, picker, light/dark Default, Retro Terminal, effects layer, Cyberpunk, per-theme baselines). Saved as `memory-bank/cr-004-themes.md`; plan in `memory-bank/cr-004-plan.md` (phases A1, A2, B, C, D, E, F). Phase A is split into server (A1) and client (A2).
 
+### CR-004 Phase A1: theme registry, safe serving, hot reload, API (done 2026-10-22)
+
+- The user asked to build CR-004 phase after phase without stopping, unless a question comes up.
+- **Shared:** `ThemeManifest` (Zod, CR §4.2) with path rules (relative, inside the folder, allowed types), `ThemeDTO`/`ThemesDTO`, WS `theme.changed`, `MESHTERM_THEMES_POLL`.
+- **Server:** `ThemeRegistry` over the built-in folder and `/data/themes` (created on start): validation, content hash, overrides (a broken user copy never replaces a built-in), warnings for external `url()`s and `minAppVersion`. `ThemeWatcher` (chokidar 5.0.0, 300 ms debounce, polling option) publishes `theme.changed`.
+- **Routes:** `GET /api/themes` and `GET /api/themes/default` (public: the sign-in page is themed too), `PUT /api/themes/default` (admin, audited), `POST /api/themes/:id/duplicate` (admin, audited). Theme files moved from `@fastify/static` to a registry-backed route: allowlist, traversal and symlink checks, `?v=<hash>` immutable caching, ETags.
+- **Default** `theme.json` gained `preview` and `description` (the manifest now requires `preview`).
+- **Tests:** manifest schema; registry (viewer filtering, id/folder mismatch, missing files, `minAppVersion`, hash covers served files only); integration (listing, file allowlist, 10 traversal variants, symlinks (not on Windows), caching and 304, server default, hot reload add/edit/remove, override and broken override, Duplicate).
+- README and `.env.example`: `MESHTERM_THEMES_POLL`.
+
+State: `typecheck`, `lint`, `test` (798, 1 skipped), `test:e2e` (186 passed, 7 skipped) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

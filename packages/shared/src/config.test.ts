@@ -41,6 +41,7 @@ describe("parseConfig", () => {
       dataDir: "/data",
       webDir: null,
       themesDir: null,
+      themesPoll: false,
       logLevel: "info",
       connectTimeoutMs: 10_000,
       tcpKeepAliveMs: 15_000,

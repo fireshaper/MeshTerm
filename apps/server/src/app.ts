@@ -9,6 +9,7 @@ import {
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { attachNetworkStats } from "./activity/network.js";
 import { attachActivity } from "./activity/recorder.js";
@@ -46,6 +47,9 @@ import { resolveThemesDir, resolveWebDir } from "./paths.js";
 import { sendRoutes } from "./routes/send.js";
 import { telemetryRequestRoutes } from "./routes/telemetry-request.js";
 import { TelemetryRequester } from "./messaging/telemetry-request.js";
+import { themeRoutes } from "./routes/themes.js";
+import { ThemeRegistry } from "./themes/registry.js";
+import { ThemeWatcher } from "./themes/watcher.js";
 import { wsRoutes } from "./routes/ws.js";
 import { TcpTransport } from "./transport/tcp-transport.js";
 import type { Transport } from "./transport/transport.js";
@@ -70,8 +74,10 @@ export interface AppDeps {
   logger?: boolean;
   /** Built SPA folder; null serves none. Default: `config.webDir` or found next to the server. */
   webDir?: string | null;
-  /** Themes folder; null serves none. Default: `config.themesDir` or the repo's themes/. */
+  /** Built-in themes folder; null serves none. Default: `config.themesDir` or the repo's themes/. */
   themesDir?: string | null;
+  /** User themes (hot-reloaded); null for none. Default: `<dataDir>/themes`, created if missing. */
+  userThemesDir?: string | null;
   /** Map tile cache. Default: `<dataDir>/tiles`, upstream `config.tileUrl`. */
   tiles?: TileCache;
   /** Key that encrypts config snapshots. Default: `MESHTERM_SECRET_KEY` or `<dataDir>/secret.key`. */
@@ -240,8 +246,23 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
       initialAdmin: config.initialAdmin,
     }),
   );
-  await app.register(staticRoutes({ webDir, themesDir }));
-  app.log.info({ webDir, themesDir }, "static files");
+  await app.register(staticRoutes({ webDir }));
+  const userThemesDir =
+    deps.userThemesDir !== undefined ? deps.userThemesDir : prepareUserThemes(config.dataDir, app);
+  const themes = new ThemeRegistry({
+    builtinDir: themesDir,
+    userDir: userThemesDir,
+    logger: app.log,
+  });
+  themes.scanAll();
+  const themeWatcher = new ThemeWatcher({
+    registry: themes,
+    hub,
+    poll: config.themesPoll,
+    logger: app.log,
+  });
+  await app.register(themeRoutes(themes, themeWatcher));
+  app.log.info({ webDir, themesDir, userThemesDir, themes: themes.ids() }, "static files");
 
   const renderIndex = indexHtmlRenderer(webDir);
   app.setNotFoundHandler((req, reply) => {
@@ -316,17 +337,31 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   const gateway = new WsGateway(hub, handle.db, connections, app.log, () => clock.now());
   await app.register(wsRoutes(gateway));
 
-  app.addHook("onReady", () => {
+  app.addHook("onReady", async () => {
     for (const conn of connections.values()) conn.start();
+    await themeWatcher.start();
   });
   app.addHook("onClose", async () => {
     gateway.close();
     sender.close();
     backlog.close();
     telemetryRequester.close();
+    await themeWatcher.close();
     await Promise.all([...connections.values()].map((c) => c.stop()));
     handle.close();
   });
 
   return app;
+}
+
+/** `<dataDir>/themes`, created on first run; null (no user themes) when that fails. */
+function prepareUserThemes(dataDir: string, app: App): string | null {
+  const dir = join(dataDir, "themes");
+  try {
+    mkdirSync(dir, { recursive: true });
+    return dir;
+  } catch (err) {
+    app.log.warn({ err, dir }, "no user themes: the folder can't be created");
+    return null;
+  }
 }

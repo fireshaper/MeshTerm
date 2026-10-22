@@ -13,7 +13,7 @@ CR: [cr-004-themes.md](cr-004-themes.md). Stop after each phase, report, commit 
 - **Missing dependencies:** `chokidar` (named in tech-stack.md, not installed) and `@axe-core/playwright` (Phase F).
 - **Storage keys:** `meshterm.theme` and `meshterm.effects`, like the existing `meshterm.*` keys (updated CR).
 
-## Phase A1: server — registry, user themes, safe serving, hot reload, API
+## Phase A1: server — registry, user themes, safe serving, hot reload, API (done 2026-10-22)
 
 - `apps/server/src/themes/`:
   - `manifest.ts`: the Zod `ThemeManifest` (in `shared`, so the web uses it too). It checks the id against the folder name, relative paths inside the folder (no `..`, absolute paths or URLs) and the preview colors.

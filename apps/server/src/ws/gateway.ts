@@ -99,6 +99,11 @@ export class WsGateway {
       for (const [socket, user] of this.users) if (user === userId) this.sendText(socket, text);
       return;
     }
+    if (event.type === "theme.changed") {
+      const text = JSON.stringify({ type: "theme.changed", ...event.payload });
+      for (const socket of this.clients.keys()) this.sendText(socket, text);
+      return;
+    }
     const routed = toServerMessage(event);
     if (!routed) return;
     const text = JSON.stringify(routed.message);

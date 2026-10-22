@@ -157,6 +157,17 @@ export const TelemetryRequestMessage = z.object({
   state: z.enum(["sent", "received", "timeout"]),
 });
 
+/**
+ * A theme was added, edited or removed in /data/themes (CR-004 §4.3), to every socket.
+ * `removed`: it's gone (a built-in it overrode comes back with its own hash instead).
+ */
+export const ThemeChangedMessage = z.object({
+  type: z.literal("theme.changed"),
+  id: z.string(),
+  hash: z.string(),
+  removed: z.boolean().optional(),
+});
+
 export const ServerMessage = z.discriminatedUnion("type", [
   SnapshotMessage,
   ConnectionStateMessage,
@@ -173,6 +184,7 @@ export const ServerMessage = z.discriminatedUnion("type", [
   NotificationsBacklogMessage,
   NotificationPrefsUpdatedMessage,
   TelemetryRequestMessage,
+  ThemeChangedMessage,
   ErrorMessage,
 ]);
 export type ServerMessage = z.infer<typeof ServerMessage>;

@@ -92,6 +92,8 @@ export interface PublicEvents {
   "conversation.updated": Payload<ServerMessageOf<"conversation.updated">>;
   "notifications.backlog": Payload<ServerMessageOf<"notifications.backlog">>;
   "telemetry.request": Payload<ServerMessageOf<"telemetry.request">>;
+  /** To every socket (CR-004). */
+  "theme.changed": Payload<ServerMessageOf<"theme.changed">>;
   /** Only to that user's sockets. */
   "notification-prefs.updated": Payload<ServerMessageOf<"notification-prefs.updated">> & {
     userId: number;

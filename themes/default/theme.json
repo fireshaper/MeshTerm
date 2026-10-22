@@ -3,5 +3,7 @@
   "name": "Default",
   "author": "MeshTerm",
   "version": "1.0.0",
-  "colorScheme": "dark"
+  "description": "MeshTerm's reference theme: a calm network-monitoring look.",
+  "colorScheme": "dark",
+  "preview": { "bg": "#0b1018", "surface": "#161f2c", "accent": "#55a8ff", "text": "#e8eef5" }
 }

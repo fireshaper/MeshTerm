@@ -49,6 +49,7 @@ Images are published for **amd64 and arm64** (e.g. a Raspberry Pi 4/5 with a 64-
 | `MESHTERM_ADMIN_USERNAME`, `MESHTERM_ADMIN_PASSWORD` | unset                                            | Creates the first admin at startup when no account exists (set both or neither; password ≥ 8 characters)                              |
 | `MESHTERM_SESSION_DAYS`                              | `30`                                             | Sessions end after this many days (or after 7 days without use)                                                                       |
 | `MESHTERM_SECRET_KEY`                                | generated                                        | 32-byte key (base64 or hex) that encrypts device-config snapshots. Unset: created once in `/data/secret.key` (keep `/data` backed up) |
+| `MESHTERM_THEMES_POLL`                               | `0`                                              | `1`: check `/data/themes` for changes by polling, for network shares (NFS/SMB) and bind mounts where file events don't arrive         |
 
 Changing `MESHTERM_NODE_HOST` or `MESHTERM_NODE_PORT` later updates the same connection, so history is kept.
 

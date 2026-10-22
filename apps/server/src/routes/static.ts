@@ -7,7 +7,6 @@ import { indexHtmlRenderer } from "../security.js";
 export interface StaticOptions {
   /** Built SPA; null serves nothing (dev, where Vite serves it). */
   webDir: string | null;
-  themesDir: string | null;
 }
 
 /** Paths the SPA fallback must never answer. */
@@ -24,23 +23,12 @@ export const IMMUTABLE = "public, max-age=31536000, immutable";
 export const NO_CACHE = "no-cache";
 
 /**
- * Serves `/themes/<id>/…` and, when built, the SPA. Vite puts hashed files in
+ * Serves the SPA when built (themes have their own route, routes/themes.ts). Vite puts hashed files in
  * `assets/`, so those are cached forever; everything else (index.html) revalidates.
  * Unknown GET paths fall back to index.html in the app's not-found handler.
  */
-export function staticRoutes({ webDir, themesDir }: StaticOptions): FastifyPluginAsyncZod {
+export function staticRoutes({ webDir }: StaticOptions): FastifyPluginAsyncZod {
   return async (app) => {
-    if (themesDir) {
-      await app.register(fastifyStatic, {
-        root: themesDir,
-        prefix: "/themes/",
-        decorateReply: false,
-        cacheControl: false,
-        setHeaders: (reply) => {
-          void reply.header("cache-control", NO_CACHE);
-        },
-      });
-    }
     if (webDir) {
       const renderIndex = indexHtmlRenderer(webDir);
       if (renderIndex) {

@@ -42,6 +42,7 @@ export async function startTestApp(
     logger: false,
     webDir: null,
     themesDir: null,
+    userThemesDir: null,
     secretKey: Buffer.alloc(32, 7),
     ...options.deps,
   });

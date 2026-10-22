@@ -18,6 +18,16 @@ beforeAll(async () => {
   const themes = join(root, "themes");
   mkdirSync(join(themes, "default"), { recursive: true });
   writeFileSync(join(themes, "default", "theme.css"), "@layer theme {}");
+  writeFileSync(
+    join(themes, "default", "theme.json"),
+    JSON.stringify({
+      id: "default",
+      name: "Default",
+      version: "1.0.0",
+      colorScheme: "dark",
+      preview: { bg: "#000", surface: "#111", accent: "#0af", text: "#fff" },
+    }),
+  );
   t = await startTestApp({ deps: { webDir: web, themesDir: themes } });
 });
 

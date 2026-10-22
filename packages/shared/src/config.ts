@@ -14,6 +14,8 @@ export const EnvSchema = z
     MESHTERM_WEB_DIR: z.string().trim().min(1).optional(),
     /** Built-in themes (repo-root themes/). Unset: found next to the server. */
     MESHTERM_THEMES_DIR: z.string().trim().min(1).optional(),
+    /** 1: poll /data/themes instead of file events (NFS/SMB/bind mounts where events are unreliable). */
+    MESHTERM_THEMES_POLL: z.enum(["0", "1"]).default("0"),
     MESHTERM_LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
       .default("info"),
@@ -68,6 +70,7 @@ export const ConfigSchema = EnvSchema.transform((env) => ({
   dataDir: env.MESHTERM_DATA_DIR,
   webDir: env.MESHTERM_WEB_DIR ?? null,
   themesDir: env.MESHTERM_THEMES_DIR ?? null,
+  themesPoll: env.MESHTERM_THEMES_POLL === "1",
   logLevel: env.MESHTERM_LOG_LEVEL,
   connectTimeoutMs: env.MESHTERM_CONNECT_TIMEOUT_MS,
   tcpKeepAliveMs: env.MESHTERM_TCP_KEEPALIVE_MS,
