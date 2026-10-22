@@ -5,7 +5,7 @@ import {
   type MessagePreview,
 } from "@meshterm/shared";
 import type { Db } from "../db/database.js";
-import { allStates, stateFrom, unreadCount, type StoredState } from "./read-state.js";
+import { allStates, publicState, stateFrom, unreadCount } from "./read-state.js";
 import {
   getModemPreset,
   ignoredNodes,
@@ -32,12 +32,6 @@ export function toPreview(m: Message): MessagePreview {
  * DM peer with a message (newest first), each with its newest message. One indexed
  * `LIMIT 1` query per conversation.
  */
-const publicState = ({ lastReadRxTime, muted, favorite }: StoredState) => ({
-  lastReadRxTime,
-  muted,
-  favorite,
-});
-
 export function buildConversations(db: Db, connectionId: number): ConversationsDTO {
   const preset = getModemPreset(db, connectionId);
   const newest = (page: Message[]) => page[0] ?? null;
@@ -56,7 +50,7 @@ export function buildConversations(db: Db, connectionId: number): ConversationsD
           encryption: c.encryption,
           lastMessage: last ? toPreview(last) : null,
           unread: unreadCount(db, connectionId, "channel", c.index, state),
-          state: publicState(state),
+          state: publicState("channel", state),
         };
       }),
     // A deleted DM comes back once a newer message arrives.
@@ -71,7 +65,7 @@ export function buildConversations(db: Db, connectionId: number): ConversationsD
           peer,
           lastMessage: toPreview(last),
           unread: unreadCount(db, connectionId, "dm", peer, state),
-          state: publicState(state),
+          state: publicState("dm", state),
           ignored: ignored.has(peer),
         },
       ];

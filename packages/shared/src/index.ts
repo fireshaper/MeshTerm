@@ -7,5 +7,7 @@ export * from "./device-config.js";
 export * from "./domain.js";
 export * from "./map.js";
 export * from "./node-detail.js";
+export * from "./mentions.js";
+export * from "./notifications.js";
 export * from "./fixtures.js";
 export * from "./ws.js";

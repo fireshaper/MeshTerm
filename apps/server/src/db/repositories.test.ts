@@ -93,7 +93,13 @@ describe("messages", () => {
   it("inserts, gets by id and updates status", () => {
     const out = { ...fixtures.outboundMessage, status: "queued" as const };
     expect(insertMessage(db, out)).toBe("inserted");
-    expect(getMessage(db, out.id)).toEqual(out);
+    // Stored messages carry the CR-003 flags, false unless set.
+    expect(getMessage(db, out.id)).toEqual({
+      ...out,
+      mentionsMe: false,
+      isReplyToMe: false,
+      isBacklog: false,
+    });
 
     expect(updateMessageStatus(db, out.id, "acked")).toBe(true);
     expect(getMessage(db, out.id)?.status).toBe("acked");

@@ -555,6 +555,18 @@ State: `typecheck`, `lint`, `format`, `test` (679), `test:e2e` (163 passed, 6 sk
 
 State: `typecheck`, `lint`, `format`, `test` (694), `test:e2e` (165 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
 
+### Phase N1: server side of notifications (done 2026-10-22)
+
+- **Migration 0013:** `messages.mentions_me`, `is_backlog`, `is_reply_to_me` (+ index), `conversation_state.notify_level` (muted rows → `none`), `user_notification_prefs`.
+- **When a message is stored:** mention of the node's owner (shared Unicode-aware matcher; `@short` never inside an e-mail address), reply/reaction to one of our messages, backlog (within 30 s of a handshake and over a minute old, or received while the link was down). One `notifications.backlog` summary per reconnect.
+- **`message.new` hint per user:** `notify {level, reason, backlog}` from the conversation level, ignored senders, reactions mode and the user's keywords and short-name setting. Messages over 24 h old only count.
+- **Levels:** `PATCH …/conversations/:kind/:key` takes `notifyLevel`; Mute and `none` stay in step. The list shows each conversation's effective level.
+- **Prefs:** `GET/PATCH /api/me/notification-prefs` (DND, quiet hours + allow DMs, keywords, reactions, short-name matching, server UTC offset); changes go to that user's other browsers over WS.
+- **Tests:** mention matching (case, word boundaries, Unicode, e-mail, keywords, ranges), quiet hours, notify rules, backlog windows and summary, and an integration suite over a real WebSocket (DM/mention/plain hints, reply and reaction, backlogged DM, levels and mute, prefs and keywords).
+- The web only follows the new types so far; it uses them from N2.
+
+State: `typecheck`, `lint`, `format`, `test` (716), `test:e2e` (165 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

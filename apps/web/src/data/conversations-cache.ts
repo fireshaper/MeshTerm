@@ -7,7 +7,12 @@ import type {
   MessageStatus,
 } from "@meshterm/shared";
 
-export const NEW_STATE: ConversationState = { lastReadRxTime: 0, muted: false, favorite: false };
+export const NEW_STATE: ConversationState = {
+  lastReadRxTime: 0,
+  muted: false,
+  favorite: false,
+  notifyLevel: "dm-default",
+};
 
 /** Counts toward unread: incoming, not a reaction, after the read mark (CR-003 N0). */
 const countsUnread = (m: Message, state: ConversationState) =>

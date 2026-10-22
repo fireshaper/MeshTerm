@@ -1,20 +1,20 @@
-import { ConversationKind, ConversationState } from "@meshterm/shared";
+import { ConversationKind, ConversationState, NotifyLevel } from "@meshterm/shared";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { getConnection } from "../db/repositories.js";
-import { markRead, newestRxTime, updateState, type StoredState } from "../messaging/read-state.js";
+import {
+  defaultLevel,
+  markRead,
+  newestRxTime,
+  publicState,
+  updateState,
+} from "../messaging/read-state.js";
 import { HttpError } from "./http-error.js";
 
 const Params = z.object({
   id: z.coerce.number().int().positive(),
   kind: ConversationKind,
   key: z.coerce.number().int().nonnegative().max(0xffff_ffff),
-});
-
-const publicState = ({ lastReadRxTime, muted, favorite }: StoredState): ConversationState => ({
-  lastReadRxTime,
-  muted,
-  favorite,
 });
 
 /**
@@ -51,7 +51,7 @@ export const conversationRoutes: FastifyPluginAsyncZod = (app) => {
         key,
         lastReadRxTime: state.lastReadRxTime,
       });
-      return publicState(state);
+      return publicState(kind, state);
     },
   );
 
@@ -62,26 +62,41 @@ export const conversationRoutes: FastifyPluginAsyncZod = (app) => {
       schema: {
         params: Params,
         body: z
-          .object({ muted: z.boolean().optional(), favorite: z.boolean().optional() })
-          .refine((b) => b.muted !== undefined || b.favorite !== undefined, "nothing to change"),
+          .object({
+            muted: z.boolean().optional(),
+            favorite: z.boolean().optional(),
+            notifyLevel: NotifyLevel.optional(),
+          })
+          .refine((b) => Object.values(b).some((v) => v !== undefined), "nothing to change"),
         response: { 200: ConversationState },
       },
     },
     (req) => {
       const { id, kind, key } = req.params;
       check(id, kind, key);
+      const { muted, favorite, notifyLevel } = req.body;
+      // Mute is the "none" level (CR-003 §4): setting one sets the other.
+      const level =
+        notifyLevel !== undefined
+          ? {
+              notifyLevel: notifyLevel === defaultLevel(kind) ? null : notifyLevel,
+              muted: notifyLevel === "none",
+            }
+          : muted !== undefined
+            ? { muted, notifyLevel: muted ? ("none" as const) : null }
+            : {};
       const state = updateState(db, id, kind, key, {
-        ...(req.body.muted === undefined ? {} : { muted: req.body.muted }),
-        ...(req.body.favorite === undefined ? {} : { favorite: req.body.favorite }),
+        ...level,
+        ...(favorite === undefined ? {} : { favorite }),
       });
       hub.publish("conversation.updated", {
         connectionId: id,
         kind,
         key,
-        state: publicState(state),
+        state: publicState(kind, state),
         deletedBefore: state.deletedBefore,
       });
-      return publicState(state);
+      return publicState(kind, state);
     },
   );
 
@@ -110,7 +125,7 @@ export const conversationRoutes: FastifyPluginAsyncZod = (app) => {
         connectionId: id,
         kind: "dm",
         key: peer,
-        state: publicState(state),
+        state: publicState("dm", state),
         deletedBefore: state.deletedBefore,
       });
       return { deletedBefore: state.deletedBefore };

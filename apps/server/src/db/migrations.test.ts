@@ -40,6 +40,7 @@ describe("migrations", () => {
       "settings",
       "signal_log",
       "telemetry",
+      "user_notification_prefs",
       "users",
     ]);
     expect(objects("index")).toEqual(

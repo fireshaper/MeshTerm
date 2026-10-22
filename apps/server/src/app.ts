@@ -25,6 +25,8 @@ import { activityRoutes } from "./routes/activity.js";
 import { nodeDetailRoutes } from "./routes/node-detail.js";
 import { apiRoutes } from "./routes/api.js";
 import { conversationRoutes } from "./routes/conversations.js";
+import { notificationRoutes } from "./routes/notifications.js";
+import { BacklogTracker } from "./messaging/backlog.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { healthRoutes } from "./routes/health.js";
 import { HttpError } from "./routes/http-error.js";
@@ -126,7 +128,9 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   }
 
   const hub = new Hub(app.log);
-  attachPersistence(hub, handle.db, app.log, () => clock.now());
+  // Before persistence: classifying the reconnect burst needs each link's state (CR-003).
+  const backlog = new BacklogTracker(hub, clock);
+  attachPersistence(hub, handle.db, app.log, () => clock.now(), { backlog });
   // After persistence: the feed reads what was stored.
   attachActivity(hub, handle.db, { now: () => clock.now() });
   attachNetworkStats(hub, handle.db);
@@ -258,6 +262,7 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   await app.register(healthRoutes);
   await app.register(apiRoutes);
   await app.register(conversationRoutes);
+  await app.register(notificationRoutes);
   await app.register(dashboardRoutes);
   await app.register(activityRoutes);
   await app.register(nodeDetailRoutes);
@@ -297,7 +302,7 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
       ...(deps.configRateLimit ? { rateLimit: deps.configRateLimit } : {}),
     }),
   );
-  const gateway = new WsGateway(hub, handle.db, connections, app.log);
+  const gateway = new WsGateway(hub, handle.db, connections, app.log, () => clock.now());
   await app.register(wsRoutes(gateway));
 
   app.addHook("onReady", () => {
@@ -306,6 +311,7 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
   app.addHook("onClose", async () => {
     gateway.close();
     sender.close();
+    backlog.close();
     await Promise.all([...connections.values()].map((c) => c.stop()));
     handle.close();
   });

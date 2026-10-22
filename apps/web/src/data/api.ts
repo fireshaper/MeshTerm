@@ -9,6 +9,9 @@ import type {
   ConfigSnapshotSummary,
   ImportedConfigDTO,
   MaintenanceAction,
+  NotificationPrefsDTO,
+  NotificationPrefsPatch,
+  NotifyLevel,
   ProtoJson,
   ParsedChannelUrlDTO,
   ConfigSchemaDTO,
@@ -230,7 +233,7 @@ export const api = {
     connectionId: number,
     kind: ConversationKind,
     key: number,
-    patch: { muted?: boolean; favorite?: boolean },
+    patch: { muted?: boolean; favorite?: boolean; notifyLevel?: NotifyLevel },
   ) =>
     request<ConversationState>(`/api/connections/${connectionId}/conversations/${kind}/${key}`, {
       method: "PATCH",
@@ -243,6 +246,12 @@ export const api = {
         method: "DELETE",
       },
     ),
+  notificationPrefs: () => request<NotificationPrefsDTO>("/api/me/notification-prefs"),
+  updateNotificationPrefs: (patch: NotificationPrefsPatch) =>
+    request<NotificationPrefsDTO>("/api/me/notification-prefs", {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
   conversations: (connectionId: number) =>
     request<ConversationsDTO>(`/api/connections/${connectionId}/conversations`),
 

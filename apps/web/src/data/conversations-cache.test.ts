@@ -24,7 +24,7 @@ function dto(): ConversationsDTO {
         encryption: "default",
         lastMessage: null,
         unread: 0,
-        state: { lastReadRxTime: 0, muted: false, favorite: false },
+        state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "dm-default" },
       },
     ],
     dms: [
@@ -32,7 +32,7 @@ function dto(): ConversationsDTO {
         peer: TRAIL,
         lastMessage: toPreview(msg({ id: "00000000-0000-4000-8000-000000000001", rxTime: 5_000 })),
         unread: 0,
-        state: { lastReadRxTime: 0, muted: false, favorite: false },
+        state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "dm-default" },
         ignored: false,
       },
     ],
@@ -87,6 +87,7 @@ describe("conversation list cache", () => {
       lastReadRxTime: 0,
       muted: true,
       favorite: false,
+      notifyLevel: "none",
     });
     expect(unreadTotals(d)).toEqual({ total: 1, dm: false });
     expect(badgeText(100)).toBe("99+");

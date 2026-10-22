@@ -108,6 +108,12 @@ export const Message = z.object({
    * confirmed it; `status` stays `sent`.
    */
   relayed: z.boolean(),
+  /** CR-003: a channel message naming our node (absent: false). */
+  mentionsMe: z.boolean().optional(),
+  /** CR-003: `replyId` is one of our messages (absent: false). */
+  isReplyToMe: z.boolean().optional(),
+  /** CR-003: arrived in the burst after a reconnect (absent: false). */
+  isBacklog: z.boolean().optional(),
 });
 export type Message = z.infer<typeof Message>;
 

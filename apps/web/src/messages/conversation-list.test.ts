@@ -72,7 +72,12 @@ describe("search", () => {
         encryption: null,
         lastMessage: null,
         unread: 0,
-        state: { lastReadRxTime: 0, muted: false, favorite: false },
+        state: {
+          lastReadRxTime: 0,
+          muted: false,
+          favorite: false,
+          notifyLevel: "dm-default" as const,
+        },
       },
       {
         index: 1,
@@ -81,7 +86,12 @@ describe("search", () => {
         encryption: null,
         lastMessage: null,
         unread: 0,
-        state: { lastReadRxTime: 0, muted: false, favorite: false },
+        state: {
+          lastReadRxTime: 0,
+          muted: false,
+          favorite: false,
+          notifyLevel: "dm-default" as const,
+        },
       },
     ];
     expect(filterChannels(channels, "#fri").map((c) => c.index)).toEqual([1]);
@@ -91,14 +101,24 @@ describe("search", () => {
         peer: ridge.num,
         lastMessage: preview,
         unread: 0,
-        state: { lastReadRxTime: 0, muted: false, favorite: false },
+        state: {
+          lastReadRxTime: 0,
+          muted: false,
+          favorite: false,
+          notifyLevel: "dm-default" as const,
+        },
         ignored: false,
       },
       {
         peer: 0x1a2b3c4d,
         lastMessage: preview,
         unread: 0,
-        state: { lastReadRxTime: 0, muted: false, favorite: false },
+        state: {
+          lastReadRxTime: 0,
+          muted: false,
+          favorite: false,
+          notifyLevel: "dm-default" as const,
+        },
         ignored: false,
       },
     ];

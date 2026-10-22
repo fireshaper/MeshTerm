@@ -1,4 +1,4 @@
-import type { ConversationKind, ConversationState } from "@meshterm/shared";
+import type { ConversationKind, ConversationState, NotifyLevel } from "@meshterm/shared";
 import { and, eq, gt, isNull, notExists, sql, type SQL } from "drizzle-orm";
 import type { Db } from "../db/database.js";
 import { conversationState, messages, nodes } from "../db/schema.js";
@@ -8,8 +8,10 @@ import { conversationState, messages, nodes } from "../db/schema.js";
  * read, mute/favorite, and for DMs where a delete cut it off. Shared by every user of
  * the connection; a conversation without a row has the defaults.
  */
-export interface StoredState extends ConversationState {
+export interface StoredState extends Omit<ConversationState, "notifyLevel"> {
   deletedBefore: number;
+  /** null: the kind's default (see `defaultLevel`). */
+  notifyLevel: NotifyLevel | null;
 }
 
 const DEFAULT_STATE: StoredState = {
@@ -17,7 +19,22 @@ const DEFAULT_STATE: StoredState = {
   muted: false,
   favorite: false,
   deletedBefore: 0,
+  notifyLevel: null,
 };
+
+/** CR-003 §4: channels notify on mentions only, DMs always. */
+export const defaultLevel = (kind: ConversationKind): NotifyLevel =>
+  kind === "channel" ? "mentions" : "dm-default";
+
+/** What the API shows: the effective level, never null. */
+export function publicState(kind: ConversationKind, s: StoredState): ConversationState {
+  return {
+    lastReadRxTime: s.lastReadRxTime,
+    muted: s.muted,
+    favorite: s.favorite,
+    notifyLevel: s.notifyLevel ?? defaultLevel(kind),
+  };
+}
 
 const keyOf = (kind: ConversationKind, key: number) => `${kind}:${key}`;
 
@@ -44,6 +61,7 @@ export function getState(
         muted: row.muted,
         favorite: row.favorite,
         deletedBefore: row.deletedBefore,
+        notifyLevel: row.notifyLevel,
       }
     : { ...DEFAULT_STATE };
 }
@@ -63,6 +81,7 @@ export function allStates(db: Db, connectionId: number): Map<string, StoredState
           muted: r.muted,
           favorite: r.favorite,
           deletedBefore: r.deletedBefore,
+          notifyLevel: r.notifyLevel,
         },
       ]),
   );

@@ -20,7 +20,7 @@ CR: [cr-003-notifications.md](cr-003-notifications.md). Stop after each phase, r
 - Badges on conversation rows (99+), the Messages nav badge, the mobile tab bar badge, and the `(N) MeshTerm` title.
 - Row menu: Mark read, Mute, Favorite, Delete (DM). "Show ignored".
 
-## Phase N1: server — mentions, replies, backlog, notify hint, prefs
+## Phase N1: server — mentions, replies, backlog, notify hint, prefs (done 2026-10-22)
 
 - Migration: `messages.mentions_me`, `is_backlog`, `is_reply_to_me` + index; `conversation_state.notify_level` (`muted` → `none`); `user_notification_prefs`.
 - Mention detection when a message is stored: `@short`, short name alone, long name; case-insensitive, Unicode-aware word boundaries. Owner names re-read on `config.updated`. Users' keywords are matched per user when the hint is built (see the decision below).

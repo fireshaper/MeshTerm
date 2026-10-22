@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ApplyStatusDTO } from "./device-config.js";
 import { ActivityEvent } from "./activity.js";
 import { ConversationKind, ConversationState } from "./conversations.js";
+import { NotificationPrefsDTO, NotifyHint } from "./notifications.js";
 import {
   Channel,
   ChannelIndex,
@@ -56,6 +57,29 @@ export const NodeUpsertMessage = z.object({
 export const MessageNewMessage = z.object({
   type: z.literal("message.new"),
   message: Message,
+  /** For this socket's user (CR-003 §11); absent for our own messages. */
+  notify: NotifyHint.optional(),
+});
+
+/** Once per reconnect, when the backlog window closes (CR-003 §4.3). */
+export const NotificationsBacklogMessage = z.object({
+  type: z.literal("notifications.backlog"),
+  connectionId: ConnectionId,
+  count: z.number().int().nonnegative(),
+  dmCount: z.number().int().nonnegative(),
+  conversations: z.array(
+    z.object({
+      kind: z.enum(["channel", "dm"]),
+      key: z.number().int().nonnegative(),
+      count: z.number().int().positive(),
+    }),
+  ),
+});
+
+/** This user changed their notification settings (DND syncs across their browsers). */
+export const NotificationPrefsUpdatedMessage = z.object({
+  type: z.literal("notification-prefs.updated"),
+  prefs: NotificationPrefsDTO,
 });
 
 export const MessageStatusMessage = z.object({
@@ -136,6 +160,8 @@ export const ServerMessage = z.discriminatedUnion("type", [
   ConfigApplyMessage,
   ConversationReadMessage,
   ConversationUpdatedMessage,
+  NotificationsBacklogMessage,
+  NotificationPrefsUpdatedMessage,
   ErrorMessage,
 ]);
 export type ServerMessage = z.infer<typeof ServerMessage>;

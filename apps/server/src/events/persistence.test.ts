@@ -123,7 +123,9 @@ describe("attachPersistence", () => {
     const first = { ...fixtures.inboundMessage, id: randomUUID() };
     hub.publish("radio.text", { message: first });
     hub.publish("radio.text", { message: { ...first, id: randomUUID() } });
-    expect(ofType("message.new")).toEqual([{ message: first }]);
+    expect(ofType("message.new")).toEqual([
+      { message: { ...first, mentionsMe: false, isReplyToMe: false, isBacklog: false } },
+    ]);
   });
 
   it("turns a routing reply into a status update on our message", () => {

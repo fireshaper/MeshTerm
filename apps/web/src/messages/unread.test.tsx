@@ -11,7 +11,12 @@ import { titleFor } from "./unread.js";
 
 const NOW = Date.now();
 const RIDGE = 0x0badcafe;
-const STATE = { lastReadRxTime: 0, muted: false, favorite: false };
+const STATE = {
+  lastReadRxTime: 0,
+  muted: false,
+  favorite: false,
+  notifyLevel: "dm-default" as const,
+};
 
 const incoming = (text: string, rxTime: number, id: string): Message => ({
   ...fixtures.inboundMessage,

@@ -26,7 +26,7 @@ const list: ConversationsDTO = {
       encryption: "default",
       lastMessage: null,
       unread: 0,
-      state: { lastReadRxTime: 0, muted: false, favorite: false },
+      state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "dm-default" },
     },
     {
       index: 1,
@@ -35,7 +35,7 @@ const list: ConversationsDTO = {
       encryption: "custom",
       lastMessage: null,
       unread: 0,
-      state: { lastReadRxTime: 0, muted: false, favorite: false },
+      state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "dm-default" },
     },
   ],
   dms: [
@@ -51,7 +51,7 @@ const list: ConversationsDTO = {
         status: null,
       },
       unread: 0,
-      state: { lastReadRxTime: 0, muted: false, favorite: false },
+      state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "dm-default" },
       ignored: false,
     },
     {
@@ -66,7 +66,7 @@ const list: ConversationsDTO = {
         status: "acked",
       },
       unread: 0,
-      state: { lastReadRxTime: 0, muted: false, favorite: false },
+      state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "dm-default" },
       ignored: false,
     },
   ],

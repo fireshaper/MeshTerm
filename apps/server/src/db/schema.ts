@@ -221,6 +221,12 @@ export const messages = sqliteTable(
      * confirmed it. Status stays `sent`; it doesn't fail on the ACK timeout.
      */
     relayed: integer("relayed", { mode: "boolean" }).notNull().default(false),
+    /** A channel message naming our node (owner long name, `@short` or short name); CR-003 §4.1. */
+    mentionsMe: integer("mentions_me", { mode: "boolean" }).notNull().default(false),
+    /** Arrived in the burst after a reconnect, or while MeshTerm was disconnected (CR-003 §4.3). */
+    isBacklog: integer("is_backlog", { mode: "boolean" }).notNull().default(false),
+    /** `reply_id` is one of our own messages (a reply or a reaction to us). */
+    isReplyToMe: integer("is_reply_to_me", { mode: "boolean" }).notNull().default(false),
   },
   (t) => [
     index("messages_channel_idx")
@@ -231,6 +237,7 @@ export const messages = sqliteTable(
     uniqueIndex("messages_dedupe_idx").on(t.connectionId, t.fromNum, t.packetId),
     // Message counts over time (dashboard KPIs and the traffic chart).
     index("messages_time_idx").on(t.connectionId, t.rxTime, t.direction),
+    index("messages_mentions_idx").on(t.connectionId, t.mentionsMe, t.rxTime),
   ],
 );
 
@@ -267,6 +274,11 @@ export const conversationState = sqliteTable(
     muted: integer("muted", { mode: "boolean" }).notNull().default(false),
     favorite: integer("favorite", { mode: "boolean" }).notNull().default(false),
     deletedBefore: integer("deleted_before").notNull().default(0),
+    /**
+     * CR-003: `all`, `mentions`, `dm-default` or `none` (what Mute sets); NULL means the
+     * default for the kind (channels `mentions`, DMs `dm-default`).
+     */
+    notifyLevel: text("notify_level", { enum: ["all", "mentions", "dm-default", "none"] }),
   },
   (t) => [primaryKey({ columns: [t.connectionId, t.kind, t.key] })],
 );
@@ -412,3 +424,26 @@ export const configSnapshots = sqliteTable(
   },
   (t) => [index("config_snapshots_conn_idx").on(t.connectionId, t.takenAt)],
 );
+
+/**
+ * Each user's notification settings (CR-003 §10). With accounts off everyone is user 0,
+ * so there's no foreign key to `users`.
+ */
+export const userNotificationPrefs = sqliteTable("user_notification_prefs", {
+  userId: integer("user_id").primaryKey(),
+  /** Do Not Disturb until this time (epoch ms); NULL: off. `MAX_SAFE_INTEGER`: until turned off. */
+  dndUntil: integer("dnd_until"),
+  /** "HH:MM" in the server's time zone; both NULL: no quiet hours. */
+  quietStart: text("quiet_start"),
+  quietEnd: text("quiet_end"),
+  quietAllowDms: integer("quiet_allow_dms", { mode: "boolean" }).notNull().default(false),
+  mentionKeywords: text("mention_keywords", { mode: "json" })
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+  reactionsMode: text("reactions_mode", { enum: ["in-app", "notify", "off"] })
+    .notNull()
+    .default("in-app"),
+  /** Count the short name on its own as a mention (`@short` always counts). */
+  matchShortName: integer("match_short_name", { mode: "boolean" }).notNull().default(true),
+});

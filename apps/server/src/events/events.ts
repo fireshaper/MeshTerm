@@ -90,6 +90,11 @@ export interface PublicEvents {
   "config.apply": Payload<ServerMessageOf<"config.apply">>;
   "conversation.read": Payload<ServerMessageOf<"conversation.read">>;
   "conversation.updated": Payload<ServerMessageOf<"conversation.updated">>;
+  "notifications.backlog": Payload<ServerMessageOf<"notifications.backlog">>;
+  /** Only to that user's sockets. */
+  "notification-prefs.updated": Payload<ServerMessageOf<"notification-prefs.updated">> & {
+    userId: number;
+  };
   /** Not in the WS protocol yet; snapshots carry channels. */
   "channel.upsert": { channel: Channel };
 }

@@ -1,4 +1,4 @@
-import { nodeIdFromNum, type MeshNode, type Message } from "@meshterm/shared";
+import { mentionMatcher, nodeIdFromNum, type MeshNode, type Message } from "@meshterm/shared";
 import type { Db } from "../db/database.js";
 import {
   findOutboundByPacketId,
@@ -16,17 +16,24 @@ import {
 } from "../db/repositories.js";
 import { recordPosition, recordTelemetry, setLastPacketAt, setNodeRssi } from "../db/telemetry.js";
 import { silentLogger, type Logger } from "../logger.js";
+import type { BacklogTracker } from "../messaging/backlog.js";
 import type { Hub, NodeUpdate } from "./events.js";
 
 /**
  * Writes every `radio.*` event to SQLite and then publishes the public event built
  * from what was stored. Duplicates produce no `message.new`. Returns an unsubscribe.
  */
+export interface PersistenceOptions {
+  /** Classifies the burst after a reconnect (CR-003 §4.3); none: nothing is backlog. */
+  backlog?: BacklogTracker;
+}
+
 export function attachPersistence(
   hub: Hub,
   db: Db,
   logger: Logger = silentLogger,
   now: () => number = Date.now,
+  options: PersistenceOptions = {},
 ): () => void {
   const offs = [
     hub.subscribe("radio.myInfo", ({ connectionId, myNodeNum }) => {
@@ -81,7 +88,8 @@ export function attachPersistence(
     }),
 
     hub.subscribe("radio.text", ({ message: decoded }) => {
-      const message = classifyDm(decoded, getMyNodeNum(db, decoded.connectionId));
+      const me = getMyNodeNum(db, decoded.connectionId);
+      const message = withNotifyFlags(db, classifyDm(decoded, me), me, options.backlog);
       if (insertMessage(db, message) === "duplicate") {
         logger.debug(
           { connectionId: message.connectionId, from: message.fromNum, packetId: message.packetId },
@@ -89,6 +97,7 @@ export function attachPersistence(
         );
         return;
       }
+      if (message.isBacklog) options.backlog?.record(message);
       hub.publish("message.new", { message });
     }),
 
@@ -185,4 +194,27 @@ export function mergeNode(
   if (fresh && snr !== undefined) merged.snr = snr;
   if (fresh && hopsAway !== undefined) merged.hopsAway = hopsAway;
   return merged;
+}
+
+/**
+ * CR-003 flags, set once when a message is stored: a channel message naming our node
+ * (its owner's names as they are now), a reply or reaction to one of our messages, and
+ * the reconnect backlog.
+ */
+function withNotifyFlags(
+  db: Db,
+  message: Message,
+  me: number | null,
+  backlog: BacklogTracker | undefined,
+): Message {
+  const own = me === null ? null : getNode(db, message.connectionId, me);
+  const mentionsMe =
+    message.peer === null && own !== null && !message.emoji
+      ? mentionMatcher({ longName: own.longName, shortName: own.shortName })(message.text)
+      : false;
+  const isReplyToMe =
+    message.replyId !== null &&
+    findOutboundByPacketId(db, message.connectionId, message.replyId) !== null;
+  const isBacklog = backlog?.isBacklog(message.connectionId, message.rxTime) ?? false;
+  return { ...message, mentionsMe, isReplyToMe, isBacklog };
 }

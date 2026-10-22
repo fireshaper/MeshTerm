@@ -70,7 +70,7 @@ export async function renderApp(path: string, seed: Seed = {}) {
           encryption: c.encryption,
           lastMessage: null,
           unread: 0,
-          state: { lastReadRxTime: 0, muted: false, favorite: false },
+          state: { lastReadRxTime: 0, muted: false, favorite: false, notifyLevel: "mentions" },
         })),
       dms: [],
     },

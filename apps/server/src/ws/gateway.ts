@@ -1,8 +1,10 @@
-import { ClientMessage, type ServerMessage } from "@meshterm/shared";
+import { ClientMessage, type Message, type ServerMessage } from "@meshterm/shared";
 import WebSocket from "ws";
 import type { NodeConnection } from "../connection/node-connection.js";
 import type { Db } from "../db/database.js";
-import { getConnection } from "../db/repositories.js";
+import { getConnection, getMyNodeNum, getNode } from "../db/repositories.js";
+import { loadPrefs, notifyHint, type MessageContext } from "../messaging/notify.js";
+import { getState, publicState } from "../messaging/read-state.js";
 import type { AnyEvent } from "../events/hub.js";
 import type { Hub, HubEvents } from "../events/events.js";
 import { silentLogger, type Logger } from "../logger.js";
@@ -16,6 +18,8 @@ import { buildSnapshot } from "./snapshot.js";
 export class WsGateway {
   /** Socket → connection ids it subscribed to. */
   private readonly clients = new Map<WebSocket, Set<number>>();
+  /** Socket → the user it signed in as (0 with accounts off). */
+  private readonly users = new Map<WebSocket, number>();
   private readonly unsubscribeHub: () => void;
 
   constructor(
@@ -23,6 +27,7 @@ export class WsGateway {
     private readonly db: Db,
     private readonly connections: ReadonlyMap<number, NodeConnection>,
     private readonly logger: Logger = silentLogger,
+    private readonly now: () => number = Date.now,
   ) {
     this.unsubscribeHub = hub.subscribeAll((event) => {
       this.onHubEvent(event);
@@ -33,13 +38,15 @@ export class WsGateway {
     return this.clients.size;
   }
 
-  attach(socket: WebSocket): void {
+  attach(socket: WebSocket, userId = 0): void {
     this.clients.set(socket, new Set());
+    this.users.set(socket, userId);
     socket.on("message", (data, isBinary) => {
       this.onClientMessage(socket, isBinary ? null : rawDataToString(data));
     });
     socket.on("close", () => {
       this.clients.delete(socket);
+      this.users.delete(socket);
     });
     socket.on("error", (err) => {
       this.logger.debug({ err }, "websocket error");
@@ -82,12 +89,54 @@ export class WsGateway {
   }
 
   private onHubEvent(event: AnyEvent<HubEvents>): void {
+    if (event.type === "message.new") {
+      this.sendMessageNew(event.payload.message);
+      return;
+    }
+    if (event.type === "notification-prefs.updated") {
+      const { userId, prefs } = event.payload;
+      const text = JSON.stringify({ type: "notification-prefs.updated", prefs });
+      for (const [socket, user] of this.users) if (user === userId) this.sendText(socket, text);
+      return;
+    }
     const routed = toServerMessage(event);
     if (!routed) return;
     const text = JSON.stringify(routed.message);
     for (const [socket, subscriptions] of this.clients) {
       if (subscriptions.has(routed.connectionId)) this.sendText(socket, text);
     }
+  }
+
+  /** `message.new` with a `notify` hint for each socket's user (CR-003 §11). */
+  private sendMessageNew(message: Message): void {
+    const sockets = [...this.clients].filter(([, subs]) => subs.has(message.connectionId));
+    if (sockets.length === 0) return;
+    const ctx = this.messageContext(message);
+    const byUser = new Map<number, string>();
+    for (const [socket] of sockets) {
+      const userId = this.users.get(socket) ?? 0;
+      let text = byUser.get(userId);
+      if (text === undefined) {
+        const prefs = loadPrefs(this.db, userId, ctx.now);
+        const notify = notifyHint(message, ctx, prefs);
+        text = JSON.stringify({ type: "message.new", message, ...(notify ? { notify } : {}) });
+        byUser.set(userId, text);
+      }
+      this.sendText(socket, text);
+    }
+  }
+
+  private messageContext(m: Message): MessageContext {
+    const me = getMyNodeNum(this.db, m.connectionId);
+    const own = me === null ? null : getNode(this.db, m.connectionId, me);
+    const kind = m.peer === null ? "channel" : "dm";
+    const state = getState(this.db, m.connectionId, kind, m.peer ?? m.channelIndex);
+    return {
+      owner: own ? { longName: own.longName, shortName: own.shortName } : null,
+      level: publicState(kind, state).notifyLevel,
+      ignored: getNode(this.db, m.connectionId, m.fromNum)?.isIgnored ?? false,
+      now: this.now(),
+    };
   }
 
   private send(socket: WebSocket, message: ServerMessage): void {
@@ -172,6 +221,11 @@ function toServerMessage(
       return {
         connectionId: event.payload.connectionId,
         message: { type: "conversation.updated", ...event.payload },
+      };
+    case "notifications.backlog":
+      return {
+        connectionId: event.payload.connectionId,
+        message: { type: "notifications.backlog", ...event.payload },
       };
     default:
       return null;
