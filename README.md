@@ -54,6 +54,17 @@ Changing `MESHTERM_NODE_HOST` or `MESHTERM_NODE_PORT` later updates the same con
 
 `GET /healthz` reports whether the process is up and each node connection's state. The image's `HEALTHCHECK` uses it.
 
+### Enable HTTPS for desktop notifications
+
+Browsers only show desktop (OS) notifications to pages served over **HTTPS** or from `localhost`. At a plain `http://192.168.x.x:8080` address, MeshTerm's tab title, favicon badge, toasts and sounds still work, but the desktop notification switch in Settings → Notifications stays off.
+
+To get desktop notifications, put MeshTerm behind HTTPS, for example:
+
+- **A reverse proxy with a certificate:** Caddy, Traefik or Nginx Proxy Manager in front of port 8080. Use a real certificate (Let's Encrypt with a domain) or one from your own local CA that your devices trust. Forward WebSockets (`/ws`).
+- **Tailscale:** enable [Tailscale HTTPS](https://tailscale.com/kb/1153/enabling-https) and use `tailscale serve 8080`. MeshTerm is then at `https://<machine>.<tailnet>.ts.net` on your devices.
+
+Then open MeshTerm at the `https://` address and enable desktop notifications in Settings → Notifications (or from the banner on the Messages page after your first DM).
+
 ## Try it without a radio
 
 [`compose.test.yml`](compose.test.yml) builds MeshTerm from source and runs it against **FakeNode**, a simulated Meshtastic node:

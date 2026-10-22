@@ -183,3 +183,54 @@ test("a DM on another page: a toast you can reply from, and an entry in the bell
   await page.locator("[data-mt=notification-item]", { hasText: text }).click();
   await expect(page).toHaveURL(/\/messages\/dm\/!5e6f7081$/);
 });
+
+// ---------------------------------------- sounds and desktop notifications (CR-003 N4)
+
+test("a DM while away: one sound and one desktop notification from the leader tab only", async ({
+  browser,
+}, info) => {
+  const context = await browser.newContext();
+  // Record sounds and desktop notifications instead of making them.
+  await context.addInitScript(() => {
+    const w = window as unknown as { __alerts: string[] };
+    w.__alerts = [];
+    HTMLMediaElement.prototype.play = function play(this: HTMLMediaElement) {
+      if (!this.muted) w.__alerts.push(`sound:${this.src.split("/").pop() ?? ""}`);
+      return Promise.resolve();
+    };
+    class FakeNotification {
+      static permission = "granted";
+      static requestPermission = () => Promise.resolve("granted");
+      onclick: (() => void) | null = null;
+      onclose: (() => void) | null = null;
+      constructor(title: string, options: { tag?: string }) {
+        w.__alerts.push(`os:${title}:${options.tag ?? ""}`);
+      }
+      close() {}
+    }
+    Object.defineProperty(window, "Notification", { value: FakeNotification });
+    localStorage.setItem("meshterm.notifications", JSON.stringify({ desktop: true }));
+  });
+  const [a, b] = [await context.newPage(), await context.newPage()];
+  const subscribed = [socketSubscribed(a), socketSubscribed(b)];
+  await a.goto("/nodes");
+  await b.goto("/nodes");
+  await Promise.all(subscribed);
+  // Let the tabs find each other, then hide both (the user is in another app).
+  await a.waitForTimeout(1_500);
+  await hideTab(a);
+  await hideTab(b);
+  await a.waitForTimeout(1_500);
+
+  await fakeNode.injectText(GARDEN, { to: ME }, `ding ${info.project.name} ${Date.now()}`);
+  const alerts = async () => [
+    ...(await a.evaluate(() => (window as unknown as { __alerts: string[] }).__alerts)),
+    ...(await b.evaluate(() => (window as unknown as { __alerts: string[] }).__alerts)),
+  ];
+  await expect.poll(alerts, { timeout: 5_000 }).toHaveLength(2);
+  expect((await alerts()).sort()).toEqual([
+    "os:GAR (Garage Station):1:dm:1584361601",
+    "sound:message.wav",
+  ]);
+  await context.close();
+});

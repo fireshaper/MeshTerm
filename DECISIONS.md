@@ -530,3 +530,12 @@ One entry per decision: **step**, **decision**, **reason**. Add new entries at t
 | "Until tomorrow" ends at 08:00 in the browser's time zone.                                                                                         | The CR doesn't say when "tomorrow" starts.                                            |
 | A grouped toast restarts its timer when a new message joins it.                                                                                    | It's new information.                                                                 |
 | Below 640 px the user menu shows only its icon.                                                                                                    | The bell and the connection pill need the room; the button keeps its accessible name. |
+
+## CR-003 — Phase N4 (sounds, desktop notifications)
+
+| Decision                                                                                           | Reason                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The default sounds are generated tones (`scripts/make-sounds.mjs`), committed as WAV files.        | No third-party audio to license; small (6–14 KB) and reproducible.                                                                                                             |
+| A theme's sound overrides must be paths inside its own folder.                                     | Themes are CSS and assets only; no fetching from elsewhere.                                                                                                                    |
+| Desktop notifications use the page's `Notification` API, not a service worker.                     | Push without an open tab is out of scope (CR §3). Browsers that only allow service-worker notifications (Android Chrome) simply don't show them; toasts and sounds still work. |
+| A desktop notification click opens the conversation; it's marked read the usual way (1 s in view). | One rule for "read".                                                                                                                                                           |

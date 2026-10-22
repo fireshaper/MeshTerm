@@ -16,6 +16,7 @@ import {
   type ConversationRef,
 } from "./conversation-list.js";
 import { ConversationList } from "./ConversationList.js";
+import { PermissionBanner } from "../notifications/PermissionBanner.js";
 import { useNodeMap, useThresholds } from "./useNodeMap.js";
 
 const ICON = { "aria-hidden": true, focusable: false } as const;
@@ -45,6 +46,7 @@ export function MessagesPage() {
   return (
     <section data-mt="messages-view" data-mt-state={showingThread ? "thread" : "list"}>
       <h1 data-mt="visually-hidden">Messages</h1>
+      <PermissionBanner />
       <ConversationList active={active} />
       <div data-mt="thread-pane">
         <Outlet />

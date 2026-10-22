@@ -43,7 +43,7 @@ CR: [cr-003-notifications.md](cr-003-notifications.md). Stop after each phase, r
 - Messages nav badge with the `priority` state; `@` marker on mention rows; mentions highlighted in bubbles.
 - Bell: count, last 50 events (sessionStorage), Mark all read, DND menu (1 h, until tomorrow, off), quiet-hours status, link to settings.
 
-## Phase N4: sounds and desktop notifications
+## Phase N4: sounds and desktop notifications (done 2026-10-22)
 
 - Default sounds (`message`, `mention`, `channel`): short WAVs generated for the app. A theme's `theme.json` `sounds` map overrides them. Unlocked on the first interaction, 2 s throttle, volume and per-type switches.
 - OS notifications: permission banner after the first DM/mention, secure-context detection with the HTTPS explanation, `tag` per conversation with `renotify`, click to focus and open, "hide message text". README section "Enable HTTPS for desktop notifications".
