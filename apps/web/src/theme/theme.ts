@@ -27,6 +27,8 @@ export interface SavedTheme {
   mode: ModePref;
   /** False: following the server default, which may change. */
   chosen: boolean;
+  /** The theme's manifest `effects`, so the boot script can set them before the app loads. */
+  effects: string[];
 }
 
 const MODES: readonly ModePref[] = ["system", "light", "dark"];
@@ -44,6 +46,7 @@ export function readSavedTheme(): SavedTheme | null {
       scheme: s.scheme === "dark" || s.scheme === "light" ? s.scheme : "auto",
       mode: MODES.includes(s.mode as ModePref) ? (s.mode as ModePref) : "system",
       chosen: s.chosen === true,
+      effects: Array.isArray(s.effects) ? s.effects.filter((e) => typeof e === "string") : [],
     };
   } catch {
     return null;
@@ -56,6 +59,41 @@ export function saveTheme(saved: SavedTheme): void {
   } catch {
     // Private mode or storage off: the theme still applies, it just isn't remembered.
   }
+}
+
+/** The per-browser "Enable theme effects" setting (CR-004 §7), on unless turned off. */
+export const EFFECTS_STORAGE_KEY = "meshterm.effects";
+
+export function readEffectsEnabled(): boolean {
+  try {
+    return localStorage.getItem(EFFECTS_STORAGE_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+
+export function saveEffectsEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(EFFECTS_STORAGE_KEY, String(enabled));
+  } catch {
+    // Not remembered; still applies now.
+  }
+}
+
+/** Effects that animate; dropped under prefers-reduced-motion (static ones may stay). */
+const ANIMATED_EFFECTS = new Set(["flicker"]);
+
+/**
+ * The effects to show (CR-004 §7): the theme's, unless turned off in this browser or
+ * under prefers-contrast: more; under reduced motion, only the ones that don't move.
+ */
+export function activeEffects(
+  effects: readonly string[],
+  enabled: boolean,
+  media: { reducedMotion: boolean; moreContrast: boolean },
+): string[] {
+  if (!enabled || media.moreContrast) return [];
+  return effects.filter((e) => !(media.reducedMotion && ANIMATED_EFFECTS.has(e)));
 }
 
 /** `?theme=<id>` for this page load, as the boot script found it (never saved). */

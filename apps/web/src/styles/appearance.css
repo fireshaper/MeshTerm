@@ -107,7 +107,8 @@
     block-size: 0.875em;
   }
 
-  [data-mt="mode-toggle"] {
+  [data-mt="mode-toggle"],
+  [data-mt="effects-toggle"] {
     display: flex;
     flex-direction: column;
     gap: var(--mt-space-2);

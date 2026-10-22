@@ -24,6 +24,8 @@ export function App({ router, queryClient, live = true, me }: AppProps) {
   return (
     <QueryClientProvider client={client}>
       {live && <ThemeRuntime />}
+      {/* Theme effects draw here (CR-004 §7). */}
+      <div data-mt="fx-layer" aria-hidden="true" />
       <AuthGate {...(me ? { me } : {})}>
         {live && <LiveConnection />}
         <NowProvider>

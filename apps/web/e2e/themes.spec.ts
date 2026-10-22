@@ -288,3 +288,97 @@ test("Retro Terminal and its Amber variant: selectable, bundled font, log-line m
   await card(page, /^Default/).click();
   await expect.poll(() => bodyBg(page)).toBe(DEFAULT_DARK_BG);
 });
+
+const fx = (page: Page) => page.evaluate(() => document.documentElement.getAttribute("data-mt-fx"));
+
+test("effects come from the theme, follow the toggle and the device, and never block the page", async ({
+  page,
+}) => {
+  await openAppearance(page);
+  expect(await fx(page)).toBeNull();
+  await expect(page.getByLabel("Enable theme effects")).toBeDisabled();
+  await card(page, /^Retro Terminal(?! Amber)/).click();
+  await expect.poll(() => fx(page)).toBe("crt scanlines");
+  const layer = page.locator("[data-mt=fx-layer]");
+  expect(await layer.evaluate((el) => getComputedStyle(el, "::before").backgroundImage)).toContain(
+    "repeating-linear-gradient",
+  );
+
+  // No pointer, no layout: clicks reach what's below, and nothing scrolls sideways.
+  const toggle = page.getByLabel("Enable theme effects");
+  const box = await toggle.boundingBox();
+  const hit = await page.evaluate(
+    ([x, y]) => document.elementFromPoint(x ?? 0, y ?? 0)?.getAttribute("type"),
+    [(box?.x ?? 0) + 2, (box?.y ?? 0) + 2],
+  );
+  expect(hit).toBe("checkbox");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+
+  // Set before the app loads, like the theme itself.
+  await page.route("**/assets/*.js", (route) => route.abort());
+  await page.reload();
+  expect(await fx(page)).toBe("crt scanlines");
+  await page.unroute("**/assets/*.js");
+  await openAppearance(page);
+
+  await toggle.uncheck();
+  await expect.poll(() => fx(page)).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem("meshterm.effects"))).toBe("false");
+  await toggle.check();
+  await expect.poll(() => fx(page)).toBe("crt scanlines");
+
+  await page.emulateMedia({ contrast: "more" });
+  await expect.poll(() => fx(page)).toBeNull();
+  await page.emulateMedia({ contrast: "no-preference", reducedMotion: "reduce" });
+  // Scanlines and the vignette don't move, so they stay.
+  await expect.poll(() => fx(page)).toBe("crt scanlines");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  await card(page, /^Default/).click();
+  await expect.poll(() => fx(page)).toBeNull();
+});
+
+/** Frames drawn per second while the main area scrolls for 1.5 s. */
+async function scrollFps(page: Page): Promise<number> {
+  return page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        const main = document.querySelector<HTMLElement>("[data-mt=main]") ?? document.body;
+        const start = performance.now();
+        let frames = 0;
+        let down = true;
+        const tick = () => {
+          frames++;
+          main.scrollTop += down ? 40 : -40;
+          if (main.scrollTop + main.clientHeight >= main.scrollHeight || main.scrollTop <= 0) {
+            down = !down;
+          }
+          if (performance.now() - start < 1_500) requestAnimationFrame(tick);
+          else resolve(frames / ((performance.now() - start) / 1_000));
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+}
+
+test("scrolling stays smooth with effects on", async ({ page }) => {
+  for (const path of ["/dashboard", "/nodes"]) {
+    await page.goto(`http://127.0.0.1:${HISTORY_PORT}${path}?theme=retro-terminal`);
+    await expect.poll(() => fx(page)).toBe("crt scanlines");
+    await page.waitForLoadState("networkidle");
+    const on = await scrollFps(page);
+    await page.evaluate(() => {
+      document.documentElement.removeAttribute("data-mt-fx");
+    });
+    const off = await scrollFps(page);
+    // CR-004 §7: effects must not cost noticeable frames (budget: 55 fps on a laptop).
+    expect(
+      on,
+      `${path}: ${on.toFixed(0)} fps with effects, ${off.toFixed(0)} without`,
+    ).toBeGreaterThan(off * 0.85);
+  }
+});

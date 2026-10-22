@@ -183,7 +183,39 @@ The base map's look (the OpenStreetMap tiles) can't be changed by a theme yet; `
 
 ## Effects
 
-Effects such as scanlines or a glow are drawn by the theme's CSS. The manifest's `effects` list says which ones a theme has, and the picker shows an **Effects** badge for it. The effects layer and its on/off switch are on the way; until then, keep effects subtle and inside `@media (prefers-reduced-motion: no-preference)` when they move.
+Effects such as scanlines, a glow or a CRT vignette are drawn by your CSS on one overlay that sits above the whole page: `<div data-mt="fx-layer">`. It's fixed to the window, takes no space and never catches clicks.
+
+1. List the effects your theme has in the manifest: `"effects": ["crt", "scanlines"]`. The vocabulary is `scanlines`, `glow`, `crt`, `noise` and `flicker`; implement any of them. The picker shows an **Effects** badge.
+2. MeshTerm puts the ones that are on into `<html data-mt-fx="crt scanlines">`. Style them from there:
+
+   ```css
+   @layer theme {
+     html[data-mt-fx~="scanlines"] [data-mt="fx-layer"]::before {
+       position: absolute;
+       inset: 0;
+       background: repeating-linear-gradient(
+         to bottom,
+         transparent 0 2px,
+         rgb(0 0 0 / 12%) 2px 3px
+       );
+       content: "";
+     }
+   }
+   ```
+
+   An effect can also style the page itself (Retro Terminal's `crt` adds a faint glow to text), but keep that under the same `html[data-mt-fx~=…]` selector so it goes away with the effect.
+
+Effects are off when:
+
+- the user turns off **Enable theme effects** in Settings → Appearance (saved in that browser);
+- the device asks for more contrast (`prefers-contrast: more`): all of them;
+- the device asks for reduced motion: `flicker` is dropped. Make any other movement (moving noise, a pulsing glow) conditional on `@media (prefers-reduced-motion: no-preference)` yourself.
+
+Keep them cheap and readable:
+
+- Use static gradients and repeating backgrounds. Don't animate filters, and never animate `backdrop-filter`: scrolling must stay smooth (MeshTerm's tests compare scrolling with and without effects).
+- Keep them faint. Where an overlay darkens text, the text must still have 4.5:1 contrast (see the [checklist](#accessibility-checklist)).
+- `--mt-z-fx` sets the overlay's stacking level; you shouldn't need to change it.
 
 ## Fonts and sounds
 
@@ -411,14 +443,15 @@ Staged, conflicting and dangerous changes; QR codes.
 
 ### Layout
 
-| Token                          | Default (dark) | Default (light) | Without a theme    | Used for                     |
-| ------------------------------ | -------------- | --------------- | ------------------ | ---------------------------- |
-| `--mt-header-height`           | —              | —               | `3rem`             |                              |
-| `--mt-tab-bar-height`          | —              | —               | `3.5rem`           |                              |
-| `--mt-sidebar-width`           | —              | —               | `14rem`            |                              |
-| `--mt-sidebar-collapsed-width` | —              | —               | `4rem`             |                              |
-| `--mt-conversation-list-width` | —              | —               | `20rem`            |                              |
-| `--mt-drawer-width`            | —              | —               | `min(18rem, 85vw)` | the mobile navigation drawer |
+| Token                          | Default (dark) | Default (light) | Without a theme    | Used for                                                              |
+| ------------------------------ | -------------- | --------------- | ------------------ | --------------------------------------------------------------------- |
+| `--mt-header-height`           | —              | —               | `3rem`             |                                                                       |
+| `--mt-tab-bar-height`          | —              | —               | `3.5rem`           |                                                                       |
+| `--mt-sidebar-width`           | —              | —               | `14rem`            |                                                                       |
+| `--mt-sidebar-collapsed-width` | —              | —               | `4rem`             |                                                                       |
+| `--mt-conversation-list-width` | —              | —               | `20rem`            |                                                                       |
+| `--mt-drawer-width`            | —              | —               | `min(18rem, 85vw)` | the mobile navigation drawer                                          |
+| `--mt-z-fx`                    | —              | —               | `100`              | the effects overlay (fx-layer): above everything, ignores the pointer |
 
 ### Node drawer
 
@@ -783,6 +816,7 @@ Every `data-mt` hook, grouped by where it appears. "From data" means the value c
 | `diff-row`                |                                                                                          | (from data)                              | (from data)                                                |
 | `diff-to`                 |                                                                                          |                                          |                                                            |
 | `dnd-status`              |                                                                                          |                                          |                                                            |
+| `effects-toggle`          | Enable theme effects (disabled for themes without effects)                               |                                          |                                                            |
 | `field-was`               |                                                                                          |                                          |                                                            |
 | `inline-form`             |                                                                                          |                                          |                                                            |
 | `maintenance`             |                                                                                          |                                          |                                                            |
@@ -988,6 +1022,7 @@ Every `data-mt` hook, grouped by where it appears. "From data" means the value c
 | `data-mt`         | Element                                                                                                                  | `data-mt-state` | `data-mt-variant` |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------- | ----------------- |
 | `favicon`         | `<link rel="icon">` (badged with the unread count)                                                                       |                 |                   |
+| `fx-layer`        | The effects overlay: fixed over the page, ignores the pointer; draw on it under html[data-mt-fx~=effect]                 |                 |                   |
 | `theme-link`      | `<link id="mt-theme">` to the active theme's CSS (`?v=<hash>`), and `#mt-theme-mode` for a theme's per-mode CSS (CR-004) |                 |                   |
 | `theme-mode-link` | `<link>` to the active theme's per-mode CSS                                                                              |                 |                   |
 

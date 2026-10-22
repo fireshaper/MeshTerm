@@ -5,12 +5,12 @@ import { api } from "../data/api.js";
 import { queryKeys } from "../data/keys.js";
 import { useThemeStore } from "./store.js";
 import {
+  activeEffects,
   applyTheme,
   forcedThemeId,
   pickTheme,
   resolveMode,
   saveTheme,
-  systemPrefersDark,
   type StylesheetLoader,
 } from "./theme.js";
 
@@ -39,21 +39,32 @@ export function handleThemeChanged(
   void qc.invalidateQueries({ queryKey: queryKeys.themes });
 }
 
-/** Tracks `prefers-color-scheme` live (CR-004 §4.6). */
-function useSystemDark(): boolean {
-  const [dark, setDark] = useState(systemPrefersDark);
+/** Whether a media query matches, live (`prefers-color-scheme`, `-contrast`, `-reduced-motion`). */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(
+    () => typeof matchMedia === "function" && matchMedia(query).matches,
+  );
   useEffect(() => {
     if (typeof matchMedia !== "function") return;
-    const query = matchMedia("(prefers-color-scheme: dark)");
+    const list = matchMedia(query);
     const onChange = () => {
-      setDark(query.matches);
+      setMatches(list.matches);
     };
-    query.addEventListener("change", onChange);
+    onChange();
+    list.addEventListener("change", onChange);
     return () => {
-      query.removeEventListener("change", onChange);
+      list.removeEventListener("change", onChange);
     };
-  }, []);
-  return dark;
+  }, [query]);
+  return matches;
+}
+
+/** The media that turn effects down (CR-004 §7). */
+export function useEffectMedia() {
+  return {
+    reducedMotion: useMediaQuery("(prefers-reduced-motion: reduce)"),
+    moreContrast: useMediaQuery("(prefers-contrast: more)"),
+  };
 }
 
 /**
@@ -66,7 +77,9 @@ export function ThemeRuntime({ load }: { load?: StylesheetLoader }) {
   const chosenId = useThemeStore((s) => s.chosenId);
   const previewId = useThemeStore((s) => s.previewId);
   const modePref = useThemeStore((s) => s.modePref);
-  const systemDark = useSystemDark();
+  const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
+  const effectsEnabled = useThemeStore((s) => s.effectsEnabled);
+  const media = useEffectMedia();
   const [forced] = useState(forcedThemeId);
 
   const theme = data ? pickTheme(data.themes, [forced, previewId, chosenId, data.defaultId]) : null;
@@ -86,6 +99,7 @@ export function ThemeRuntime({ load }: { load?: StylesheetLoader }) {
         scheme,
         mode: modePref,
         chosen: chosenId === theme.id,
+        effects: [...(theme.manifest?.effects ?? [])],
       });
     });
     return () => {
@@ -94,6 +108,14 @@ export function ThemeRuntime({ load }: { load?: StylesheetLoader }) {
     // The theme object changes with every list refetch; its id and hash are what matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme?.id, theme?.hash, mode, persist, modePref, chosenId, scheme, load]);
+
+  // Effects (CR-004 §7): html[data-mt-fx~="scanlines"] and so on, for the theme's CSS.
+  const fx = activeEffects(theme?.manifest?.effects ?? [], effectsEnabled, media).join(" ");
+  useEffect(() => {
+    const root = document.documentElement;
+    if (fx) root.setAttribute("data-mt-fx", fx);
+    else root.removeAttribute("data-mt-fx");
+  }, [fx]);
 
   return null;
 }

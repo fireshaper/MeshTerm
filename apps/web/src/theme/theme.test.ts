@@ -1,6 +1,7 @@
 import type { ThemeDTO, ThemeManifest } from "@meshterm/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  activeEffects,
   applyTheme,
   pickTheme,
   readSavedTheme,
@@ -61,6 +62,7 @@ describe("saved theme", () => {
       scheme: "dark",
       mode: "light",
       chosen: true,
+      effects: [],
     });
     expect(readSavedTheme()).toMatchObject({ id: "retro", mode: "light", chosen: true });
     localStorage.setItem(THEME_STORAGE_KEY, "{ nope");
@@ -84,6 +86,7 @@ describe("saved theme", () => {
         scheme: "auto",
         mode: "system",
         chosen: true,
+        effects: [],
       });
     }).not.toThrow();
     expect(readSavedTheme()).toBeNull();
@@ -161,5 +164,19 @@ describe("applyTheme (CR-004 §4.5)", () => {
     const links = document.querySelectorAll('[data-mt="theme-link"]');
     expect(links).toHaveLength(1);
     expect(links[0]?.getAttribute("href")).toBe("/themes/neon/theme.css?v=h-neon");
+  });
+});
+
+describe("activeEffects (CR-004 §7)", () => {
+  const media = { reducedMotion: false, moreContrast: false };
+  it("the theme's effects, unless turned off or under more contrast", () => {
+    expect(activeEffects(["crt", "scanlines"], true, media)).toEqual(["crt", "scanlines"]);
+    expect(activeEffects(["crt", "scanlines"], false, media)).toEqual([]);
+    expect(activeEffects(["crt"], true, { ...media, moreContrast: true })).toEqual([]);
+  });
+  it("reduced motion keeps only effects that don't move", () => {
+    expect(
+      activeEffects(["scanlines", "flicker", "glow"], true, { ...media, reducedMotion: true }),
+    ).toEqual(["scanlines", "glow"]);
   });
 });

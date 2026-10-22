@@ -91,7 +91,7 @@ CR: [cr-004-themes.md](cr-004-themes.md). Stop after each phase, report, commit 
 - **Sounds:** terminal beeps.
 - **Map:** waits for E's `map-style.json`, apart from the token colors.
 
-## Phase D: effects overlay
+## Phase D: effects overlay (done 2026-10-22)
 
 - One `fx-layer` in the app shell, `--mt-z-fx`. The provider sets `data-mt-fx` from the manifest's `effects` when they're enabled.
 - The "Enable theme effects" toggle (`effects-toggle`, saved per browser).

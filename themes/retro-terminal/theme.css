@@ -486,3 +486,25 @@
     display: none;
   }
 }
+
+/*
+ * Effects (CR-004 Phase D), on the fx-layer overlay. Static gradients only (cheap to
+ * scroll under), and faint: at their darkest, muted text still keeps 4.5:1.
+ */
+@layer theme {
+  html[data-mt-fx~="scanlines"] [data-mt="fx-layer"]::before {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 12%) 2px 3px);
+    content: "";
+  }
+
+  html[data-mt-fx~="crt"] [data-mt="fx-layer"] {
+    background: radial-gradient(ellipse at center, transparent 65%, rgb(0 0 0 / 12%) 100%);
+  }
+
+  /* A little phosphor bloom on text. */
+  html[data-mt-fx~="crt"] body {
+    text-shadow: 0 0 2px color-mix(in srgb, var(--rt-text) 35%, transparent);
+  }
+}

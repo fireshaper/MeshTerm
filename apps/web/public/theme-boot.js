@@ -50,4 +50,28 @@
   root.setAttribute("data-mt-mode", mode);
   var meta = document.querySelector('meta[name="color-scheme"]');
   if (meta) meta.setAttribute("content", mode);
+  // Effects (CR-004 §7): the saved theme's, unless turned off here or under more contrast;
+  // under reduced motion only the ones that don't move.
+  var media = function (q) {
+    return !!(window.matchMedia && window.matchMedia(q).matches);
+  };
+  var on = true;
+  try {
+    on = localStorage.getItem("meshterm.effects") !== "false";
+  } catch {
+    on = true;
+  }
+  if (
+    !forced &&
+    saved &&
+    Array.isArray(saved.effects) &&
+    on &&
+    !media("(prefers-contrast: more)")
+  ) {
+    var reduced = media("(prefers-reduced-motion: reduce)");
+    var fx = saved.effects.filter(function (e) {
+      return /^[a-z]+$/.test(e) && !(reduced && e === "flicker");
+    });
+    if (fx.length > 0) root.setAttribute("data-mt-fx", fx.join(" "));
+  }
 })();

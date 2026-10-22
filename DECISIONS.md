@@ -611,3 +611,11 @@ One entry per decision: **step**, **decision**, **reason**. Add new entries at t
 | Status in one hue: ok = the text color, warn = brighter, error = brightest, plus symbols (● ◉ ◌ ○, `[!!]`).                                                | CR §6.1: states stay distinguishable without hue.                                                                                                                          |
 | Mini-map tiles are tinted with a CSS `filter` in the theme for now.                                                                                        | The `mini-map-tiles` hook allows it today; Phase E derives the main map's look from `map-style.json`.                                                                      |
 | Toasts stay in their usual corner, inverted.                                                                                                               | Moving the region would fight the per-browser position setting (CR-003).                                                                                                   |
+
+## CR-004 — Phase D (effects)
+
+| Decision                                                                                                                          | Reason                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Under reduced motion only `flicker` is dropped by MeshTerm; themes guard other movement with `prefers-reduced-motion` themselves. | `scanlines`, `crt`, `glow` and `noise` can be static (CR §7: static effects may stay). |
+| The performance check compares scrolling with and without effects (on ≥ 85 %) instead of an absolute 55 fps.                      | CI machines vary; the budget is about the cost of effects, which the ratio measures.   |
+| No FPS-based auto-disable.                                                                                                        | Optional in CR §7; static gradients don't cost frames.                                 |

@@ -150,6 +150,7 @@
     --mt-sidebar-collapsed-width: 4rem;
     --mt-conversation-list-width: 20rem;
     --mt-drawer-width: min(18rem, 85vw); /* the mobile navigation drawer */
+    --mt-z-fx: 100; /* the effects overlay (fx-layer): above everything, ignores the pointer */
 
     /* @group Node drawer: node details (CR-001) */
     --mt-node-drawer-width: 30rem; /* from 768 px; users can resize it (400–800 px) */

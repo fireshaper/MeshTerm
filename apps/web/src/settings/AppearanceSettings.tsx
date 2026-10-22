@@ -8,7 +8,7 @@ import { ApiError, api } from "../data/api.js";
 import { queryKeys } from "../data/keys.js";
 import { useUiStore } from "../data/ui-store.js";
 import { useThemeStore } from "../theme/store.js";
-import { useActiveTheme, useThemes } from "../theme/ThemeRuntime.js";
+import { useActiveTheme, useEffectMedia, useThemes } from "../theme/ThemeRuntime.js";
 import type { ModePref } from "../theme/theme.js";
 
 const ICON = { "aria-hidden": true, focusable: false } as const;
@@ -80,6 +80,8 @@ export function AppearanceSettingsPage() {
           </p>
         </fieldset>
 
+        <EffectsToggle theme={active} />
+
         {admin && data && (
           <AdminSection themes={data.themes} defaultId={data.defaultId} active={active} />
         )}
@@ -99,6 +101,39 @@ export function AppearanceSettingsPage() {
         </p>
       </div>
     </section>
+  );
+}
+
+/** "Enable theme effects" (CR-004 §7), per browser. */
+function EffectsToggle({ theme }: { theme: ThemeDTO | null }) {
+  const enabled = useThemeStore((s) => s.effectsEnabled);
+  const setEnabled = useThemeStore((s) => s.setEffectsEnabled);
+  const media = useEffectMedia();
+  const effects = theme?.manifest?.effects ?? [];
+  const name = theme?.manifest?.name ?? "This theme";
+  const help =
+    effects.length === 0
+      ? `${name} has no effects.`
+      : media.moreContrast
+        ? "Off while your device asks for more contrast."
+        : media.reducedMotion
+          ? "Effects that move stay off while your device asks for reduced motion."
+          : `${name} draws ${effects.join(", ")} over the page. They never get in the way of clicks.`;
+  return (
+    <fieldset data-mt="effects-toggle" disabled={effects.length === 0}>
+      <legend data-mt="config-group-title">Effects</legend>
+      <label data-mt="check-row" data-mt-variant="setting">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => {
+            setEnabled(e.target.checked);
+          }}
+        />
+        <span>Enable theme effects</span>
+      </label>
+      <p data-mt="config-help">{help}</p>
+    </fieldset>
   );
 }
 

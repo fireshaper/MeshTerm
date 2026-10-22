@@ -12,6 +12,18 @@
     background: var(--mt-surface-bg);
   }
 
+  /*
+   * The effects overlay (CR-004 Phase D): one fixed layer above the page that themes
+   * draw scanlines, vignettes and the like on, keyed by html[data-mt-fx~="<effect>"].
+   * It never takes the pointer or space.
+   */
+  [data-mt="fx-layer"] {
+    position: fixed;
+    inset: 0;
+    z-index: var(--mt-z-fx);
+    pointer-events: none;
+  }
+
   /* Headings take the display face (CR-004): the same as the body in Default. */
   :where(h1, h2, h3, h4, [data-mt="page-title"]) {
     font-family: var(--mt-font-display);

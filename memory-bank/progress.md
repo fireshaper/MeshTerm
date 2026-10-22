@@ -680,6 +680,16 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test` (818, 1 skip
 
 State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test` (825, 1 skipped), `test:e2e` green.
 
+### CR-004 Phase D: effects overlay (done 2026-10-22)
+
+- One `fx-layer` over the page (fixed, no pointer, no layout), `--mt-z-fx`. The theme's manifest `effects` become `<html data-mt-fx="crt scanlines">`, set before the first paint by the boot script and kept live by the runtime.
+- "Enable theme effects" in Settings → Appearance (per browser, `meshterm.effects`). Forced off under `prefers-contrast: more`; `flicker` dropped under reduced motion. The optional FPS guard was left out (CR marks it optional).
+- Retro Terminal's `crt` and `scanlines`: static gradients, faint enough to keep muted text at 4.5:1.
+- THEMING.md's effects section rewritten for authors.
+- **Tests:** `activeEffects` units, the toggle (component), e2e: effects from the manifest, clicks go through the layer, no sideways scroll, set before the app's JS, toggle and `meshterm.effects`, contrast and reduced-motion overrides; scrolling Dashboard and Nodes with effects on keeps ≥ 85 % of the frames it gets without them.
+
+State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test` (828, 1 skipped), `test:e2e` (201) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

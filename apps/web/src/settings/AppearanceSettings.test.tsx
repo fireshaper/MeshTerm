@@ -153,3 +153,23 @@ describe("Settings → Appearance (CR-004 §4.7)", () => {
     expect(screen.queryByText(/Broken:/)).not.toBeInTheDocument();
   });
 });
+
+describe("effects toggle (CR-004 §7)", () => {
+  it("is off for themes without effects and saves the choice per browser", async () => {
+    const user = userEvent.setup();
+    await render();
+    const toggle = screen.getByLabelText("Enable theme effects");
+    expect(toggle).toBeDisabled();
+    expect(screen.getByText("Default has no effects.")).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: /Theme retro/ }));
+    expect(toggle).toBeEnabled();
+    expect(
+      screen.getByText("Theme retro draws scanlines over the page.", { exact: false }),
+    ).toBeInTheDocument();
+    await user.click(toggle);
+    expect(useThemeStore.getState().effectsEnabled).toBe(false);
+    expect(localStorage.getItem("meshterm.effects")).toBe("false");
+    await user.click(toggle);
+    expect(useThemeStore.getState().effectsEnabled).toBe(true);
+  });
+});

@@ -463,6 +463,10 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     area: "Shared",
     element: "Mobile navigation drawer (Radix Dialog) and its parts",
   },
+  "effects-toggle": {
+    area: "Settings",
+    element: "Enable theme effects (disabled for themes without effects)",
+  },
   "empty-state": { area: "Shared", element: "Empty and loading placeholders" },
   "empty-state-text": { area: "Shared", element: "Empty and loading placeholders" },
   "empty-state-title": { area: "Shared", element: "Empty and loading placeholders" },
@@ -474,6 +478,11 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   favicon: { area: "Theme", element: '`<link rel="icon">` (badged with the unread count)' },
   "favorite-toggle": { area: "Shared", element: "★ button", states: ["off", "on"] },
   "field-was": { area: "Settings" },
+  "fx-layer": {
+    area: "Theme",
+    element:
+      "The effects overlay: fixed over the page, ignores the pointer; draw on it under html[data-mt-fx~=effect]",
+  },
   header: { area: "Shell", element: "Top bar" },
   "history-start": { area: "Shared", element: 'Empty state; "start of conversation" marker' },
   icon: {
