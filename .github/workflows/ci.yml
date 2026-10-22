@@ -3,6 +3,9 @@ name: CI
 on:
   push:
   pull_request:
+  # Nightly: the full per-theme visual matrix (CR-004 §9).
+  schedule:
+    - cron: "17 3 * * *"
 
 permissions:
   contents: read
@@ -35,7 +38,7 @@ jobs:
         run: pnpm test:int
 
   e2e:
-    name: Playwright
+    name: Playwright (${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
     # The official image (Node 24, browsers and fonts preinstalled) is also where the
     # Linux visual baselines are made (scripts/visual-baselines-linux.sh), so pixels match.
@@ -43,21 +46,60 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
       options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The visual set depends on what changed (see the next step).
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
+      # CR-004 §9: every theme on every screen nightly and when themes, tokens or the hook
+      # registry change; otherwise Default Light/Dark plus a Retro and Cyberpunk smoke set.
+      - name: Pick the visual set
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          set=pr
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            set=full
+          else
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
+            if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+              set=full
+            elif git diff --name-only "$base" HEAD | grep -Eq '^(themes/|apps/web/src/styles/tokens\.css|packages/shared/src/theme-hooks\.ts)'; then
+              set=full
+            fi
+          fi
+          echo "VISUAL_SET=$set" >> "$GITHUB_ENV"
+          echo "Visual set: $set"
+        env:
+          BEFORE: ${{ github.event.before }}
       - name: Playwright tests incl. visual baselines (builds server and SPA first)
-        run: pnpm test:e2e
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/2
+        env:
+          VISUAL_ARTIFACTS: "1"
       - name: Base-app gate, three runs in a row
+        if: matrix.shard == 1
         run: pnpm test:gate
+      # What every visual test drew, for review without a failure.
+      - name: Upload visual screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-screenshots-${{ matrix.shard }}
+          path: apps/web/test-results/**/*.png
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             apps/web/playwright-report/
             apps/web/test-results/

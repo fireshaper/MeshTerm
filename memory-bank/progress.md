@@ -700,6 +700,16 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test` (828, 1 skip
 
 State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` green.
 
+### CR-004 Phase F: per-theme baselines and contrast (done 2026-10-22)
+
+- **Visual matrix:** Default Light, Default Dark, Retro Terminal, Retro Terminal Amber and Cyberpunk at 1280 and 390 px on every visual screen (dashboard, map, channel, DM, node list, cards, table, drawer and charts, device settings sections, notification toast, bell and settings, appearance), plus effects-on runs of Retro and Cyberpunk at 1280. 140 new baselines per platform (win32 + linux), looked at; the existing Default Dark ones didn't change.
+- **CI cost control:** every push/PR runs Default Light + Dark on everything and a Retro/Cyberpunk smoke set; the full matrix runs nightly and when themes, `tokens.css` or the hook registry change. Playwright runs in two shards; screenshots are uploaded as artifacts.
+- **Contrast:** axe-core `color-contrast` per theme on nine screens. It found one problem, fixed: Retro's short-name chips inside reverse-video card headers. Section counts in Retro's inverted headers also inherit the header color now.
+- **Fixes along the way:** the mini-map visual test now ignores tiles outside a mini map's window (Cyberpunk's clip-path makes Chrome skip lazy-loading them); the effects e2e scrolls the toggle into view (four theme cards push it down).
+- **CR-004 overall (§13):** `?theme=` override, README themes section and the "no component names a theme" guard are in (Phases A2–C). CR-004 is complete.
+
+State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` (PR set) and `test:visual` (full set) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

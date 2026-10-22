@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-**Base app complete** (Phases 0–11 of the implementation plan; M1 scope). Since then: CR-001 (node drawer), CR-002 (device config editor, sign-in) and CR-003 (notifications) are done. History and agreed changes: [memory-bank/progress.md](memory-bank/progress.md). Next work (map, telemetry, themes, auth, …) is listed under "Out of scope" in the implementation plan and will be planned separately. Planning docs:
+**Base app complete** (Phases 0–11 of the implementation plan; M1 scope). Since then: CR-001 (node drawer), CR-002 (device config editor, sign-in), CR-003 (notifications) and CR-004 (themes: loader, picker, Retro Terminal, Cyberpunk, effects, map styles) are done. History and agreed changes: [memory-bank/progress.md](memory-bank/progress.md). Next work (map, telemetry, themes, auth, …) is listed under "Out of scope" in the implementation plan and will be planned separately. Planning docs:
 
 - [memory-bank/app-design-document.md](memory-bank/app-design-document.md) covers product scope, architecture, data model, theming rules and milestones (M1–M5).
 - [memory-bank/tech-stack.md](memory-bank/tech-stack.md) covers library choices and tooling. It is newer than the design doc. Where they conflict, follow tech-stack.md. Exception: `engines.node` is **>=24** (local dev runs Node 24). The Docker image still uses `node:26-alpine`.
@@ -50,7 +50,8 @@ pnpm --filter @meshterm/server test  # one package's tests
 pnpm test:e2e                        # build the SPA, then Playwright (desktop 1280 px + mobile 390 px)
 pnpm --filter @meshterm/web exec playwright install chromium   # once per machine
 pnpm test:gate                       # base-app gate spec, three runs in a row
-pnpm test:visual                     # visual baselines (dashboard, map, node drawer + charts, nodes cards/table, channel, node list, DM, device settings/channels/network/maintenance, notification toast/bell/settings × 1280/390 px)
+pnpm test:visual                     # visual baselines, full set: every screen × every theme/mode (Default Dark/Light, Retro, Retro Amber, Cyberpunk) × 1280/390 px, plus effects-on runs
+VISUAL_SET=full pnpm test:e2e        # the e2e suite with the full visual set (CI: nightly and theme/token/hook changes); default is the PR set
 pnpm test:visual:update              # rewrite this platform's baselines after an intended UI change
 pnpm test:visual:linux               # rewrite the Linux (CI) baselines in the Playwright Docker image
 UPDATE=all pnpm test:visual:linux    # same, rewriting every baseline (changes under the 1% threshold too)
@@ -119,5 +120,5 @@ The built-in themes are Default (the reference for every token), Cyberpunk and R
 ## Testing rules
 
 - CI runs against `FakeNode`, a TCP server that speaks the real framing and replays recorded `FromRadio` frames. `meshtasticd` in simulator mode is optional for integration tests.
-- Playwright visual regression covers every main screen × every built-in theme (dashboard, map, node drawer + telemetry charts, nodes cards and table, channel, node list, DM × 390/1280 px, Default theme). Baselines are per platform. **After an intended UI change, update both**: `pnpm test:visual:update` (your OS) and `pnpm test:visual:linux` (CI), and look at the new PNGs before committing.
+- Playwright visual regression covers every main screen × every built-in theme and mode × 390/1280 px (`visual-*` projects; the full set runs with `VISUAL_SET=full` or `pnpm test:visual`). `e2e/contrast.spec.ts` checks WCAG AA text contrast per theme with axe-core. Baselines are per platform. **After an intended UI change, update both**: `pnpm test:visual:update` (your OS) and `pnpm test:visual:linux` (CI), and look at the new PNGs before committing.
 - **Never transmit on the mesh** during startup, tests or migrations, apart from the config handshake and heartbeats.

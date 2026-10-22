@@ -113,7 +113,7 @@ CR: [cr-004-themes.md](cr-004-themes.md). Stop after each phase, report, commit 
   - Vector sources are accepted but not used yet.
 - **Retro map styles:** green and amber tints.
 
-## Phase F: per-theme baselines and contrast
+## Phase F: per-theme baselines and contrast (done 2026-10-22)
 
 - The visual suite runs across themes: Default Light and Dark, Retro, Retro Amber and Cyberpunk, at 1280 and 390 px, on the CR §9 screens.
 - Effects-on runs for Retro and Cyberpunk at 1280 only, with animations masked.

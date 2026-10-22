@@ -1,12 +1,21 @@
-// Visual baselines (Step 11.2, D7.3): channel view, node list, DM view, dashboard, device and appearance settings in
-// the Default theme, at 1280 px (visual-desktop) and 390 px (visual-mobile).
+// Visual baselines (Step 11.2, D7.3, CR-004 F): channel view, node list, DM view, dashboard, device and appearance settings,
+// per theme and mode: visual-desktop / visual-mobile are Default Dark at 1280 and 390 px; the
+// other visual-* projects (playwright.config.ts) set a theme, mode and effects in metadata.
 //
 // Runs against its own server instance (VISUAL_PORT) seeded once with fixed content,
 // so other specs can't change what is drawn. Relative times are masked.
 // Baselines are per platform; the Linux ones are made in the Playwright Docker image,
 // which CI also runs in. Update them with `pnpm test:visual:update` (see CLAUDE.md).
-import { expect, test, type Page, type WebSocketRoute } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type PageAssertionsToHaveScreenshotOptions,
+  type WebSocketRoute,
+} from "@playwright/test";
 import { controlClient, ME, RIDGE, TRAIL } from "./control.js";
+import { themeReady, useTheme } from "./theme-helpers.js";
 import {
   VISUAL_CONTROL_PORT,
   VISUAL_DASHBOARD_CONTROL_PORT,
@@ -72,6 +81,35 @@ async function readAll(): Promise<void> {
   }
 }
 
+/** This project's theme (CR-004 §9); Default Dark without effects unless it says otherwise. */
+interface VisualTheme {
+  theme?: string;
+  mode?: "dark" | "light";
+  effects?: boolean;
+}
+const visualTheme = () => test.info().project.metadata as VisualTheme;
+
+test.beforeEach(async ({ page }) => {
+  const { theme = "default", mode = "dark", effects = false } = visualTheme();
+  await useTheme(page, theme, mode, effects);
+});
+
+/**
+ * The screenshot assertion, plus (with VISUAL_ARTIFACTS=1, as in CI) a copy of what was
+ * drawn in test-results/, so the screens can be looked at without a failure.
+ */
+async function shot(
+  target: Page | Locator,
+  name: string,
+  options: PageAssertionsToHaveScreenshotOptions = {},
+): Promise<void> {
+  if ("goto" in target) await expect(target).toHaveScreenshot(name, options);
+  else await expect(target).toHaveScreenshot(name, options);
+  if (process.env.VISUAL_ARTIFACTS) {
+    await target.screenshot({ path: test.info().outputPath(name) });
+  }
+}
+
 test.beforeAll(async () => {
   await seed();
   await readAll();
@@ -106,6 +144,7 @@ async function ready(page: Page, path: string): Promise<void> {
   await page.clock.install();
   await page.goto(path);
   await expect(page.locator("[data-mt=status-pill]")).toHaveAttribute("data-mt-state", "connected");
+  await themeReady(page, visualTheme().theme ?? "default");
 }
 
 /**
@@ -125,14 +164,14 @@ test("channel view", async ({ page }) => {
   await ready(page, "/messages/channel/0");
   await expect(page.locator("[data-mt=message]")).toHaveCount(2);
   await freeze(page);
-  await expect(page).toHaveScreenshot("channel-view.png", { mask: MASKS(page) });
+  await shot(page, "channel-view.png", { mask: MASKS(page) });
 });
 
 test("node list", async ({ page }) => {
   await ready(page, "/nodes");
   await expect(page.locator("[data-mt=node-card]")).toHaveCount(4);
   await freeze(page);
-  await expect(page).toHaveScreenshot("node-list.png", { mask: MASKS(page) });
+  await shot(page, "node-list.png", { mask: MASKS(page) });
 });
 
 test("DM view", async ({ page }) => {
@@ -143,7 +182,7 @@ test("DM view", async ({ page }) => {
     "acked",
   );
   await freeze(page);
-  await expect(page).toHaveScreenshot("dm-view.png", { mask: MASKS(page) });
+  await shot(page, "dm-view.png", { mask: MASKS(page) });
 });
 
 /** The dashboard instance: one NeighborInfo report, so the network view has a reported link. */
@@ -173,25 +212,36 @@ test("dashboard", async ({ page }) => {
   await expect(page.locator("[data-mt=network-link][data-mt-variant=reported]")).not.toHaveCount(0);
   await expect(page.locator("[data-mt=main] [data-mt=skeleton]")).toHaveCount(0);
   await freeze(page);
-  await expect(page).toHaveScreenshot("dashboard.png", { mask: MASKS(page) });
+  await shot(page, "dashboard.png", { mask: MASKS(page) });
 });
 
 test("nodes with mini maps", async ({ page }) => {
   // The dashboard scenario has positions; map tiles come from the fake tile server.
   await ready(page, `${DASH}/nodes`);
   await expect(page.locator("[data-mt=node-card]")).toHaveCount(7);
-  // Every tile in view has loaded (lazy ones below the fold don't matter).
+  // Every tile that shows has loaded: lazy ones below the fold, or outside their mini
+  // map's window (a theme's clip-path makes the browser skip those), don't matter.
   await expect
     .poll(() =>
       page.evaluate(() =>
         [...document.querySelectorAll<HTMLImageElement>("[data-mt=mini-map-tiles] img")]
-          .filter((img) => img.getBoundingClientRect().top < window.innerHeight)
+          .filter((img) => {
+            const r = img.getBoundingClientRect();
+            const box = img.closest("[data-mt=mini-map]")?.getBoundingClientRect();
+            return (
+              box !== undefined &&
+              r.top < Math.min(window.innerHeight, box.bottom) &&
+              r.bottom > box.top &&
+              r.left < box.right &&
+              r.right > box.left
+            );
+          })
           .every((img) => img.complete && img.naturalWidth > 0),
       ),
     )
     .toBe(true);
   await freeze(page);
-  await expect(page).toHaveScreenshot("nodes-cards.png", { mask: MASKS(page) });
+  await shot(page, "nodes-cards.png", { mask: MASKS(page) });
 });
 
 test("nodes table", async ({ page }) => {
@@ -199,7 +249,7 @@ test("nodes table", async ({ page }) => {
   await page.getByRole("button", { name: "Table" }).click();
   await expect(page.locator("[data-mt=node-row]")).toHaveCount(7);
   await freeze(page);
-  await expect(page).toHaveScreenshot("nodes-table.png", { mask: MASKS(page) });
+  await shot(page, "nodes-table.png", { mask: MASKS(page) });
 });
 
 test("node drawer", async ({ page }) => {
@@ -218,7 +268,7 @@ test("node drawer", async ({ page }) => {
     )
     .toBe(true);
   await freeze(page);
-  await expect(page).toHaveScreenshot("node-drawer.png", { mask: MASKS(page) });
+  await shot(page, "node-drawer.png", { mask: MASKS(page) });
 });
 
 test("node drawer telemetry charts", async ({ page }) => {
@@ -234,7 +284,7 @@ test("node drawer telemetry charts", async ({ page }) => {
   await freeze(page);
   // The time axis is drawn on the canvas (its labels follow the clock) and buckets
   // align to wall-clock time: a little more room than the DOM screens get.
-  await expect(drawer).toHaveScreenshot("node-drawer-telemetry.png", {
+  await shot(drawer, "node-drawer-telemetry.png", {
     mask: MASKS(page),
     maxDiffPixelRatio: 0.04,
     threshold: 0.3,
@@ -257,7 +307,7 @@ test("map", async ({ page }) => {
   // WebGL renders in software (SwiftShader) here, and its anti-aliasing differs a little
   // between CPUs, so the map gets more room than the DOM screens. A missing marker,
   // wrong colors or a layout change still exceed it.
-  await expect(page).toHaveScreenshot("map.png", {
+  await shot(page, "map.png", {
     mask: MASKS(page),
     maxDiffPixelRatio: 0.03,
     threshold: 0.3,
@@ -275,7 +325,7 @@ test("device settings", async ({ page }) => {
     el.scrollIntoView({ block: "center" });
   });
   await freeze(page);
-  await expect(page).toHaveScreenshot("device-settings.png", { mask: MASKS(page) });
+  await shot(page, "device-settings.png", { mask: MASKS(page) });
 });
 
 test("device channels", async ({ page }) => {
@@ -283,7 +333,7 @@ test("device channels", async ({ page }) => {
   await page.locator("[data-mt=channel-slot]").nth(1).click();
   await expect(page.getByLabel("Name", { exact: true })).toBeEditable();
   await freeze(page);
-  await expect(page).toHaveScreenshot("device-channels.png", { mask: MASKS(page) });
+  await shot(page, "device-channels.png", { mask: MASKS(page) });
 });
 
 test("device network", async ({ page }) => {
@@ -297,14 +347,14 @@ test("device network", async ({ page }) => {
       el.scrollIntoView({ block: "start" });
     });
   await freeze(page);
-  await expect(page).toHaveScreenshot("device-network.png", { mask: MASKS(page) });
+  await shot(page, "device-network.png", { mask: MASKS(page) });
 });
 
 test("device maintenance", async ({ page }) => {
   await ready(page, "/settings/device?section=maintenance");
   await expect(page.getByRole("button", { name: "Reboot…" })).toBeEnabled();
   await freeze(page);
-  await expect(page).toHaveScreenshot("device-maintenance.png", { mask: MASKS(page) });
+  await shot(page, "device-maintenance.png", { mask: MASKS(page) });
 });
 
 /** A DM from Garage Station, fed straight into the page (nothing is stored on the server). */
@@ -348,24 +398,24 @@ test("notifications: a toast, then the bell", async ({ page }) => {
   (socket as unknown as WebSocketRoute).send(JSON.stringify(FAKE_DM));
   await expect(page.locator("[data-mt=toast-region] [data-mt=toast]")).toBeVisible();
   await freeze(page);
-  await expect(page).toHaveScreenshot("notification-toast.png", { mask: MASKS(page) });
+  await shot(page, "notification-toast.png", { mask: MASKS(page) });
 
   await page.locator("[data-mt=toast-region] [data-mt=icon-button]").click();
   await page.locator("[data-mt=notification-bell]").click();
   await expect(page.locator("[data-mt=notification-item]")).toHaveCount(1);
-  await expect(page).toHaveScreenshot("notification-bell.png", { mask: MASKS(page) });
+  await shot(page, "notification-bell.png", { mask: MASKS(page) });
 });
 
 test("notification settings", async ({ page }) => {
   await ready(page, "/settings/notifications");
   await expect(page.getByLabel("Mention keywords")).toBeVisible();
   await freeze(page);
-  await expect(page).toHaveScreenshot("notification-settings.png", { mask: MASKS(page) });
+  await shot(page, "notification-settings.png", { mask: MASKS(page) });
 });
 
 test("appearance settings", async ({ page }) => {
   await ready(page, "/settings/appearance");
   await expect(page.locator("[data-mt=theme-card][data-mt-state=active]")).toBeVisible();
   await freeze(page);
-  await expect(page).toHaveScreenshot("appearance-settings.png", { mask: MASKS(page) });
+  await shot(page, "appearance-settings.png", { mask: MASKS(page) });
 });

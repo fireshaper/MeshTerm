@@ -11,8 +11,8 @@
     "preview": "vite preview",
     "test:e2e": "pnpm --filter @meshterm/server build && vite build && playwright test -c e2e/playwright.config.ts",
     "test:gate": "pnpm --filter @meshterm/server build && vite build && playwright test -c e2e/playwright.config.ts --project gate --repeat-each 3",
-    "test:visual": "pnpm --filter @meshterm/server build && vite build && playwright test -c e2e/playwright.config.ts --project visual-desktop --project visual-mobile",
-    "test:visual:update": "pnpm --filter @meshterm/server build && vite build && playwright test -c e2e/playwright.config.ts --project visual-desktop --project visual-mobile --update-snapshots"
+    "test:visual": "pnpm --filter @meshterm/server build && vite build && playwright test -c e2e/playwright.config.ts --project \"visual-*\"",
+    "test:visual:update": "pnpm --filter @meshterm/server build && vite build && playwright test -c e2e/playwright.config.ts --project \"visual-*\" --update-snapshots"
   },
   "dependencies": {
     "@meshterm/shared": "workspace:*",
@@ -31,6 +31,7 @@
     "zustand": "5.0.15"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@meshterm/fake-node": "workspace:*",
     "@meshterm/protocol": "workspace:*",
     "@meshterm/server": "workspace:*",

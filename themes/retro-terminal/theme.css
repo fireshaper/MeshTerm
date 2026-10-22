@@ -160,7 +160,9 @@
 
   [data-mt="panel-title"] *,
   [data-mt="chart-title"] *,
-  [data-mt="review-title"] * {
+  [data-mt="review-title"] *,
+  [data-mt="card-section-title"] *,
+  [data-mt="busiest-nodes-title"] * {
     color: inherit;
   }
 
@@ -174,6 +176,11 @@
   [data-mt="node-preview-header"] * {
     color: inherit;
     border-color: currentcolor;
+  }
+
+  [data-mt="node-card-header"] [data-mt="node-short-name"],
+  [data-mt="node-preview-header"] [data-mt="node-short-name"] {
+    background: transparent;
   }
 
   [data-mt="node-card"],

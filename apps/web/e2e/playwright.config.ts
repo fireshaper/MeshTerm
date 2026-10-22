@@ -30,6 +30,66 @@ const MOBILE = {
 const SPECIAL = ["**/gate.spec.ts", "**/visual.spec.ts"];
 
 /**
+ * Per-theme visual baselines (CR-004 §9). Default Dark (visual-desktop / visual-mobile)
+ * and Default Light always run on every screen; Retro Terminal and Cyberpunk run a smoke
+ * set at 1280 px. With VISUAL_SET=full (nightly, and changes to themes, tokens or hooks)
+ * (and `pnpm test:visual` / `test:visual:update`) every theme runs every screen at both
+ * widths, plus effects-on runs at 1280 px.
+ */
+const FULL =
+  process.env.VISUAL_SET === "full" ||
+  // `pnpm test:visual` and `test:visual:update` always cover everything.
+  (process.env.npm_lifecycle_event ?? "").startsWith("test:visual");
+const SMOKE = /dashboard|channel view/;
+
+function visualProject(
+  name: string,
+  device: typeof DESKTOP | typeof MOBILE,
+  theme: { theme?: string; mode?: "dark" | "light"; effects?: boolean },
+  grep?: RegExp,
+) {
+  return {
+    name,
+    testMatch: "**/visual.spec.ts",
+    metadata: theme,
+    ...(grep ? { grep } : {}),
+    use: {
+      ...device,
+      baseURL: `http://127.0.0.1:${VISUAL_PORT}`,
+      colorScheme: theme.mode ?? "dark",
+    },
+  };
+}
+
+const THEMED = [
+  { id: "retro-terminal", always: true },
+  { id: "retro-terminal-amber", always: false },
+  { id: "cyberpunk", always: true },
+];
+
+const visualProjects = [
+  visualProject("visual-desktop", DESKTOP, {}),
+  visualProject("visual-mobile", MOBILE, {}),
+  visualProject("visual-default-light-desktop", DESKTOP, { mode: "light" }),
+  visualProject("visual-default-light-mobile", MOBILE, { mode: "light" }),
+  ...THEMED.flatMap(({ id, always }) =>
+    FULL
+      ? [
+          visualProject(`visual-${id}-desktop`, DESKTOP, { theme: id }),
+          visualProject(`visual-${id}-mobile`, MOBILE, { theme: id }),
+        ]
+      : always
+        ? [visualProject(`visual-${id}-desktop`, DESKTOP, { theme: id }, SMOKE)]
+        : [],
+  ),
+  ...(FULL
+    ? ["retro-terminal", "cyberpunk"].map((id) =>
+        visualProject(`visual-${id}-fx-desktop`, DESKTOP, { theme: id, effects: true }, SMOKE),
+      )
+    : []),
+];
+
+/**
  * End-to-end tests against the built SPA served by the real server.
  * `pnpm --filter @meshterm/web test:e2e` builds first; `test:gate` repeats the gate 3×.
  */
@@ -63,16 +123,7 @@ export default defineConfig({
     },
     // Starts its own FakeNode and server processes (it restarts the server).
     { name: "gate", testMatch: "**/gate.spec.ts", use: DESKTOP },
-    {
-      name: "visual-desktop",
-      testMatch: "**/visual.spec.ts",
-      use: { ...DESKTOP, baseURL: `http://127.0.0.1:${VISUAL_PORT}` },
-    },
-    {
-      name: "visual-mobile",
-      testMatch: "**/visual.spec.ts",
-      use: { ...MOBILE, baseURL: `http://127.0.0.1:${VISUAL_PORT}` },
-    },
+    ...visualProjects,
   ],
   webServer: [
     serve(E2E_PORT, CONTROL_PORT, "default"),
