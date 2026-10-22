@@ -630,6 +630,10 @@ State: `typecheck`, `lint`, `format`, `test` (755), `test:e2e` (186 passed, 7 sk
 
 State: `typecheck`, `lint`, `test` (755), `test:e2e` (186 passed, 7 skipped) green.
 
+### CR-004 Themes: planned (2026-10-22)
+
+- The user pasted CR-004 (theme loader, picker, light/dark Default, Retro Terminal, effects layer, Cyberpunk, per-theme baselines). Saved as `memory-bank/cr-004-themes.md`; plan in `memory-bank/cr-004-plan.md` (phases A1, A2, B, C, D, E, F). Phase A is split into server (A1) and client (A2).
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.
