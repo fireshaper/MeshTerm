@@ -46,11 +46,15 @@ describe("BacklogTracker", () => {
     clock.advance(BACKLOG_WINDOW_MS + 1);
     state("reconnecting", "connected");
     const down = clock.now();
-    clock.advance(120_000);
+    // Back half a second into a whole second.
+    clock.advance(120_500);
     state("connected", "configuring");
     clock.advance(BACKLOG_WINDOW_MS + 5_000);
     expect(tracker.isBacklog(1, down + 10_000)).toBe(true);
     expect(tracker.isBacklog(1, down - 10_000)).toBe(false);
+    // Heard in the second the link came back (rx_time is whole seconds): live, not backlog.
+    const back = down + 120_500;
+    expect(tracker.isBacklog(1, Math.floor(back / 1000) * 1000)).toBe(false);
     // Unknown connection, or never connected: never backlog.
     expect(tracker.isBacklog(2, 0)).toBe(false);
   });

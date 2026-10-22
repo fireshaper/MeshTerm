@@ -6,6 +6,8 @@ import type { Hub } from "../events/events.js";
 export const BACKLOG_WINDOW_MS = 30_000;
 /** …when they were received this much earlier than they reached us. */
 export const BACKLOG_AGE_MS = 60_000;
+/** `rx_time` has whole seconds: a message heard in the second of the handshake isn't "while down". */
+const RX_RESOLUTION_MS = 1_000;
 
 interface ConnectionTimes {
   /** When the current link completed its handshake. */
@@ -62,7 +64,8 @@ export class BacklogTracker {
     if (!t?.connectedAt) return false;
     const now = this.clock.now();
     const inWindow = now - t.connectedAt < BACKLOG_WINDOW_MS && now - rxTime > BACKLOG_AGE_MS;
-    const whileDown = t.downSince !== null && rxTime >= t.downSince && rxTime < t.connectedAt;
+    const whileDown =
+      t.downSince !== null && rxTime >= t.downSince && rxTime + RX_RESOLUTION_MS <= t.connectedAt;
     return inWindow || whileDown;
   }
 

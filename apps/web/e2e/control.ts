@@ -16,6 +16,8 @@ export interface TextOptions {
   emoji?: boolean;
   packetId?: number;
   hopsAway?: number;
+  /** When the node heard it (epoch ms); defaults to now. */
+  rxTimeMs?: number;
 }
 
 /** A client for a FakeNode's control API (see packages/fake-node/src/control-server.ts). */

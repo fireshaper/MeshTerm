@@ -5,7 +5,7 @@
 // so other specs can't change what is drawn. Relative times are masked.
 // Baselines are per platform; the Linux ones are made in the Playwright Docker image,
 // which CI also runs in. Update them with `pnpm test:visual:update` (see CLAUDE.md).
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type WebSocketRoute } from "@playwright/test";
 import { controlClient, ME, RIDGE, TRAIL } from "./control.js";
 import {
   VISUAL_CONTROL_PORT,
@@ -89,6 +89,9 @@ const VOLATILE = [
   "[data-mt=thread-details]",
   // Node drawer (outside [data-mt=main]: it's a portal).
   "[data-mt=node-drawer-seen]",
+  // Notifications (CR-003).
+  "[data-mt=toast-time]",
+  "[data-mt=notification-time]",
   "[data-mt=node-drawer] [data-mt=detail-age]",
   "[data-mt=node-drawer] time",
   "[data-mt=detail-field][data-mt-variant=last-heard] dd",
@@ -302,4 +305,60 @@ test("device maintenance", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Reboot…" })).toBeEnabled();
   await freeze(page);
   await expect(page).toHaveScreenshot("device-maintenance.png", { mask: MASKS(page) });
+});
+
+/** A DM from Garage Station, fed straight into the page (nothing is stored on the server). */
+const FAKE_DM = {
+  type: "message.new",
+  message: {
+    id: "00000000-0000-4000-8000-00000000c0de",
+    connectionId: 1,
+    packetId: 424242,
+    fromNum: 0x5e6f7081,
+    toNum: ME,
+    peer: 0x5e6f7081,
+    channelIndex: 0,
+    text: "Gate code changed to 4417, see you at the shop",
+    rxTime: 1_800_000_000_000,
+    direction: "in",
+    status: null,
+    rxSnr: null,
+    rxRssi: null,
+    pkiEncrypted: true,
+    viaMqtt: false,
+    replyId: null,
+    emoji: false,
+    hopStart: null,
+    hopLimit: null,
+    errorReason: null,
+    relayed: false,
+  },
+  notify: { level: "notify", reason: "dm", backlog: false },
+};
+
+test("notifications: a toast, then the bell", async ({ page }) => {
+  let socket: WebSocketRoute | null = null;
+  await page.routeWebSocket(/\/ws$/, (ws) => {
+    socket = ws;
+    ws.connectToServer();
+  });
+  await ready(page, "/nodes");
+  await expect(page.locator("[data-mt=node-card]")).toHaveCount(4);
+  await expect.poll(() => socket !== null).toBe(true);
+  (socket as unknown as WebSocketRoute).send(JSON.stringify(FAKE_DM));
+  await expect(page.locator("[data-mt=toast-region] [data-mt=toast]")).toBeVisible();
+  await freeze(page);
+  await expect(page).toHaveScreenshot("notification-toast.png", { mask: MASKS(page) });
+
+  await page.locator("[data-mt=toast-region] [data-mt=icon-button]").click();
+  await page.locator("[data-mt=notification-bell]").click();
+  await expect(page.locator("[data-mt=notification-item]")).toHaveCount(1);
+  await expect(page).toHaveScreenshot("notification-bell.png", { mask: MASKS(page) });
+});
+
+test("notification settings", async ({ page }) => {
+  await ready(page, "/settings/notifications");
+  await expect(page.getByLabel("Mention keywords")).toBeVisible();
+  await freeze(page);
+  await expect(page).toHaveScreenshot("notification-settings.png", { mask: MASKS(page) });
 });

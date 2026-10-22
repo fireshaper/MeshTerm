@@ -539,3 +539,14 @@ One entry per decision: **step**, **decision**, **reason**. Add new entries at t
 | A theme's sound overrides must be paths inside its own folder.                                     | Themes are CSS and assets only; no fetching from elsewhere.                                                                                                                    |
 | Desktop notifications use the page's `Notification` API, not a service worker.                     | Push without an open tab is out of scope (CR §3). Browsers that only allow service-worker notifications (Android Chrome) simply don't show them; toasts and sounds still work. |
 | A desktop notification click opens the conversation; it's marked read the usual way (1 s in view). | One rule for "read".                                                                                                                                                           |
+
+## CR-003 — Phase N5 (settings, levels)
+
+| Decision                                                                                                               | Reason                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| The conversation row menu offers All / Mentions / Nothing instead of Mute.                                             | Mute is the "Nothing" level (CR §4); one control, not two.                                                                   |
+| DMs offer "All messages (default)" (`dm-default`), "Mentions only", "Nothing"; `all` isn't offered separately for DMs. | For a DM, `all` and `dm-default` notify alike.                                                                               |
+| Changing a conversation's level is an admin action; viewers see the bell, disabled.                                    | Levels are stored per conversation, shared by everyone (like mute).                                                          |
+| Visual baselines of toasts and the bell feed a `message.new` into the page's WebSocket (`routeWebSocket`).             | Nothing reaches the shared visual server, so the other baselines don't change.                                               |
+| Built-in Cyberpunk and Retro styles and sounds for notifications wait for those themes.                                | Only Default exists; tokens (`--mt-toast-*`, `--mt-mention-*`, `--mt-badge-*`) and `theme.json` `sounds` are ready for them. |
+| A message counts as received while the link was down only if its `rx_time` is at least a second before the handshake.  | `rx_time` is whole seconds; a live message in the handshake's second was misclassified as backlog.                           |

@@ -601,6 +601,17 @@ State: `typecheck`, `lint`, `format`, `test` (740), `test:e2e` (171 passed, 6 sk
 
 State: `typecheck`, `lint`, `format`, `test` (746), `test:e2e` (173 passed, 6 skipped by viewport) and `test:gate` (3/3) green.
 
+### Phase N5: settings, per-conversation levels, tests (done 2026-10-22)
+
+- **Settings → Notifications:** this browser (pop-ups and where, title flash, sounds with volume, per type and a test sound, desktop notifications with the reason when they can't work and the permission request, hidden text) and your account (Do Not Disturb, quiet hours in the server's time zone with "let DMs through", mention keywords, short name on its own, reactions).
+- **Per-conversation levels:** a bell in every thread header (All / Mentions only / Nothing) and the same choices in the row menu (they replace Mute; Nothing is muted).
+- DM header: the bell sits next to the node-details button.
+- **Tests:** settings page (browser settings remembered, HTTPS explanation, account settings saved), the thread bell; e2e `notifications.spec.ts`: a keyword from Settings makes a mention, DND from the bell (no pop-up, the bell counts), a channel set to All, and three messages delivered after a reconnect make one summary. Visual baselines: a toast, the open bell, the settings page (a DM is fed into the page's WebSocket with `routeWebSocket`, so the shared visual server isn't changed); all baselines rewritten on both platforms.
+- **Fix:** a message heard in the same second the link came back was flagged as reconnect backlog (`rx_time` has whole seconds), so it didn't pop up. "Received while down" now needs `rx_time` a full second before the handshake. Found by an e2e test that failed only after a reboot; a unit test covers it.
+- **CR-003 is complete** (N0–N5).
+
+State: `typecheck`, `lint`, `format`, `test` (750), `test:e2e` (184 passed, 7 skipped) and `test:gate` (3/3) green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

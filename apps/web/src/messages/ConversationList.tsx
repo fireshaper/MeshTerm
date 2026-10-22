@@ -4,6 +4,7 @@ import {
   type ConversationKind,
   type DmConversation,
   type MeshNode,
+  type NotifyLevel,
 } from "@meshterm/shared";
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
@@ -19,6 +20,7 @@ import {
 } from "../data/conversations-cache.js";
 import { queryKeys } from "../data/keys.js";
 import { useUiStore } from "../data/ui-store.js";
+import { LevelItems } from "../notifications/LevelMenu.js";
 import { useNow } from "../components/useNow.js";
 import { STATUS_LABELS } from "../dashboard/insights.js";
 import { nodeStatus } from "../dashboard/view.js";
@@ -251,7 +253,7 @@ function RowMenu({
   const fail = (err: unknown) => {
     toast(err instanceof ApiError ? err.message : "Couldn't reach MeshTerm. Try again.", "error");
   };
-  const patch = (change: { muted?: boolean; favorite?: boolean }) => {
+  const patch = (change: { muted?: boolean; favorite?: boolean; notifyLevel?: NotifyLevel }) => {
     api.updateConversation(connectionId, kind, keyNum, change).then((state) => {
       qc.setQueryData(key, (d: Parameters<typeof applyStateToConversations>[0] | undefined) =>
         d ? applyStateToConversations(d, kind, keyNum, state) : d,
@@ -284,14 +286,16 @@ function RowMenu({
           </Menu.Item>
           {admin && (
             <>
-              <Menu.Item
-                data-mt="menu-item"
-                onSelect={() => {
-                  patch({ muted: !row.state.muted });
+              <Menu.Separator data-mt="menu-separator" />
+              <Menu.Label data-mt="menu-label">Notify me about</Menu.Label>
+              <LevelItems
+                kind={kind}
+                value={row.state.notifyLevel}
+                onChange={(notifyLevel) => {
+                  patch({ notifyLevel });
                 }}
-              >
-                {row.state.muted ? "Unmute" : "Mute"}
-              </Menu.Item>
+              />
+              <Menu.Separator data-mt="menu-separator" />
               <Menu.Item
                 data-mt="menu-item"
                 onSelect={() => {

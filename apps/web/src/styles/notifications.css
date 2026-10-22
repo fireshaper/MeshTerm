@@ -352,3 +352,87 @@
     cursor: pointer;
   }
 }
+
+/* Settings → Notifications and per-conversation levels (CR-003 §10). */
+@layer base {
+  [data-mt="settings-form"][data-mt-variant="wide"] {
+    gap: var(--mt-space-3);
+    max-inline-size: 40rem;
+  }
+
+  [data-mt="check-row"][data-mt-variant="setting"] {
+    align-items: flex-start;
+    font-size: var(--mt-font-size-md);
+  }
+
+  [data-mt="check-row"][data-mt-variant="setting"] small {
+    display: block;
+  }
+
+  [data-mt="inline-form"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mt-space-2);
+    align-items: flex-end;
+  }
+
+  [data-mt="inline-form"] input:not([type="checkbox"]) {
+    flex: 1;
+    min-inline-size: 8rem;
+    padding: var(--mt-space-2);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-radius-md);
+    background: var(--mt-surface-raised);
+    color: var(--mt-text);
+  }
+
+  [data-mt="dnd-status"] {
+    margin: 0;
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="thread-notify"] {
+    display: inline-flex;
+    margin-inline-start: auto;
+    padding: var(--mt-space-1);
+    border: var(--mt-border-width) solid transparent;
+    border-radius: var(--mt-radius-md);
+    background: none;
+    color: var(--mt-text-muted);
+    cursor: pointer;
+  }
+
+  [data-mt="thread-notify"]:disabled {
+    cursor: default;
+  }
+
+  [data-mt="thread-notify"]:hover:not(:disabled),
+  [data-mt="thread-notify"][data-state="open"] {
+    border-color: var(--mt-border-color);
+    color: var(--mt-text);
+  }
+
+  [data-mt="thread-notify"][data-mt-state="all"] {
+    color: var(--mt-accent);
+  }
+
+  [data-mt="menu-item"][data-mt-variant="radio"] {
+    display: flex;
+    gap: var(--mt-space-2);
+    align-items: center;
+    padding-inline-start: calc(var(--mt-space-3) + 1.2em);
+  }
+
+  [data-mt="menu-check"] {
+    margin-inline-start: -1.2em;
+    inline-size: 1em;
+    color: var(--mt-accent);
+  }
+}
+
+/* The bell sits with the node-details button at the end of a DM header. */
+@layer base {
+  [data-mt="thread-header"] [data-mt="thread-notify"] + [data-mt="thread-info"] {
+    margin-inline-start: 0;
+  }
+}

@@ -17,6 +17,7 @@ import {
 } from "./conversation-list.js";
 import { ConversationList } from "./ConversationList.js";
 import { PermissionBanner } from "../notifications/PermissionBanner.js";
+import { ThreadLevelMenu } from "../notifications/LevelMenu.js";
 import { useNodeMap, useThresholds } from "./useNodeMap.js";
 
 const ICON = { "aria-hidden": true, focusable: false } as const;
@@ -150,6 +151,7 @@ export function ChannelThread() {
             )}
           </div>
         </div>
+        <ThreadLevelMenu connectionId={connectionId} kind="channel" keyNum={channelIndex} />
       </header>
       <ConversationView conversation={conversation} />
     </div>
@@ -222,6 +224,7 @@ function DmHeader({
           </span>
         </div>
       </div>
+      <ThreadLevelMenu connectionId={connectionId} kind="dm" keyNum={num} />
       <button
         type="button"
         data-mt="thread-info"

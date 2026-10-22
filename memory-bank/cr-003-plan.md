@@ -48,7 +48,7 @@ CR: [cr-003-notifications.md](cr-003-notifications.md). Stop after each phase, r
 - Default sounds (`message`, `mention`, `channel`): short WAVs generated for the app. A theme's `theme.json` `sounds` map overrides them. Unlocked on the first interaction, 2 s throttle, volume and per-type switches.
 - OS notifications: permission banner after the first DM/mention, secure-context detection with the HTTPS explanation, `tag` per conversation with `renotify`, click to focus and open, "hide message text". README section "Enable HTTPS for desktop notifications".
 
-## Phase N5: settings, per-conversation levels, theming, tests
+## Phase N5: settings, per-conversation levels, theming, tests (done 2026-10-22)
 
 - `Settings → Notifications` (browser, user and per-conversation settings as in CR §10).
 - Per-conversation level from the thread header bell and the row menu (All / Mentions / None).
