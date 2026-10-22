@@ -35,8 +35,8 @@ export function NotificationSettingsPage() {
       <AccountSection />
       <p data-mt="detail-note">
         Each conversation can notify for all messages, mentions only, or nothing: use the bell in
-        the conversation&apos;s header or its ⋯ menu. DMs notify by default; channels only when they
-        mention you.
+        the conversation&apos;s header or its ⋯ menu. DMs and channels notify for every message by
+        default; set a busy channel to mentions only.
       </p>
     </section>
   );

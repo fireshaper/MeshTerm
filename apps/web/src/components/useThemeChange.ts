@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
+import { THEME_APPLIED_EVENT } from "../theme/theme.js";
 
 /**
- * Calls `onChange` when the theme stylesheet or the color scheme attribute changes, so
- * canvas renderers (map, charts) can re-read their `--mt-*` tokens.
+ * Calls `onChange` after a theme or mode is applied (`theme:applied`, CR-004 §4.5), so
+ * canvas renderers (map, charts, the favicon badge) can re-read their `--mt-*` tokens.
  */
 export function useThemeChange(onChange: () => void): void {
   const latest = useRef(onChange);
@@ -10,17 +11,12 @@ export function useThemeChange(onChange: () => void): void {
     latest.current = onChange;
   });
   useEffect(() => {
-    const link = document.querySelector('[data-mt="theme-link"]');
-    const observer = new MutationObserver(() => {
+    const listener = () => {
       latest.current();
-    });
-    if (link) observer.observe(link, { attributes: true, attributeFilter: ["href"] });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-mt-theme", "data-mt-scheme"],
-    });
+    };
+    window.addEventListener(THEME_APPLIED_EVENT, listener);
     return () => {
-      observer.disconnect();
+      window.removeEventListener(THEME_APPLIED_EVENT, listener);
     };
   }, []);
 }

@@ -36,6 +36,8 @@ import type {
   TopologyDTO,
   TrafficDTO,
   TrafficWindow,
+  ThemeDTO,
+  ThemesDTO,
 } from "@meshterm/shared";
 import type { Conversation } from "./keys.js";
 
@@ -251,6 +253,14 @@ export const api = {
         method: "DELETE",
       },
     ),
+  themes: () => request<ThemesDTO>("/api/themes"),
+  setDefaultTheme: (id: string) =>
+    request<{ id: string }>("/api/themes/default", { method: "PUT", body: JSON.stringify({ id }) }),
+  duplicateTheme: (id: string, newId: string, name: string) =>
+    request<ThemeDTO>(`/api/themes/${id}/duplicate`, {
+      method: "POST",
+      body: JSON.stringify({ newId, name }),
+    }),
   notificationPrefs: () => request<NotificationPrefsDTO>("/api/me/notification-prefs"),
   updateNotificationPrefs: (patch: NotificationPrefsPatch) =>
     request<NotificationPrefsDTO>("/api/me/notification-prefs", {

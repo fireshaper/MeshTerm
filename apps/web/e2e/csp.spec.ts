@@ -21,6 +21,7 @@ test("no Content Security Policy violations on any screen", async ({ page }) => 
     "/messages/dm/!0badcafe",
     "/messages/channel/1",
     "/dashboard",
+    "/settings/appearance",
     // The map page (MapLibre: module worker, canvas, tiles through the proxy).
     `http://127.0.0.1:${DASHBOARD_PORT}/map`,
     // The dashboard with mini maps (tiles through the proxy).

@@ -12,7 +12,7 @@ import { useUiStore } from "../data/ui-store.js";
 const errorText = (err: unknown) =>
   err instanceof ApiError ? err.message : "Couldn't reach MeshTerm. Try again.";
 
-/** Settings layout: section links (Device, Account; Users and Audit log for admins). */
+/** Settings layout: section links (Device, Notifications, Appearance, Account; Users and Audit log for admins). */
 export function SettingsPage() {
   const me = useMe();
   const admin = useIsAdmin();
@@ -21,6 +21,7 @@ export function SettingsPage() {
   const items = [
     { to: "/settings/device" as const, label: "Device" },
     { to: "/settings/notifications" as const, label: "Notifications" },
+    { to: "/settings/appearance" as const, label: "Appearance" },
     ...(local ? [{ to: "/settings/account" as const, label: "Account" }] : []),
     ...(admin ? [{ to: "/settings/users" as const, label: "Users" }] : []),
     ...(admin ? [{ to: "/settings/audit" as const, label: "Audit log" }] : []),

@@ -6,6 +6,7 @@ import { queryKeys } from "../data/keys.js";
 import { groupOf, onConversationRead, onLeaderAlert, startLeader } from "./center.js";
 import { closeDesktopNotification, showDesktopNotification } from "./desktop.js";
 import { useBrowserNotifySettings } from "./settings.js";
+import { THEME_APPLIED_EVENT } from "../theme/theme.js";
 import { SoundPlayer } from "./sounds.js";
 import { useFaviconBadge, useTabTitle } from "./tab.js";
 
@@ -24,6 +25,11 @@ function useAlertOutlets(): void {
   useEffect(() => {
     const player = new SoundPlayer();
     void player.load();
+    // A theme may bring its own sounds (CR-004 §4.5).
+    const reload = () => {
+      void player.load();
+    };
+    window.addEventListener(THEME_APPLIED_EVENT, reload);
     const unlock = () => {
       player.unlock();
     };
@@ -46,6 +52,7 @@ function useAlertOutlets(): void {
     return () => {
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
+      window.removeEventListener(THEME_APPLIED_EVENT, reload);
       offAlert();
       offRead();
     };

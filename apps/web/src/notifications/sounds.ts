@@ -40,13 +40,15 @@ export function themeSoundUrls(
   return out;
 }
 
+const DEFAULT_URLS: Record<SoundKind, string> = {
+  message: defaultSoundUrl("message"),
+  mention: defaultSoundUrl("mention"),
+  channel: defaultSoundUrl("channel"),
+};
+
 export class SoundPlayer {
   private readonly audio = new Map<SoundKind, HTMLAudioElement>();
-  private urls: Record<SoundKind, string> = {
-    message: defaultSoundUrl("message"),
-    mention: defaultSoundUrl("mention"),
-    channel: defaultSoundUrl("channel"),
-  };
+  private urls: Record<SoundKind, string> = { ...DEFAULT_URLS };
   private lastAt = -Infinity;
   private unlocked = false;
 
@@ -58,13 +60,16 @@ export class SoundPlayer {
   /** Loads the theme's overrides (if any) and preloads every sound. */
   async load(fetchJson: (url: string) => Promise<unknown> = defaultFetchJson): Promise<void> {
     const base = themeBase();
+    const urls = { ...DEFAULT_URLS };
     if (base) {
       try {
-        Object.assign(this.urls, themeSoundUrls(base, await fetchJson(`${base}theme.json`)));
+        Object.assign(urls, themeSoundUrls(base, await fetchJson(`${base}theme.json`)));
       } catch {
         // No manifest or no sounds: the built-in ones.
       }
     }
+    // A theme switch replaces the previous theme's sounds, or goes back to the built-in ones.
+    this.urls = urls;
     for (const kind of SOUND_KINDS) this.element(kind);
   }
 

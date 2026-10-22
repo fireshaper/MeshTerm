@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useThemeChange } from "../components/useThemeChange.js";
 import { useLiveStore } from "../data/store.js";
 import { useNotifyCenter } from "./center.js";
 
@@ -87,6 +88,11 @@ function tokenColor(token: string, fallback: string): string {
  */
 export function useFaviconBadge(count: number, priority: boolean): void {
   const label = faviconLabel(count);
+  // Redrawn with the new badge colors after a theme switch (CR-004 §4.5).
+  const [themeVersion, setThemeVersion] = useState(0);
+  useThemeChange(() => {
+    setThemeVersion((v) => v + 1);
+  });
   useEffect(() => {
     const link = iconLink();
     if (!link) return;
@@ -130,5 +136,5 @@ export function useFaviconBadge(count: number, priority: boolean): void {
     return () => {
       cancelled = true;
     };
-  }, [label, priority]);
+  }, [label, priority, themeVersion]);
 }

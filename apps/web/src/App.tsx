@@ -7,6 +7,7 @@ import { NowProvider } from "./components/useNow.js";
 import { LiveConnection } from "./data/LiveConnection.js";
 import { createQueryClient } from "./data/queries.js";
 import { createAppRouter } from "./router.js";
+import { ThemeRuntime } from "./theme/ThemeRuntime.js";
 
 export interface AppProps {
   router?: ReturnType<typeof createAppRouter>;
@@ -22,6 +23,7 @@ export function App({ router, queryClient, live = true, me }: AppProps) {
   const [client] = useState(() => queryClient ?? createQueryClient());
   return (
     <QueryClientProvider client={client}>
+      {live && <ThemeRuntime />}
       <AuthGate {...(me ? { me } : {})}>
         {live && <LiveConnection />}
         <NowProvider>

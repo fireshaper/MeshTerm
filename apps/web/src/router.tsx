@@ -14,6 +14,7 @@ import { DashboardPage } from "./pages/DashboardPage.js";
 import { AccountPage, AuditPage, SettingsPage, UsersPage } from "./settings/SettingsPages.js";
 import { DeviceSettingsPage } from "./settings/device/DeviceSettings.js";
 import { NotificationSettingsPage } from "./settings/NotificationSettings.js";
+import { AppearanceSettingsPage } from "./settings/AppearanceSettings.js";
 import { isSectionId } from "./settings/device/registry.js";
 import { NodesPage } from "./pages/NodesPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
@@ -149,6 +150,11 @@ const notificationSettingsRoute = createRoute({
   path: "/notifications",
   component: NotificationSettingsPage,
 });
+const appearanceRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/appearance",
+  component: AppearanceSettingsPage,
+});
 const accountRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/account",
@@ -177,6 +183,7 @@ const routeTree = rootRoute.addChildren([
     settingsIndexRoute,
     deviceSettingsRoute,
     notificationSettingsRoute,
+    appearanceRoute,
     accountRoute,
     usersRoute,
     auditRoute,

@@ -34,7 +34,7 @@ CR: [cr-004-themes.md](cr-004-themes.md). Stop after each phase, report, commit 
   - duplicate;
   - hot reload: add, edit and remove a folder → registry and event within 2 s.
 
-## Phase A2: client — ThemeProvider, no flash, modes, picker
+## Phase A2: client — ThemeProvider, no flash, modes, picker (done 2026-10-22)
 
 - **index.html:** the theme link plus `<script src="/theme-boot.js">` (blocking, no `defer`), from `apps/web/public/`, so Vite copies it and the server's static root serves it. The script (< 1 KB) reads `meshterm.theme`, handles `?theme=<id>` (a one-load override, never saved) and sets `data-mt-mode` for System from `matchMedia`. The CSP stays `script-src 'self'`, and `csp.spec` keeps walking every screen with zero violations.
 - **`src/theme/`:**

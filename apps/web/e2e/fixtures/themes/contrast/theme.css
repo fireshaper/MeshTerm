@@ -1,0 +1,35 @@
+/* Test-only theme (CR-004 e2e): colors far from Default's, so a switch is easy to see. */
+@layer theme {
+  :root {
+    color-scheme: dark;
+    --mt-surface-bg: #2a0d2e;
+    --mt-surface-raised: #3d1442;
+    --mt-surface-elevated: #4a1a50;
+    --mt-surface-sunken: #200a24;
+    --mt-sidebar-bg: #33103a;
+    --mt-border-color: #6b2b73;
+    --mt-text: #fff4d6;
+    --mt-text-muted: #e0c88f;
+    --mt-text-inverse: #2a0d2e;
+    --mt-accent: #fc0;
+    --mt-accent-text: #2a0d2e;
+    --mt-bubble-in-bg: #4a1a50;
+    --mt-bubble-in-text: #fff4d6;
+    --mt-bubble-out-bg: #b35900;
+    --mt-bubble-out-text: #fff;
+    --mt-card-bg: #3d1442;
+    --mt-card-border: #6b2b73;
+    --mt-chart-1: #f30;
+    --mt-chart-2: #fc0;
+    --mt-chart-3: #0fc;
+    --mt-chart-4: #f0f;
+    --mt-chart-5: #ccc;
+    --mt-chart-6: #0f0;
+    --mt-signal-online: #0f0;
+    --mt-signal-recent: #fc0;
+    --mt-signal-stale: #f60;
+    --mt-signal-offline: #999;
+    --mt-badge-bg: #0fc;
+    --mt-badge-priority-bg: #f0f;
+  }
+}

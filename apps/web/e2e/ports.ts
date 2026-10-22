@@ -1,3 +1,6 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 /** Shared e2e server (serve.ts) used by most specs. */
 export const E2E_PORT = 4174;
 /** Its FakeNode's control API. */
@@ -33,3 +36,8 @@ export const LARGE_CONTROL_PORT = 4185;
 export const GATE_APP_PORT = 4180;
 export const GATE_NODE_PORT = 4190;
 export const GATE_CONTROL_PORT = 4191;
+
+/** serve.ts for the theme specs (CR-004), with a known data folder so specs can drop themes in. */
+export const THEME_PORT = 4198;
+export const THEME_CONTROL_PORT = 4199;
+export const THEME_DATA_DIR = join(tmpdir(), `meshterm-e2e-themes-${THEME_PORT}`);

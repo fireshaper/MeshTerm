@@ -646,6 +646,18 @@ State: `typecheck`, `lint`, `test` (755), `test:e2e` (186 passed, 7 skipped) gre
 
 State: `typecheck`, `lint`, `test` (798, 1 skipped), `test:e2e` (186 passed, 7 skipped) green.
 
+### CR-004 Phase A2: theme runtime, no flash, modes, Appearance (done 2026-10-22)
+
+- **No flash:** `public/theme-boot.js` (blocking, external, so the CSP is unchanged) applies the saved theme and mode before the first paint, and handles `?theme=<id>` for one load.
+- **Runtime** (`src/theme/`): `applyTheme` preloads the new stylesheet as `media="print"` and swaps it in on load (failed loads keep the old theme; a newer switch wins), loads mode CSS and manifest fonts, sets `data-mt-theme` / `data-mt-mode` and the color-scheme meta, and fires `theme:applied`. `ThemeRuntime` picks forced → preview → chosen → server default → Default, follows System mode live, re-applies on `theme.changed`, and saves the choice as `meshterm.theme`.
+- **Consumers:** `useThemeChange` now listens for `theme:applied`; map, map picker, charts and the favicon badge recolor, and theme sounds reload. Mini maps and sparklines are SVG with CSS variables, so they follow on their own.
+- **Default** is `colorScheme: "auto"` with the dark and light palettes under `data-mt-mode` (`data-mt-scheme` is gone). New token `--mt-font-display` on headings.
+- **Settings → Appearance:** theme cards with swatches, badges and admin-only errors; hover/focus preview (not with reduced motion); mode System / Light / Dark; admins: server default and Duplicate. A theme shortcut in the user menu.
+- The notification settings note still said channels notify only on mentions; fixed.
+- **Tests:** controller units (pick, mode, storage failures, swap order, failed load, a newer switch winning), Appearance component tests, e2e `themes.spec` on a new `theme` instance (fixed data folder with a test-only `contrast` theme): switch without reload, reload with the app's JS blocked still shows the theme (no flash), hover preview, System/Light/Dark live, `?theme=`, server default for a fresh browser, drop-in folder appearing within 2 s, live edit, removal fallback, and map paint, sparkline, chart canvas and favicon recoloring. CSP walk includes Appearance. Visual baselines: Appearance (win32 + linux). Playwright now emulates a dark color scheme, so the existing baselines (Default Dark) didn't change.
+
+State: `typecheck`, `lint`, `test` (810, 1 skipped), `test:e2e` green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

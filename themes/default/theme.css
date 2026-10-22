@@ -1,11 +1,20 @@
 /*
- * Default theme: dark-first network-monitoring palette, with a light variant on
- * :root[data-mt-scheme="light"] for a future theme switcher. The reference value for
- * every --mt-* token; other themes override what they need inside @layer theme,
- * never with !important.
+ * Default theme: a network-monitoring palette in dark and light (colorScheme "auto":
+ * the mode follows Settings → Appearance, System by default). The reference value for
+ * every --mt-* token; other themes override what they need inside @layer theme, never
+ * with !important. The dark palette is also the fallback before data-mt-mode is set.
  */
 @layer theme {
   :root {
+    --mt-card-radius: 0.625rem;
+
+    /* QR codes stay dark on light in every mode: scanners expect it. */
+    --mt-qr-fg: #000;
+    --mt-qr-bg: #fff;
+  }
+
+  :root,
+  :root:where([data-mt-mode="dark"]) {
     color-scheme: dark;
 
     --mt-surface-bg: #0b1018;
@@ -33,7 +42,6 @@
 
     --mt-card-bg: #161f2c;
     --mt-card-border: #2a3545;
-    --mt-card-radius: 0.625rem;
     --mt-card-shadow: none;
     --mt-card-self-accent: #55a8ff;
     --mt-battery-low: #f5b84b;
@@ -52,14 +60,10 @@
 
     --mt-map-marker: #55a8ff;
     --mt-map-marker-self: #f16d79;
-
-    /* QR codes stay dark on light in every scheme: scanners expect it. */
-    --mt-qr-fg: #000;
-    --mt-qr-bg: #fff;
     --mt-shadow-popover: 0 8px 24px #0006;
   }
 
-  :root[data-mt-scheme="light"] {
+  :root:where([data-mt-mode="light"]) {
     color-scheme: light;
 
     --mt-surface-bg: #f4f6f9;

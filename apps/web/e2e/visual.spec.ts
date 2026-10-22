@@ -1,4 +1,4 @@
-// Visual baselines (Step 11.2, D7.3): channel view, node list, DM view, dashboard and device settings in
+// Visual baselines (Step 11.2, D7.3): channel view, node list, DM view, dashboard, device and appearance settings in
 // the Default theme, at 1280 px (visual-desktop) and 390 px (visual-mobile).
 //
 // Runs against its own server instance (VISUAL_PORT) seeded once with fixed content,
@@ -361,4 +361,11 @@ test("notification settings", async ({ page }) => {
   await expect(page.getByLabel("Mention keywords")).toBeVisible();
   await freeze(page);
   await expect(page).toHaveScreenshot("notification-settings.png", { mask: MASKS(page) });
+});
+
+test("appearance settings", async ({ page }) => {
+  await ready(page, "/settings/appearance");
+  await expect(page.locator("[data-mt=theme-card][data-mt-state=active]")).toBeVisible();
+  await freeze(page);
+  await expect(page).toHaveScreenshot("appearance-settings.png", { mask: MASKS(page) });
 });

@@ -2,7 +2,7 @@
 // (apps/web/dist) and the repo's themes/. Started by playwright.config.ts.
 // FakeNode's control API (test-only) lets specs drive it; see control.ts. Map tiles
 // come from an in-process FakeTileServer, so no test ever reaches a real tile server.
-import { mkdtempSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,7 +20,22 @@ const node = new FakeNode({ scenario: SCENARIO });
 await node.start();
 const tiles = new FakeTileServer();
 await tiles.start();
-const dataDir = mkdtempSync(join(tmpdir(), "meshterm-e2e-"));
+// E2E_DATA_DIR: a fixed folder a spec knows (the theme specs write into its themes/).
+const dataDir = process.env.E2E_DATA_DIR ?? mkdtempSync(join(tmpdir(), "meshterm-e2e-"));
+if (process.env.E2E_DATA_DIR) {
+  rmSync(dataDir, { recursive: true, force: true });
+  mkdirSync(dataDir, { recursive: true });
+}
+// E2E_USER_THEMES: fixture themes (e2e/fixtures/themes/<id>) copied into /data/themes.
+for (const id of (process.env.E2E_USER_THEMES ?? "").split(",").filter(Boolean)) {
+  cpSync(
+    fileURLToPath(new URL(`./fixtures/themes/${id}/`, import.meta.url)),
+    join(dataDir, "themes", id),
+    {
+      recursive: true,
+    },
+  );
+}
 const config = parseConfig({
   MESHTERM_NODE_HOST: "127.0.0.1",
   MESHTERM_NODE_PORT: String(node.port),

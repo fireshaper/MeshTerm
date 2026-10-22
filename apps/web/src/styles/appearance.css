@@ -1,0 +1,128 @@
+/* Settings → Appearance (CR-004 §4.7): theme cards, mode and admin defaults. */
+@layer base {
+  [data-mt="appearance-settings"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-3);
+  }
+
+  [data-mt="theme-grid"] {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: var(--mt-space-3);
+  }
+
+  [data-mt="theme-card"] {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--mt-space-1);
+    padding: var(--mt-space-2);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-card-radius);
+    background: var(--mt-card-bg);
+    color: var(--mt-text);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  [data-mt="theme-card"]:hover,
+  [data-mt="theme-card"][data-mt-state="previewing"] {
+    border-color: var(--mt-accent);
+  }
+
+  [data-mt="theme-card"][data-mt-state="active"] {
+    border-color: var(--mt-accent);
+    box-shadow: 0 0 0 var(--mt-border-width) var(--mt-accent);
+  }
+
+  [data-mt="theme-card"][data-mt-state="broken"] {
+    border-style: dashed;
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+
+  /* The theme's own colors, from its manifest (inline custom properties). */
+  [data-mt="theme-swatch"] {
+    position: relative;
+    display: block;
+    inline-size: 100%;
+    block-size: 4rem;
+    margin-block-end: var(--mt-space-1);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-radius-sm);
+    background: var(--mt-swatch-bg, var(--mt-surface-bg));
+    overflow: hidden;
+  }
+
+  [data-mt="theme-swatch-surface"] {
+    position: absolute;
+    inset: var(--mt-space-2) 40% var(--mt-space-2) var(--mt-space-2);
+    border-radius: var(--mt-radius-sm);
+    background: var(--mt-swatch-surface, var(--mt-surface-raised));
+  }
+
+  [data-mt="theme-swatch-accent"] {
+    position: absolute;
+    inset-block-start: var(--mt-space-2);
+    inset-inline-end: var(--mt-space-2);
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+    border-radius: 50%;
+    background: var(--mt-swatch-accent, var(--mt-accent));
+  }
+
+  [data-mt="theme-swatch-text"] {
+    position: absolute;
+    inset-block-end: var(--mt-space-2);
+    inset-inline-end: var(--mt-space-2);
+    color: var(--mt-swatch-text, var(--mt-text));
+    font-weight: var(--mt-font-weight-bold);
+  }
+
+  [data-mt="theme-card-name"] {
+    font-weight: var(--mt-font-weight-bold);
+  }
+
+  [data-mt="theme-card-meta"],
+  [data-mt="theme-card-description"] {
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="theme-card"] [data-mt="badge"] {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mt-space-1);
+    padding: 0 var(--mt-space-1);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-radius-sm);
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-xs);
+  }
+
+  [data-mt="theme-card"] [data-mt="badge"] [data-mt="icon"] {
+    inline-size: 0.875em;
+    block-size: 0.875em;
+  }
+
+  [data-mt="mode-toggle"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-2);
+    margin: 0;
+    padding: var(--mt-space-3);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: var(--mt-radius-md);
+  }
+
+  [data-mt="mode-options"] {
+    align-self: flex-start;
+  }
+
+  [data-mt="mode-toggle"]:disabled [data-mt="segment"] {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}

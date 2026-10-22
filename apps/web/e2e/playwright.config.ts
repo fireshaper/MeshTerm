@@ -12,6 +12,9 @@ import {
   HISTORY_PORT,
   LARGE_CONTROL_PORT,
   LARGE_PORT,
+  THEME_CONTROL_PORT,
+  THEME_DATA_DIR,
+  THEME_PORT,
   VISUAL_CONTROL_PORT,
   VISUAL_DASHBOARD_CONTROL_PORT,
   VISUAL_DASHBOARD_PORT,
@@ -41,7 +44,8 @@ export default defineConfig({
   // In CI only: one retry, so a timing hiccup on a slow runner shows as "flaky" in the
   // report instead of blocking the image. A real failure fails both attempts.
   retries: process.env.CI ? 1 : 0,
-  use: { colorScheme: "light" },
+  // Default follows the system mode (CR-004); its dark look is what the baselines show.
+  use: { colorScheme: "dark" },
   expect: {
     // Antialiasing differs slightly between runs; layout or color changes exceed this.
     toHaveScreenshot: { maxDiffPixelRatio: 0.01 },
@@ -79,6 +83,10 @@ export default defineConfig({
     serve(LARGE_PORT, LARGE_CONTROL_PORT, "large"),
     serve(AUTH_PORT, AUTH_CONTROL_PORT, "default", { E2E_AUTH: "local" }),
     serve(CONFIG_PORT, CONFIG_CONTROL_PORT, "default", { E2E_CONFIG_SPECS: "1" }),
+    serve(THEME_PORT, THEME_CONTROL_PORT, "default", {
+      E2E_DATA_DIR: THEME_DATA_DIR,
+      E2E_USER_THEMES: "contrast",
+    }),
     // Injecting 30 days of history takes a while; nothing may change it afterwards.
     {
       ...serve(HISTORY_PORT, HISTORY_CONTROL_PORT, "dashboard", { E2E_HISTORY_DAYS: "30" }),

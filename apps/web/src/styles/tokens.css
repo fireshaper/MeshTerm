@@ -109,6 +109,9 @@
     /* Typography */
     --mt-font-body: system-ui, sans-serif;
     --mt-font-mono: ui-monospace, monospace;
+
+    /* Headings (page titles, section and card headers); Cyberpunk swaps in a display face. */
+    --mt-font-display: var(--mt-font-body);
     --mt-font-size-xs: 0.75rem;
     --mt-font-size-sm: 0.875rem;
     --mt-font-size-md: 1rem;

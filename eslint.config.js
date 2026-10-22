@@ -41,6 +41,11 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
   {
+    // Plain scripts served as-is (theme-boot.js runs before the app, CR-004 §4.4).
+    files: ["apps/web/public/**/*.js"],
+    languageOptions: { globals: globals.browser, sourceType: "script" },
+  },
+  {
     files: ["apps/web/**/*.{ts,tsx}"],
     ...react.configs.flat.recommended,
     ...react.configs.flat["jsx-runtime"],

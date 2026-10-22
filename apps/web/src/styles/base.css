@@ -12,6 +12,11 @@
     background: var(--mt-surface-bg);
   }
 
+  /* Headings take the display face (CR-004): the same as the body in Default. */
+  :where(h1, h2, h3, h4, [data-mt="page-title"]) {
+    font-family: var(--mt-font-display);
+  }
+
   a {
     color: var(--mt-accent);
   }

@@ -4,6 +4,7 @@ import { Map as MapLibreMap, setWorkerUrl, type GeoJSONSource } from "maplibre-g
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useRef, useState } from "react";
 import { buildStyle, MAX_ZOOM } from "../../map/map-style.js";
+import { useThemeChange } from "../../components/useThemeChange.js";
 import { readMapTokens } from "../../map/map-tokens.js";
 import "../../map/map.css";
 
@@ -86,6 +87,15 @@ export function MapPicker({ open, onOpenChange, initial, onPick }: MapPickerProp
     // The initial point only matters when the map is created.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [container]);
+
+  // The marker follows a theme switch (CR-004 §4.5).
+  useThemeChange(() => {
+    const map = mapRef.current;
+    if (!map?.getLayer(PICK_SOURCE)) return;
+    const tokens = readMapTokens();
+    map.setPaintProperty(PICK_SOURCE, "circle-color", tokens.self);
+    map.setPaintProperty(PICK_SOURCE, "circle-stroke-color", tokens.labelHalo);
+  });
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>

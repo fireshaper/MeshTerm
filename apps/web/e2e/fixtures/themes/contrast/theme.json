@@ -1,0 +1,9 @@
+{
+  "id": "contrast",
+  "name": "Contrast (test)",
+  "author": "MeshTerm tests",
+  "version": "1.0.0",
+  "description": "Test-only theme: every color the canvas renderers read is different from Default.",
+  "colorScheme": "dark",
+  "preview": { "bg": "#2a0d2e", "surface": "#3d1442", "accent": "#ffcc00", "text": "#fff4d6" }
+}

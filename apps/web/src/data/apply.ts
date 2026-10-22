@@ -32,6 +32,7 @@ import {
 } from "./conversations-cache.js";
 import { handleBacklog, handleMessageNew, markConversationRead } from "../notifications/center.js";
 import { handleTelemetryRequest } from "../node-drawer/RequestTelemetry.js";
+import { handleThemeChanged } from "../theme/ThemeRuntime.js";
 import {
   applyNodeToDetail,
   applyPositionToDetail,
@@ -199,6 +200,11 @@ export function applyServerMessage(
 
     case "telemetry.request": {
       handleTelemetryRequest(message);
+      return;
+    }
+
+    case "theme.changed": {
+      handleThemeChanged(qc, message);
       return;
     }
 
