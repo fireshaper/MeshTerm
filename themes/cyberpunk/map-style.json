@@ -1,0 +1,19 @@
+{
+  "version": 8,
+  "sources": { "base": { "type": "raster" } },
+  "layers": [
+    { "id": "night", "type": "background", "paint": { "background-color": "#07050f" } },
+    {
+      "id": "tiles",
+      "type": "raster",
+      "source": "base",
+      "paint": {
+        "raster-brightness-min": 0.82,
+        "raster-brightness-max": 0.04,
+        "raster-saturation": -0.4,
+        "raster-hue-rotate": 210,
+        "raster-contrast": 0.35
+      }
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { buildStyle, MAX_ZOOM } from "../../map/map-style.js";
 import { useThemeChange } from "../../components/useThemeChange.js";
 import { readMapTokens } from "../../map/map-tokens.js";
+import { useThemeStore } from "../../theme/store.js";
 import "../../map/map.css";
 
 setWorkerUrl(workerUrl);
@@ -43,7 +44,7 @@ export function MapPicker({ open, onOpenChange, initial, onPick }: MapPickerProp
   useEffect(() => {
     if (!container) return;
     const tokens = readMapTokens();
-    const style = buildStyle(window.location.origin, tokens);
+    const style = buildStyle(window.location.origin, tokens, useThemeStore.getState().mapStyle);
     const map = new MapLibreMap({
       container,
       style,

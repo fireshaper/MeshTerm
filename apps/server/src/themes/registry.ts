@@ -6,6 +6,7 @@ import {
   THEME_FILE_TYPES,
   ThemeId,
   ThemeManifest,
+  ThemeMapStyle,
   themeFileType,
   type ThemeDTO,
   type ThemeSource,
@@ -224,6 +225,7 @@ export class ThemeRegistry {
       if (!files.includes(path))
         throw new Error(`theme.json names ${path}, which isn't in the folder`);
     }
+    if (manifest.mapStyle) warnings.push(...checkMapStyle(dir, manifest.mapStyle));
     const app = this.options.appVersion;
     if (app && manifest.minAppVersion && compareVersions(app, manifest.minAppVersion) < 0) {
       warnings.push(`made for MeshTerm ${manifest.minAppVersion} or later (this is ${app})`);
@@ -275,6 +277,35 @@ function hashFiles(dir: string, files: readonly string[]): string {
 }
 
 const readText = (dir: string, file: string) => readFileSync(join(dir, file), "utf8");
+
+/**
+ * Validates a theme's map style (CR-004 §8.3); throws when it's unusable, returns
+ * warnings for parts MeshTerm ignores.
+ */
+function checkMapStyle(dir: string, file: string): string[] {
+  let json: unknown;
+  try {
+    json = JSON.parse(readText(dir, file));
+  } catch {
+    throw new Error(`${file} isn't valid JSON`);
+  }
+  const parsed = ThemeMapStyle.safeParse(json);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new Error(
+      `${file}: ${issue?.path.join(".") || "(root)"}: ${issue?.message ?? "invalid"}`,
+    );
+  }
+  const warnings: string[] = [];
+  const sources = Object.values(parsed.data.sources ?? {});
+  if (sources.some((src) => "tiles" in src || "url" in src)) {
+    warnings.push(`${file}: tile URLs are ignored; map tiles always come through MeshTerm`);
+  }
+  if (parsed.data.layers.some((l) => l.type !== "background" && l.type !== "raster")) {
+    warnings.push(`${file}: vector layers aren't drawn yet (only background and raster)`);
+  }
+  return warnings;
+}
 
 function compareVersions(a: string, b: string): number {
   const pa = a.split(/[.-]/).map(Number);

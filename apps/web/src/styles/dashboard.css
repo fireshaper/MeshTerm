@@ -206,7 +206,9 @@
     block-size: var(--mt-mini-map-height);
     overflow: hidden;
     border-radius: var(--mt-radius-sm);
-    background: var(--mt-surface-sunken);
+
+    /* A theme's map style can set both (CR-004 §8.3; ThemeRuntime writes them). */
+    background: var(--mt-map-tiles-bg, var(--mt-surface-sunken));
   }
 
   [data-mt="mini-map"][data-mt-state="empty"] {
@@ -220,6 +222,7 @@
   }
 
   [data-mt="mini-map-tiles"] {
+    filter: var(--mt-map-tiles-filter, none);
     position: absolute;
     inset-block-start: 50%;
     inset-inline-start: 50%;

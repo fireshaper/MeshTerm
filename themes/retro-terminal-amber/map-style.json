@@ -1,0 +1,19 @@
+{
+  "version": 8,
+  "sources": { "base": { "type": "raster" } },
+  "layers": [
+    { "id": "phosphor", "type": "background", "paint": { "background-color": "#2a1700" } },
+    {
+      "id": "tiles",
+      "type": "raster",
+      "source": "base",
+      "paint": {
+        "raster-saturation": -1,
+        "raster-contrast": 0.25,
+        "raster-brightness-min": 0.05,
+        "raster-brightness-max": 0.8,
+        "raster-opacity": 0.45
+      }
+    }
+  ]
+}

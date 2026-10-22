@@ -99,7 +99,7 @@ CR: [cr-004-themes.md](cr-004-themes.md). Stop after each phase, report, commit 
 - **Retro effects:** `crt` and `scanlines`.
 - **Performance check:** a Playwright trace on Messages and Dashboard scroll with effects on.
 
-## Phase E: Cyberpunk and map styles
+## Phase E: Cyberpunk and map styles (done 2026-10-22)
 
 - `themes/cyberpunk/` (Neon District):
   - fonts: OFL display and body fonts, with `--mt-font-display` added to the tokens;

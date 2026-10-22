@@ -1,0 +1,267 @@
+/*
+ * Cyberpunk, "Neon District" (CR-004 Phase E): night blue, hot pink and cyan, angled
+ * panels, neon borders and a restrained glow (stronger with the `glow` effect). Body
+ * text stays in the system UI font; Orbitron (from the manifest's fonts) is for headings.
+ * Everything here uses hooks and tokens only. Motion only without reduced motion.
+ */
+@layer theme {
+  :root {
+    color-scheme: dark;
+
+    --cp-pink: #ff2e97;
+    --cp-cyan: #22e6ff;
+    --cp-violet: #c77dff;
+    --cp-ink: #12041c;
+    --cp-cut: 0.75rem;
+
+    --mt-surface-bg: #07050f;
+    --mt-surface-raised: #110c22;
+    --mt-surface-sunken: #04030a;
+    --mt-surface-elevated: #1a1333;
+    --mt-sidebar-bg: #0a0716;
+    --mt-border-color: #3a2a6b;
+    --mt-shadow-popover: 0 0 0 1px var(--cp-pink), 0 8px 32px rgb(255 46 151 / 25%);
+
+    --mt-text: #ece8ff;
+    --mt-text-muted: #a9a0d6;
+    --mt-text-inverse: var(--cp-ink);
+
+    --mt-accent: var(--cp-pink);
+    --mt-accent-text: var(--cp-ink);
+    --mt-status-ok: #3dff8f;
+    --mt-status-warn: #ffd23f;
+    --mt-status-error: #ff6a3d;
+    --mt-status-info: var(--cp-cyan);
+
+    --mt-bubble-in-bg: transparent;
+    --mt-bubble-in-text: #ece8ff;
+    --mt-bubble-out-bg: var(--cp-pink);
+    --mt-bubble-out-text: var(--cp-ink);
+
+    --mt-badge-bg: var(--cp-cyan);
+    --mt-badge-text: var(--cp-ink);
+    --mt-badge-priority-bg: var(--cp-pink);
+    --mt-mention-bg: var(--cp-violet);
+    --mt-mention-text: var(--cp-ink);
+
+    --mt-toast-bg: #1a1333;
+    --mt-toast-border: var(--cp-pink);
+    --mt-toast-shadow: 0 0 18px rgb(255 46 151 / 35%);
+
+    --mt-card-bg: #110c22;
+    --mt-card-border: rgb(255 46 151 / 45%);
+    --mt-card-radius: 0;
+    --mt-card-shadow: none;
+    --mt-card-self-accent: var(--cp-cyan);
+    --mt-battery-low: #ffd23f;
+    --mt-battery-critical: #ff6a3d;
+
+    --mt-signal-online: #3dff8f;
+    --mt-signal-recent: var(--cp-cyan);
+    --mt-signal-stale: #ffd23f;
+    --mt-signal-offline: #6b6394;
+
+    --mt-chart-1: var(--cp-pink);
+    --mt-chart-2: var(--cp-cyan);
+    --mt-chart-3: var(--cp-violet);
+    --mt-chart-4: #ffd23f;
+    --mt-chart-5: #6b6394;
+    --mt-chart-6: #3dff8f;
+    --mt-chart-grid: rgb(199 125 255 / 18%);
+    --mt-chart-axis: #a9a0d6;
+    --mt-chart-crosshair: var(--cp-cyan);
+    --mt-chart-band-alpha: 0.22;
+
+    --mt-map-marker: var(--cp-cyan);
+    --mt-map-marker-self: var(--cp-pink);
+    --mt-map-label: #ece8ff;
+    --mt-map-label-halo: #07050f;
+    --mt-map-cluster-bg: var(--cp-violet);
+    --mt-map-cluster-text: var(--cp-ink);
+    --mt-map-node-glow: 0.45;
+
+    --mt-field-changed-bg: rgb(34 230 255 / 12%);
+    --mt-field-conflict-bg: rgb(255 210 63 / 15%);
+    --mt-danger-surface: rgb(255 106 61 / 12%);
+    --mt-qr-fg: #000;
+    --mt-qr-bg: #fff;
+
+    --mt-font-display: "Orbitron", var(--mt-font-body);
+    --mt-radius-sm: 0;
+    --mt-radius-md: 0;
+    --mt-radius-lg: 0;
+  }
+
+  /* ── Angled panels: cut corners on cards, panels, the drawer, dialogs, toasts ── */
+  [data-mt="node-card"],
+  [data-mt="node-preview"],
+  [data-mt="metric-card"],
+  [data-mt="panel"],
+  [data-mt="review-dialog"],
+  [data-mt="toast-region"] [data-mt="toast"],
+  [data-mt="theme-card"] {
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--cp-cut)) 0,
+      100% var(--cp-cut),
+      100% 100%,
+      var(--cp-cut) 100%,
+      0 calc(100% - var(--cp-cut))
+    );
+  }
+
+  [data-mt="node-drawer"] {
+    border-inline-start: 2px solid var(--cp-pink);
+  }
+
+  [data-mt="node-card"][data-mt-variant="self"],
+  [data-mt="node-preview"][data-mt-variant="self"] {
+    border-color: var(--cp-cyan);
+  }
+
+  /* ── Headings in Orbitron; neon accents ──────────────────────────────────────── */
+  [data-mt="page-title"],
+  [data-mt="panel-title"],
+  [data-mt="settings-title"],
+  [data-mt="thread-title"],
+  [data-mt="node-drawer-title"] {
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  [data-mt="page-title"] {
+    color: var(--cp-cyan);
+  }
+
+  [data-mt="nav-item"][data-mt-state="active"],
+  [data-mt="settings-nav-item"][data-mt-state="active"],
+  [data-mt="node-drawer-tab"][data-mt-state="active"] {
+    color: var(--cp-pink);
+    text-shadow: 0 0 8px rgb(255 46 151 / 60%);
+  }
+
+  [data-mt="button"][data-mt-variant="primary"],
+  [data-mt="send-button"] {
+    box-shadow: 0 0 10px rgb(255 46 151 / 45%);
+  }
+
+  :focus-visible {
+    outline-color: var(--cp-cyan);
+    box-shadow:
+      0 0 0 1px var(--cp-cyan),
+      0 0 12px rgb(34 230 255 / 55%);
+  }
+
+  /* Status dots glow. */
+  [data-mt="status-dot"] {
+    box-shadow: 0 0 6px currentcolor;
+  }
+
+  /* Battery as a segmented bar. */
+  [data-mt="battery-meter-fill"] {
+    background: repeating-linear-gradient(90deg, currentcolor 0 3px, transparent 3px 4px);
+  }
+
+  /* ── Messages: outgoing pink, incoming outlined in cyan ─────────────────────── */
+  [data-mt="message"] {
+    border: 1px solid var(--cp-cyan);
+    clip-path: polygon(0 0, calc(100% - 0.5rem) 0, 100% 0.5rem, 100% 100%, 0 100%);
+  }
+
+  [data-mt="message"][data-mt-variant="out"] {
+    border-color: var(--cp-pink);
+    clip-path: polygon(0.5rem 0, 100% 0, 100% 100%, 0 100%, 0 0.5rem);
+  }
+
+  [data-mt="message"][data-mt-state="failed"] {
+    outline: none;
+    border-color: var(--mt-status-error);
+    border-style: dashed;
+  }
+
+  [data-mt="mention"] {
+    padding-inline: 0.2em;
+  }
+
+  [data-mt="unread-badge"],
+  [data-mt="nav-badge"] {
+    box-shadow: 0 0 8px rgb(34 230 255 / 50%);
+  }
+
+  /* ── Toasts and fresh cards: glitch in, pulse in neon (not with reduced motion) ── */
+  @media (prefers-reduced-motion: no-preference) {
+    :root {
+      --mt-toast-enter: cp-glitch-in;
+    }
+
+    [data-mt="node-card"][data-mt-state="updated"],
+    [data-mt="node-preview"][data-mt-state="updated"] {
+      animation: cp-pulse 900ms ease-out;
+    }
+  }
+
+  @keyframes cp-glitch-in {
+    0% {
+      opacity: 0;
+      transform: translateX(12px) skewX(-8deg);
+    }
+
+    30% {
+      opacity: 1;
+      transform: translateX(-4px) skewX(4deg);
+    }
+
+    50% {
+      transform: translateX(2px);
+    }
+
+    100% {
+      transform: none;
+    }
+  }
+
+  @keyframes cp-pulse {
+    0% {
+      border-color: var(--cp-cyan);
+      background: rgb(34 230 255 / 14%);
+    }
+
+    100% {
+      border-color: var(--mt-card-border);
+      background: var(--mt-card-bg);
+    }
+  }
+
+  /* ── Effects (on the fx-layer; see THEMING.md) ──────────────────────────────── */
+  html[data-mt-fx~="scanlines"] [data-mt="fx-layer"]::before {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(to bottom, transparent 0 3px, rgb(0 0 0 / 14%) 3px 4px);
+    content: "";
+  }
+
+  /* Static film grain from an inline SVG pattern. */
+  html[data-mt-fx~="noise"] [data-mt="fx-layer"]::after {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    content: "";
+    mix-blend-mode: overlay;
+    opacity: 0.06;
+  }
+
+  /* Stronger glow, and a chromatic edge on headings only. */
+  html[data-mt-fx~="glow"] [data-mt="page-title"],
+  html[data-mt-fx~="glow"] [data-mt="panel-title"] {
+    text-shadow:
+      -1px 0 rgb(255 46 151 / 70%),
+      1px 0 rgb(34 230 255 / 70%),
+      0 0 12px rgb(34 230 255 / 45%);
+  }
+
+  html[data-mt-fx~="glow"] [data-mt="node-card"],
+  html[data-mt-fx~="glow"] [data-mt="panel"],
+  html[data-mt-fx~="glow"] [data-mt="metric-card"] {
+    border-color: var(--cp-pink);
+  }
+}

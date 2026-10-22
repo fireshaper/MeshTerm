@@ -110,6 +110,7 @@
     --mt-map-cluster-bg: var(--mt-accent);
     --mt-map-cluster-text: var(--mt-accent-text);
     --mt-font-map: var(--mt-font-body); /* node labels on the map */
+    --mt-map-node-glow: 0; /* opacity (0–1) of a soft halo under each dot; 0 = none */
 
     /* @group Device settings: staged, conflicting and dangerous changes; QR codes */
     --mt-field-changed-bg: color-mix(in srgb, var(--mt-accent) 12%, transparent);

@@ -9,7 +9,7 @@ const RATE = 22_050;
  * Tones in sequence: [frequency Hz, seconds, gain 0–1]; 0 Hz is silence. `square` is a
  * soft square wave (odd harmonics only), like an old terminal's beeper.
  * @param {[number, number, number][]} tones
- * @param {"sine" | "square"} [wave]
+ * @param {"sine" | "square" | "saw"} [wave]
  * @returns {number[]}
  */
 function render(tones, wave = "sine") {
@@ -27,7 +27,10 @@ function render(tones, wave = "sine") {
           ? 0
           : wave === "square"
             ? (Math.sin(w) + Math.sin(3 * w) / 3 + Math.sin(5 * w) / 5) * 0.7
-            : Math.sin(w) * 0.8 + Math.sin(2 * w) * 0.2;
+            : wave === "saw"
+              ? (Math.sin(w) - Math.sin(2 * w) / 2 + Math.sin(3 * w) / 3 - Math.sin(4 * w) / 4) *
+                0.6
+              : Math.sin(w) * 0.8 + Math.sin(2 * w) * 0.2;
       samples.push(v * env * gain);
     }
   }
@@ -96,11 +99,32 @@ const retro = {
   channel: [[600, 0.06, 0.3]],
 };
 
-/** @type {[string, Record<string, [number, number, number][]>, "sine" | "square"][]} */
+/** @type {[string, Record<string, [number, number, number][]>, "sine" | "square" | "saw"][]} */
+/** Cyberpunk (CR-004 Phase E): synth blips. @type {Record<string, [number, number, number][]>} */
+const cyberpunk = {
+  // A DM: a rising three-note arpeggio.
+  message: [
+    [523.3, 0.06, 0.4],
+    [784, 0.06, 0.4],
+    [1046.5, 0.1, 0.4],
+  ],
+  // A mention: a quick high stutter.
+  mention: [
+    [1568, 0.04, 0.38],
+    [0, 0.02, 0],
+    [1568, 0.04, 0.38],
+    [0, 0.02, 0],
+    [2093, 0.08, 0.38],
+  ],
+  // A channel message: one short low blip.
+  channel: [[392, 0.07, 0.3]],
+};
+
 const sets = [
   ["../apps/web/public/sounds/", defaults, "sine"],
   ["../themes/retro-terminal/sounds/", retro, "square"],
   ["../themes/retro-terminal-amber/sounds/", retro, "square"],
+  ["../themes/cyberpunk/sounds/", cyberpunk, "saw"],
 ];
 for (const [dir, sounds, wave] of sets) {
   const out = new URL(dir, import.meta.url);

@@ -690,6 +690,16 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test` (825, 1 skip
 
 State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test` (828, 1 skipped), `test:e2e` (201) green.
 
+### CR-004 Phase E: Cyberpunk and per-theme map styles (done 2026-10-22)
+
+- **`map-style.json`:** validated on the server (background and raster layers, allowlisted paint, plain values; tile URLs ignored with a warning, vector layers accepted but not drawn); applied on the map page and map picker by swapping only the base layers (camera, dots and labels stay; tiles still come only from `/api/tiles`; the credit always shows). Mini maps get the equivalent CSS filter and background.
+- **Cyberpunk (Neon District):** see architecture.md. All text ≥ 5.1:1. Map: inverted, blue-shifted tiles with glowing dots (`--mt-map-node-glow`). Glitch toasts and pulses only without reduced motion.
+- **Retro and Amber** now restyle the main map too (grey over phosphor).
+- **Not built:** chart glow (uPlot draws on canvas without shadows; Cyberpunk uses neon series colors on a violet grid) and magenta traceroutes / cyan neighbor links (the map has no such layers yet).
+- **Tests:** map-style validation (server); e2e: Cyberpunk selectable with Orbitron loaded, glitch-in only without reduced motion; a live theme switch on the map changes the base paint and layer set while the camera, node layers, tile proxy and credit stay, and mini maps follow (and go back to no filter on Default).
+
+State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

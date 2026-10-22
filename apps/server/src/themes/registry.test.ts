@@ -80,3 +80,54 @@ describe("ThemeRegistry", () => {
     expect(registry().get("h")?.hash).not.toBe(before);
   });
 });
+
+describe("map-style.json (CR-004 §8.3)", () => {
+  const style = (id: string, json: unknown) => {
+    theme("user", id, { mapStyle: "map-style.json" });
+    writeFileSync(
+      join(root, "user", id, "map-style.json"),
+      typeof json === "string" ? json : JSON.stringify(json),
+    );
+  };
+
+  it("accepts background and raster layers; warns about tile URLs and vector layers", () => {
+    style("ok", {
+      version: 8,
+      sources: { base: { type: "raster", tiles: ["https://elsewhere.example/{z}/{x}/{y}.png"] } },
+      layers: [
+        { id: "bg", type: "background", paint: { "background-color": "#000" } },
+        { id: "tiles", type: "raster", source: "base", paint: { "raster-saturation": -1 } },
+        { id: "roads", type: "line", source: "vec" },
+      ],
+    });
+    const [t] = registry().list(true);
+    expect(t?.valid).toBe(true);
+    expect(t?.warnings).toEqual([
+      "map-style.json: tile URLs are ignored; map tiles always come through MeshTerm",
+      "map-style.json: vector layers aren't drawn yet (only background and raster)",
+    ]);
+  });
+
+  it.each([
+    ["not JSON", "{ nope", /isn't valid JSON/],
+    ["no layers", { version: 8 }, /layers/],
+    [
+      "an unknown paint property",
+      { layers: [{ id: "t", type: "raster", paint: { "raster-resampling": "nearest" } }] },
+      /layers/,
+    ],
+    [
+      "an out-of-range value",
+      { layers: [{ id: "t", type: "raster", paint: { "raster-opacity": 3 } }] },
+      /layers/,
+    ],
+    [
+      "an expression",
+      { layers: [{ id: "b", type: "background", paint: { "background-color": ["get", "x"] } }] },
+      /layers/,
+    ],
+  ])("refuses %s", (_name, json, error) => {
+    style("bad", json);
+    expect(registry().list(true)[0]?.error).toMatch(error);
+  });
+});

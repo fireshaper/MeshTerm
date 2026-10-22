@@ -13,6 +13,8 @@ export interface MapTokens {
   clusterBg: string;
   clusterText: string;
   font: string;
+  /** `--mt-map-node-glow`: opacity (0–1) of a soft halo under each dot; 0 = none (CR-004). */
+  glow: number;
 }
 
 const FALLBACK: MapTokens = {
@@ -23,6 +25,7 @@ const FALLBACK: MapTokens = {
   clusterBg: "#55a8ff",
   clusterText: "#0b1018",
   font: "system-ui, sans-serif",
+  glow: 0,
 };
 
 /**
@@ -40,6 +43,10 @@ export function readMapTokens(root: HTMLElement = document.documentElement): Map
     const value = getComputedStyle(probe).color;
     return value && value !== "" ? value : fallback;
   };
+  const unit = (value: string) => {
+    const n = Number.parseFloat(value);
+    return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0;
+  };
   try {
     const font = getComputedStyle(root).getPropertyValue("--mt-font-map").trim();
     return {
@@ -54,6 +61,7 @@ export function readMapTokens(root: HTMLElement = document.documentElement): Map
       labelHalo: color("--mt-map-label-halo", FALLBACK.labelHalo),
       clusterBg: color("--mt-map-cluster-bg", FALLBACK.clusterBg),
       clusterText: color("--mt-map-cluster-text", FALLBACK.clusterText),
+      glow: unit(getComputedStyle(root).getPropertyValue("--mt-map-node-glow")),
       font: font || FALLBACK.font,
     };
   } finally {

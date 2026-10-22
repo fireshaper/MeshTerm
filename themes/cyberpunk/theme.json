@@ -1,0 +1,20 @@
+{
+  "id": "cyberpunk",
+  "name": "Cyberpunk",
+  "author": "MeshTerm",
+  "version": "1.0.0",
+  "description": "Neon District: hot pink and cyan on night blue, angled panels and a neon map.",
+  "colorScheme": "dark",
+  "preview": { "bg": "#07050f", "surface": "#110c22", "accent": "#ff2e97", "text": "#22e6ff" },
+  "fonts": [
+    { "family": "Orbitron", "src": "fonts/orbitron-latin-500-normal.woff2", "weight": "500" },
+    { "family": "Orbitron", "src": "fonts/orbitron-latin-700-normal.woff2", "weight": "700" }
+  ],
+  "sounds": {
+    "message": "sounds/message.wav",
+    "mention": "sounds/mention.wav",
+    "channel": "sounds/channel.wav"
+  },
+  "effects": ["scanlines", "glow", "noise"],
+  "mapStyle": "map-style.json"
+}

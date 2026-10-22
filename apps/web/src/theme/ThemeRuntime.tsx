@@ -1,8 +1,9 @@
-import type { ServerMessageOf, ThemeDTO } from "@meshterm/shared";
+import type { ServerMessageOf, ThemeDTO, ThemeMapStyle } from "@meshterm/shared";
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api } from "../data/api.js";
 import { queryKeys } from "../data/keys.js";
+import { miniMapLook } from "../map/map-style.js";
 import { useThemeStore } from "./store.js";
 import {
   activeEffects,
@@ -37,6 +38,15 @@ export function handleThemeChanged(
   _message: Omit<ServerMessageOf<"theme.changed">, "type">,
 ): void {
   void qc.invalidateQueries({ queryKey: queryKeys.themes });
+}
+
+/** The server validated it (CR-004 §8.3); this only guards against a stale or odd file. */
+function isMapStyle(json: unknown): json is ThemeMapStyle {
+  return (
+    typeof json === "object" &&
+    json !== null &&
+    Array.isArray((json as { layers?: unknown }).layers)
+  );
 }
 
 /** Whether a media query matches, live (`prefers-color-scheme`, `-contrast`, `-reduced-motion`). */
@@ -108,6 +118,38 @@ export function ThemeRuntime({ load }: { load?: StylesheetLoader }) {
     // The theme object changes with every list refetch; its id and hash are what matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme?.id, theme?.hash, mode, persist, modePref, chosenId, scheme, load]);
+
+  // The theme's base-map style (CR-004 §8.3): for the map page, and as CSS for mini maps.
+  const mapStyleFile = theme?.manifest?.mapStyle ?? null;
+  const themeId = theme?.id ?? null;
+  const themeHash = theme?.hash ?? null;
+  useEffect(() => {
+    let cancelled = false;
+    const use = (style: ThemeMapStyle | null) => {
+      if (cancelled) return;
+      useThemeStore.getState().setMapStyle(style);
+      const look = miniMapLook(style);
+      const root = document.documentElement.style;
+      root.setProperty("--mt-map-tiles-filter", look.filter);
+      if (look.background) root.setProperty("--mt-map-tiles-bg", look.background);
+      else root.removeProperty("--mt-map-tiles-bg");
+    };
+    if (!themeId || !mapStyleFile) {
+      use(null);
+      return;
+    }
+    fetch(`/themes/${themeId}/${mapStyleFile}?v=${themeHash ?? ""}`)
+      .then((res) => (res.ok ? (res.json() as Promise<unknown>) : null))
+      .then((json) => {
+        use(isMapStyle(json) ? json : null);
+      })
+      .catch(() => {
+        use(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [themeId, themeHash, mapStyleFile]);
 
   // Effects (CR-004 §7): html[data-mt-fx~="scanlines"] and so on, for the theme's CSS.
   const fx = activeEffects(theme?.manifest?.effects ?? [], effectsEnabled, media).join(" ");

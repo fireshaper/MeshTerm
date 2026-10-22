@@ -619,3 +619,14 @@ One entry per decision: **step**, **decision**, **reason**. Add new entries at t
 | Under reduced motion only `flicker` is dropped by MeshTerm; themes guard other movement with `prefers-reduced-motion` themselves. | `scanlines`, `crt`, `glow` and `noise` can be static (CR §7: static effects may stay). |
 | The performance check compares scrolling with and without effects (on ≥ 85 %) instead of an absolute 55 fps.                      | CI machines vary; the budget is about the cost of effects, which the ratio measures.   |
 | No FPS-based auto-disable.                                                                                                        | Optional in CR §7; static gradients don't cost frames.                                 |
+
+## CR-004 — Phase E (Cyberpunk and map styles)
+
+| Decision                                                                                                                            | Reason                                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| A theme switch swaps only the base layers (`mt-base*`) instead of `map.setStyle`.                                                   | Keeps the camera, sources, images and MeshTerm's layers untouched, and needs no style diffing. |
+| Themes can't set tile URLs; any `tiles`/`url` in `sources` is ignored with a warning, and every raster layer uses the proxy source. | CR §8.3: tiles only via `/api/tiles`, attribution always present.                              |
+| Dot glow is a new token (`--mt-map-node-glow`) with its own blurred layer, not `circle-blur` on the dots.                           | Blurring the dots themselves makes them fuzzy and hard to click; a halo keeps them sharp.      |
+| Mini maps get an approximate CSS filter derived from the raster paint (inversion as `invert` + `brightness`).                       | CSS can't reproduce MapLibre's shader exactly; the look matches closely.                       |
+| Cyberpunk's body text stays in the system UI font; Orbitron is for headings only.                                                   | CR §8.1: body text must stay highly readable.                                                  |
+| No canvas glow on charts.                                                                                                           | uPlot has no shadow option; drawing it would mean a custom paint hook for one theme.           |

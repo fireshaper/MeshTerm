@@ -150,3 +150,64 @@ export const DuplicateThemeBody = z.object({
   name: z.string().trim().min(1).max(40),
 });
 export type DuplicateThemeBody = z.infer<typeof DuplicateThemeBody>;
+
+const LayerId = z.string().regex(/^[\w-]{1,40}$/, "letters, digits, _ and -");
+const Unit = z.number().min(0).max(1);
+const Signed = z.number().min(-1).max(1);
+
+/**
+ * `map-style.json` (CR-004 §8.3): a partial MapLibre style for the base map only.
+ * Background and raster layers are drawn now, with a fixed set of paint properties and
+ * plain values; tiles always come through MeshTerm's proxy, so sources only say their
+ * type (anything else in them is ignored). Vector layers are accepted for later
+ * (PMTiles) but not drawn yet.
+ */
+export const ThemeMapStyle = z.object({
+  version: z.literal(8).optional(),
+  sources: z.record(z.string(), z.looseObject({ type: z.enum(["raster", "vector"]) })).optional(),
+  layers: z
+    .array(
+      z.discriminatedUnion("type", [
+        z.object({
+          id: LayerId,
+          type: z.literal("background"),
+          paint: z
+            .strictObject({
+              "background-color": SwatchColor.optional(),
+              "background-opacity": Unit.optional(),
+            })
+            .optional(),
+        }),
+        z.object({
+          id: LayerId,
+          type: z.literal("raster"),
+          source: z.string().optional(),
+          paint: z
+            .strictObject({
+              "raster-opacity": Unit.optional(),
+              "raster-hue-rotate": z.number().min(-360).max(360).optional(),
+              "raster-brightness-min": Unit.optional(),
+              "raster-brightness-max": Unit.optional(),
+              "raster-saturation": Signed.optional(),
+              "raster-contrast": Signed.optional(),
+            })
+            .optional(),
+        }),
+        z.looseObject({
+          id: LayerId,
+          type: z.enum([
+            "fill",
+            "line",
+            "symbol",
+            "circle",
+            "fill-extrusion",
+            "heatmap",
+            "hillshade",
+          ]),
+          source: z.string(),
+        }),
+      ]),
+    )
+    .max(100),
+});
+export type ThemeMapStyle = z.infer<typeof ThemeMapStyle>;

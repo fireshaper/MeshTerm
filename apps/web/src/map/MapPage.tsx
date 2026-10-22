@@ -16,7 +16,15 @@ import { useMapNodes } from "../data/queries.js";
 import { useLiveStore } from "../data/store.js";
 import { openNodeDetails } from "../data/ui-store.js";
 import { boundsOf, readViewport, toMapSource, writeViewport } from "./map-data.js";
-import { buildStyle, LAYER, MAX_ZOOM, NODE_SOURCE, tokenPaint } from "./map-style.js";
+import {
+  applyBaseLayers,
+  buildStyle,
+  LAYER,
+  MAX_ZOOM,
+  NODE_SOURCE,
+  tokenPaint,
+} from "./map-style.js";
+import { useThemeStore } from "../theme/store.js";
 import { useThemeChange } from "../components/useThemeChange.js";
 import { drawLabel, readMapTokens, type MapTokens } from "./map-tokens.js";
 import "./map.css";
@@ -184,7 +192,7 @@ export function MapPage() {
     const saved = readViewport();
     const instance = new MapLibreMap({
       container,
-      style: buildStyle(window.location.origin, tokens),
+      style: buildStyle(window.location.origin, tokens, useThemeStore.getState().mapStyle),
       center: saved?.center ?? [0, 20],
       zoom: saved?.zoom ?? 1.5,
       maxZoom: MAX_ZOOM,
@@ -296,6 +304,15 @@ export function MapPage() {
     tokensRef.current = tokens;
     applyTheme(map, tokens);
   });
+
+  // The theme's base map (CR-004 §8.3): swapped in place, so the camera and nodes stay.
+  const mapStyle = useThemeStore((s) => s.mapStyle);
+  const appliedStyle = useRef(useThemeStore.getState().mapStyle);
+  useEffect(() => {
+    if (!map || appliedStyle.current === mapStyle) return;
+    appliedStyle.current = mapStyle;
+    applyBaseLayers(map, mapStyle);
+  }, [map, mapStyle]);
 
   const fitAll = () => {
     const bounds = data ? boundsOf(data.features) : null;

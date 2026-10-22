@@ -57,7 +57,7 @@ my-theme/
 | `modes`         | no       | `{ "light": "light.css", "dark": "dark.css" }`: extra CSS loaded only in that mode (`auto` themes).                                             |
 | `fonts`         | no       | `[{ "family": "Orbitron", "src": "fonts/orbitron.woff2", "weight": "400 900", "style": "normal" }]`. See [Fonts and sounds](#fonts-and-sounds). |
 | `sounds`        | no       | `{ "message": "sounds/dm.wav", "mention": "sounds/mention.wav", "channel": "sounds/channel.wav" }`.                                             |
-| `mapStyle`      | no       | A base-map style file. See [Canvas surfaces](#canvas-surfaces-the-map-and-charts).                                                              |
+| `mapStyle`      | no       | A base-map style file. See [The base map](#the-base-map-map-stylejson).                                                                         |
 | `effects`       | no       | Which effects the theme draws: any of `scanlines`, `glow`, `crt`, `noise`, `flicker`. See [Effects](#effects).                                  |
 | `minAppVersion` | no       | The oldest MeshTerm it's made for; older versions show a warning to admins.                                                                     |
 
@@ -79,10 +79,10 @@ If a theme makes MeshTerm unusable, add `?theme=default` to the address (for exa
 
 ## Where to put it
 
-| Where           | In the container     | Notes                                                                                                             |
-| --------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Built-in themes | `/app/themes/`       | Part of the image: Default, Retro Terminal and Retro Terminal Amber (Cyberpunk is coming). Updated with MeshTerm. |
-| Your themes     | `/data/themes/<id>/` | Created on first start. Survives updates, because `/data` is your volume.                                         |
+| Where           | In the container     | Notes                                                                                                  |
+| --------------- | -------------------- | ------------------------------------------------------------------------------------------------------ |
+| Built-in themes | `/app/themes/`       | Part of the image: Default, Retro Terminal, Retro Terminal Amber and Cyberpunk. Updated with MeshTerm. |
+| Your themes     | `/data/themes/<id>/` | Created on first start. Survives updates, because `/data` is your volume.                              |
 
 - **Hot reload.** MeshTerm watches `/data/themes`. A new folder appears in the picker within about 2 seconds, and saving a theme's CSS restyles every browser using it, without a reload. On a network share (NFS, SMB) or some bind mounts, file events don't arrive: set `MESHTERM_THEMES_POLL=1` to check by polling instead.
 - **Changing a built-in.** Don't edit built-ins in the image. Instead, as an admin, open **Settings → Appearance**, select the theme and press **Duplicate … as a user theme**: MeshTerm copies it to `/data/themes/<new-id>/` for you to edit. A user theme with the same id as a built-in replaces it, but only while it's valid; a broken copy never hides the built-in.
@@ -174,12 +174,44 @@ Putting the dark values on plain `:root` as well gives a complete palette even b
 
 The map page and the telemetry charts draw on a canvas, which CSS can't style. MeshTerm reads their colors from tokens instead, and reads them again whenever the theme or mode changes:
 
-- **Map:** `--mt-map-node-online` / `-recent` / `-stale` / `-offline` (dots), `--mt-map-label`, `--mt-map-label-halo`, `--mt-map-cluster-bg`, `--mt-map-cluster-text`, `--mt-font-map`.
+- **Map:** `--mt-map-node-online` / `-recent` / `-stale` / `-offline` (dots), `--mt-map-node-glow` (a soft halo under each dot, 0–1), `--mt-map-label`, `--mt-map-label-halo`, `--mt-map-cluster-bg`, `--mt-map-cluster-text`, `--mt-font-map`.
 - **Charts:** `--mt-chart-1` … `--mt-chart-6` (series), `--mt-chart-1-dash` … `-6-dash` (a dash pattern such as `6 3`, or `none`: useful when every series is the same hue, as in Retro Terminal), `--mt-chart-grid`, `--mt-chart-axis`, `--mt-chart-crosshair`, `--mt-chart-band-alpha`, `--mt-chart-threshold-warn` / `-danger`, `--mt-chart-powered`, `--mt-chart-reboot`.
 
 Any CSS color works (`#hex`, `rgb()`, `oklch()`, `var(--mt-accent)`, `color-mix()`). Sparklines and the mini maps on node cards are SVG and HTML: they follow tokens directly, and mini-map tiles can be restyled with `filter` on `[data-mt="mini-map-tiles"]`.
 
-The base map's look (the OpenStreetMap tiles) can't be changed by a theme yet; `mapStyle` is accepted in the manifest for when it can.
+### The base map: `map-style.json`
+
+The OpenStreetMap tiles under the dots can be restyled with a small, partial [MapLibre style](https://maplibre.org/maplibre-style-spec/) named in the manifest (`"mapStyle": "map-style.json"`). Cyberpunk turns the map dark with light roads; Retro Terminal makes it grey on phosphor:
+
+```json
+{
+  "version": 8,
+  "sources": { "base": { "type": "raster" } },
+  "layers": [
+    { "id": "night", "type": "background", "paint": { "background-color": "#07050f" } },
+    {
+      "id": "tiles",
+      "type": "raster",
+      "source": "base",
+      "paint": {
+        "raster-brightness-min": 0.82,
+        "raster-brightness-max": 0.04,
+        "raster-saturation": -0.4,
+        "raster-hue-rotate": 210,
+        "raster-contrast": 0.35
+      }
+    }
+  ]
+}
+```
+
+- **Layers:** `background` (paint `background-color`, `background-opacity`) and `raster` (paint `raster-opacity`, `raster-hue-rotate`, `raster-brightness-min`, `raster-brightness-max`, `raster-saturation`, `raster-contrast`), with plain values only (no expressions). A `brightness-min` above `brightness-max` inverts the tiles. A semi-transparent raster over a colored background tints the map.
+- **Tiles always come through MeshTerm.** Tile URLs in `sources` are ignored (admins see a warning), and the OpenStreetMap credit always shows.
+- Vector layers (`line`, `fill`, …) are accepted for when vector maps arrive, but aren't drawn yet.
+- MeshTerm's dots, labels and clusters always stay on top. Switching themes swaps only the base map; the view doesn't move.
+- The mini maps on node cards get the same look as a CSS `filter` (and the background color behind them), worked out from these values.
+
+An invalid file makes the theme **Broken**, with the reason.
 
 ## Effects
 
@@ -383,17 +415,18 @@ The static maps on node cards.
 
 Dots, labels and clusters (canvas: read through map-tokens.ts).
 
-| Token                   | Default (dark) | Default (light) | Without a theme            | Used for               |
-| ----------------------- | -------------- | --------------- | -------------------------- | ---------------------- |
-| `--mt-map-node-online`  | —              | —               | `var(--mt-signal-online)`  |                        |
-| `--mt-map-node-recent`  | —              | —               | `var(--mt-signal-recent)`  |                        |
-| `--mt-map-node-stale`   | —              | —               | `var(--mt-signal-stale)`   |                        |
-| `--mt-map-node-offline` | —              | —               | `var(--mt-signal-offline)` |                        |
-| `--mt-map-label`        | —              | —               | `var(--mt-text)`           |                        |
-| `--mt-map-label-halo`   | —              | —               | `var(--mt-surface-bg)`     |                        |
-| `--mt-map-cluster-bg`   | —              | —               | `var(--mt-accent)`         |                        |
-| `--mt-map-cluster-text` | —              | —               | `var(--mt-accent-text)`    |                        |
-| `--mt-font-map`         | —              | —               | `var(--mt-font-body)`      | node labels on the map |
+| Token                   | Default (dark) | Default (light) | Without a theme            | Used for                                              |
+| ----------------------- | -------------- | --------------- | -------------------------- | ----------------------------------------------------- |
+| `--mt-map-node-online`  | —              | —               | `var(--mt-signal-online)`  |                                                       |
+| `--mt-map-node-recent`  | —              | —               | `var(--mt-signal-recent)`  |                                                       |
+| `--mt-map-node-stale`   | —              | —               | `var(--mt-signal-stale)`   |                                                       |
+| `--mt-map-node-offline` | —              | —               | `var(--mt-signal-offline)` |                                                       |
+| `--mt-map-label`        | —              | —               | `var(--mt-text)`           |                                                       |
+| `--mt-map-label-halo`   | —              | —               | `var(--mt-surface-bg)`     |                                                       |
+| `--mt-map-cluster-bg`   | —              | —               | `var(--mt-accent)`         |                                                       |
+| `--mt-map-cluster-text` | —              | —               | `var(--mt-accent-text)`    |                                                       |
+| `--mt-font-map`         | —              | —               | `var(--mt-font-body)`      | node labels on the map                                |
+| `--mt-map-node-glow`    | —              | —               | `0`                        | opacity (0–1) of a soft halo under each dot; 0 = none |
 
 ### Device settings
 

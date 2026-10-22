@@ -5,11 +5,17 @@
   "version": "1.0.0",
   "description": "Green phosphor on black: monospace, square boxes and log-line messages.",
   "colorScheme": "dark",
-  "preview": { "bg": "#030803", "surface": "#081208", "accent": "#7dff9f", "text": "#3dff6e" },
+  "preview": {
+    "bg": "#030803",
+    "surface": "#081208",
+    "accent": "#7dff9f",
+    "text": "#3dff6e"
+  },
   "sounds": {
     "message": "sounds/message.wav",
     "mention": "sounds/mention.wav",
     "channel": "sounds/channel.wav"
   },
-  "effects": ["crt", "scanlines"]
+  "effects": ["crt", "scanlines"],
+  "mapStyle": "map-style.json"
 }

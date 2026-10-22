@@ -271,11 +271,6 @@
     background: repeating-linear-gradient(90deg, currentcolor 0 0.45ch, transparent 0.45ch 0.6ch);
   }
 
-  /* Mini maps in the phosphor color (the main map's base map follows in Phase E). */
-  [data-mt="mini-map-tiles"] {
-    filter: grayscale(1) sepia(1) hue-rotate(70deg) saturate(2.5) brightness(0.55) contrast(1.3);
-  }
-
   /* ── Messages as log lines: [10:04] <K7AB> Heading out now ────────────────── */
   [data-mt="message-row"] {
     flex-direction: column;

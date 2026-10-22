@@ -1,3 +1,4 @@
+import type { ThemeMapStyle } from "@meshterm/shared";
 import { create } from "zustand";
 import { readEffectsEnabled, readSavedTheme, saveEffectsEnabled, type ModePref } from "./theme.js";
 
@@ -9,10 +10,13 @@ interface ThemeState {
   modePref: ModePref;
   /** "Enable theme effects" in this browser (saved as `meshterm.effects`). */
   effectsEnabled: boolean;
+  /** The active theme's `map-style.json` (CR-004 §8.3), null for the plain map. */
+  mapStyle: ThemeMapStyle | null;
   choose: (id: string) => void;
   preview: (id: string | null) => void;
   setModePref: (mode: ModePref) => void;
   setEffectsEnabled: (enabled: boolean) => void;
+  setMapStyle: (style: ThemeMapStyle | null) => void;
 }
 
 const saved = readSavedTheme();
@@ -23,6 +27,7 @@ export const useThemeStore = create<ThemeState>()((set) => ({
   previewId: null,
   modePref: saved?.mode ?? "system",
   effectsEnabled: readEffectsEnabled(),
+  mapStyle: null,
   choose: (chosenId) => {
     set({ chosenId, previewId: null });
   },
@@ -35,5 +40,8 @@ export const useThemeStore = create<ThemeState>()((set) => ({
   setEffectsEnabled: (effectsEnabled) => {
     saveEffectsEnabled(effectsEnabled);
     set({ effectsEnabled });
+  },
+  setMapStyle: (mapStyle) => {
+    set({ mapStyle });
   },
 }));

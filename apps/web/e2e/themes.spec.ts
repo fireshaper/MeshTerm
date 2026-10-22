@@ -306,6 +306,7 @@ test("effects come from the theme, follow the toggle and the device, and never b
 
   // No pointer, no layout: clicks reach what's below, and nothing scrolls sideways.
   const toggle = page.getByLabel("Enable theme effects");
+  await toggle.scrollIntoViewIfNeeded();
   const box = await toggle.boundingBox();
   const hit = await page.evaluate(
     ([x, y]) => document.elementFromPoint(x ?? 0, y ?? 0)?.getAttribute("type"),
@@ -381,4 +382,88 @@ test("scrolling stays smooth with effects on", async ({ page }) => {
       `${path}: ${on.toFixed(0)} fps with effects, ${off.toFixed(0)} without`,
     ).toBeGreaterThan(off * 0.85);
   }
+});
+
+test("Cyberpunk: selectable, manifest font loaded, glitch toasts only without reduced motion", async ({
+  page,
+}) => {
+  await openAppearance(page);
+  await card(page, /^Cyberpunk/).click();
+  await expect.poll(() => bodyBg(page)).toBe("rgb(7, 5, 15)");
+  await expect
+    .poll(() => page.evaluate(() => document.fonts.check('700 16px "Orbitron"')))
+    .toBe(true);
+  await expect.poll(() => fx(page)).toBe("scanlines glow noise");
+  const toastEnter = () =>
+    page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue("--mt-toast-enter").trim(),
+    );
+  expect(await toastEnter()).toBe("cp-glitch-in");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(toastEnter).toBe("none");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await card(page, /^Default/).click();
+  await expect.poll(() => bodyBg(page)).toBe(DEFAULT_DARK_BG);
+});
+
+test("map styles restyle the base map live, keeping the camera, the nodes and the tile proxy", async ({
+  page,
+}) => {
+  const pick = async (name: string) => {
+    await page.locator("[data-mt=user-menu]").click();
+    await page.getByRole("menuitemradio", { name, exact: true }).click();
+  };
+  await page.goto(`http://127.0.0.1:${DASHBOARD_PORT}/map`);
+  await expect(page.locator("[data-mt=map-view]")).toHaveAttribute("data-mt-state", "ready", {
+    timeout: 15_000,
+  });
+  await pick("Retro Terminal");
+  type Base = {
+    layers: string[];
+    saturation: number | null;
+    min: number | null;
+    tiles: string[];
+    camera: string[];
+  };
+  const base = async () =>
+    JSON.parse(
+      await page.evaluate<string>(`(() => {
+      const m = window.__meshtermMap;
+      const layers = m.getStyle().layers.map((l) => l.id);
+      const raster = layers.find((id) => id.startsWith("mt-base") && m.getLayer(id).type === "raster");
+      return JSON.stringify({
+        layers,
+        saturation: m.getPaintProperty(raster, "raster-saturation") ?? null,
+        min: m.getPaintProperty(raster, "raster-brightness-min") ?? null,
+        tiles: m.getStyle().sources["mt-base"].tiles,
+        camera: [m.getCenter().lng.toFixed(5), m.getCenter().lat.toFixed(5), m.getZoom().toFixed(3)],
+      });
+    })()`),
+    ) as Base;
+  await expect.poll(async () => (await base()).saturation).toBe(-1);
+  const retro = await base();
+  expect(retro.saturation).toBe(-1);
+  expect(retro.layers.slice(0, 2)).toEqual(["mt-base-phosphor", "mt-base-tiles"]);
+  expect(retro.tiles[0]).toMatch(/\/api\/tiles\/\{z\}\/\{x\}\/\{y\}\.png$/);
+
+  // Switch theme without a reload (the user menu's shortcut).
+  await pick("Cyberpunk");
+  await expect.poll(async () => (await base()).min).toBe(0.82);
+  const neon = await base();
+  expect(neon.layers.slice(0, 2)).toEqual(["mt-base-night", "mt-base-tiles"]);
+  expect(neon.camera).toEqual(retro.camera);
+  // MeshTerm's layers stay on top, and the credit stays visible.
+  expect(neon.layers.indexOf("mt-nodes")).toBeGreaterThan(neon.layers.indexOf("mt-base-tiles"));
+  await expect(page.locator("[data-mt=map-attribution]")).toBeVisible();
+  const dots = await page.evaluate(`window.__meshtermMap.querySourceFeatures("mt-nodes").length`);
+  expect(dots).toBeGreaterThan(0);
+
+  // Mini maps take the same look as CSS.
+  await page.goto(`http://127.0.0.1:${DASHBOARD_PORT}/nodes`);
+  const tiles = page.locator("[data-mt=mini-map-tiles]").first();
+  await expect(tiles).toBeVisible();
+  expect(await tiles.evaluate((el) => getComputedStyle(el).filter)).toContain("invert(1)");
+
+  await pick("Default");
+  await expect.poll(() => tiles.evaluate((el) => getComputedStyle(el).filter)).toBe("none");
 });
