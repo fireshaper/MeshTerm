@@ -75,7 +75,7 @@ CR: [cr-004-themes.md](cr-004-themes.md). Stop after each phase, report, commit 
 - **`THEMING.md`** covers everything in CR §5.1, including the 10-minute walkthrough and the accessibility checklist. README and Appearance link to it.
 - **Crawl test:** a Playwright spec that visits the main screens and fails on meaningful elements without a hook, or with an unregistered value. Fix the gaps it finds.
 
-## Phase C: Retro Terminal (+ Amber)
+## Phase C: Retro Terminal (+ Amber) (done 2026-10-22)
 
 - **Folders:** `themes/retro-terminal/` and `themes/retro-terminal-amber/`. Amber `@import`s the shared CSS from the green theme by a relative URL served through the theme route. Each folder carries its own `LICENSES.md`.
 - **Font:** a bundled OFL monospace font in `.woff2`.

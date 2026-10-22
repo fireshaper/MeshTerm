@@ -669,6 +669,17 @@ State: `typecheck`, `lint`, `test` (810, 1 skipped), `test:e2e` green.
 
 State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test` (818, 1 skipped), `test:e2e` green apart from one mobile dashboard activity-feed run that passed 3/3 on its own (watching it).
 
+### CR-004 Phase C: Retro Terminal and Retro Terminal Amber (done 2026-10-22)
+
+- **Themes:** `themes/retro-terminal/` (green) and `themes/retro-terminal-amber/` (imports the green CSS, overrides nine colors). Monospace everywhere (IBM Plex Mono, OFL, bundled), square corners, no shadows or motion, reverse-video titles, one hue with brightness steps and symbols for status, terminal beeps. All text ≥ 5.5:1 contrast in both (checked against every background the palette uses).
+- **Log-line messages from CSS:** `[17:22] <RDG> text`, `> <MTB>` for ours, `[..] [->] [~>] [ok] [!!]` delivery marks, `--- Thu, Oct 22 ---` day separators; `#channel`, `@peer`, `(3)` in the list; `[#####-----]` batteries; `*** RDG · …` toasts.
+- **Hooks added for this (Phase B gaps):** `message-time-relative` / `message-time-clock` and `day-separator` (hidden in Default, so its baselines didn't change).
+- **Charts:** `--mt-chart-N-dash` tokens read by the chart bridge; Retro tells series apart by dashes.
+- **Not done here:** the base map stays in OpenStreetMap colors until Phase E's `map-style.json` (node dots, labels and mini-map tiles already follow the theme); effects (`crt`, `scanlines`) arrive with Phase D; reactions aren't rendered in threads yet (Messages Phase 4), so there's no `* K7AB reacted` line.
+- **Tests:** e2e (both selectable, the font loads, clock time shown and relative time hidden, `[` / `<` / delivery marks from CSS), `parseDash`, and a guard that no app source names a theme id. Appearance baselines updated (win32 + linux).
+
+State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test` (825, 1 skipped), `test:e2e` green.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

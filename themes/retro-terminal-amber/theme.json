@@ -1,0 +1,15 @@
+{
+  "id": "retro-terminal-amber",
+  "name": "Retro Terminal Amber",
+  "author": "MeshTerm",
+  "version": "1.0.0",
+  "description": "Retro Terminal in amber phosphor.",
+  "colorScheme": "dark",
+  "preview": { "bg": "#0a0600", "surface": "#140d02", "accent": "#ffd27a", "text": "#ffb000" },
+  "sounds": {
+    "message": "sounds/message.wav",
+    "mention": "sounds/mention.wav",
+    "channel": "sounds/channel.wav"
+  },
+  "effects": ["crt", "scanlines"]
+}

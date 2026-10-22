@@ -249,3 +249,42 @@ test("THEMING.md's first-theme walkthrough produces a working theme", async ({ p
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("Retro Terminal and its Amber variant: selectable, bundled font, log-line messages", async ({
+  page,
+}) => {
+  await openAppearance(page);
+  await card(page, /^Retro Terminal Amber/).click();
+  await expect.poll(() => bodyBg(page)).toBe("rgb(10, 6, 0)");
+  await card(page, /^Retro Terminal(?! Amber)/).click();
+  await expect.poll(() => bodyBg(page)).toBe("rgb(3, 8, 3)");
+  await expect
+    .poll(() => page.evaluate(() => document.fonts.check('16px "IBM Plex Mono"')))
+    .toBe(true);
+
+  // Messages as log lines, from CSS alone: [10:04] <RDG> text, with a delivery mark.
+  await node.injectText(RIDGE, { channel: 0 }, "log line check");
+  await page.goto(`${BASE}/messages/channel/0`);
+  const message = page.locator("[data-mt=message]", { hasText: "log line check" });
+  await expect(message).toBeVisible();
+  await expect(message.locator("[data-mt=message-time-relative]")).toBeHidden();
+  await expect(message.locator("[data-mt=message-time-clock]")).toHaveText(/^\d\d:\d\d$/);
+  const pseudo = (selector: string, which: "::before" | "::after") =>
+    message.locator(selector).evaluate((el, w) => getComputedStyle(el, w).content, which);
+  expect(await pseudo("[data-mt=message-time-clock]", "::before")).toBe('"["');
+  expect(await pseudo("[data-mt=message-sender]", "::before")).toBe('"<"');
+  await page.locator("[data-mt=composer-input]").fill("retro out");
+  await page.locator("[data-mt=send-button]").click();
+  const out = page.locator("[data-mt=message][data-mt-variant=out]", { hasText: "retro out" });
+  await expect
+    .poll(() =>
+      out
+        .locator("[data-mt=message-status]")
+        .evaluate((el) => getComputedStyle(el, "::after").content),
+    )
+    .toMatch(/^"\[(\.\.|->|~>|ok)\]"$/);
+
+  await openAppearance(page);
+  await card(page, /^Default/).click();
+  await expect.poll(() => bodyBg(page)).toBe(DEFAULT_DARK_BG);
+});

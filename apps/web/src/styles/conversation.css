@@ -53,6 +53,12 @@
     color: var(--mt-bubble-out-text);
   }
 
+  /* Hooks for themes that show clock times and day separators (CR-004); off in Default. */
+  [data-mt="message-time-clock"],
+  [data-mt="day-separator"] {
+    display: none;
+  }
+
   [data-mt="message-meta"] {
     display: flex;
     gap: var(--mt-space-2);

@@ -61,6 +61,8 @@ my-theme/
 | `effects`       | no       | Which effects the theme draws: any of `scanlines`, `glow`, `crt`, `noise`, `flicker`. See [Effects](#effects).                                  |
 | `minAppVersion` | no       | The oldest MeshTerm it's made for; older versions show a warning to admins.                                                                     |
 
+A theme can build on another one: Retro Terminal Amber is a single file that starts with `@import url("../retro-terminal/theme.css");` and then changes nine color variables. Paths in `url()` and `@import` are relative to the CSS file and must stay on MeshTerm.
+
 Every path in the manifest is relative to the theme folder: `fonts/x.woff2`, not `./fonts/x.woff2`, `/fonts/x.woff2` or a URL. Every file it names must exist.
 
 ### What a theme may contain
@@ -77,10 +79,10 @@ If a theme makes MeshTerm unusable, add `?theme=default` to the address (for exa
 
 ## Where to put it
 
-| Where           | In the container     | Notes                                                                                       |
-| --------------- | -------------------- | ------------------------------------------------------------------------------------------- |
-| Built-in themes | `/app/themes/`       | Part of the image: Default (and later Retro Terminal and Cyberpunk). Updated with MeshTerm. |
-| Your themes     | `/data/themes/<id>/` | Created on first start. Survives updates, because `/data` is your volume.                   |
+| Where           | In the container     | Notes                                                                                                             |
+| --------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Built-in themes | `/app/themes/`       | Part of the image: Default, Retro Terminal and Retro Terminal Amber (Cyberpunk is coming). Updated with MeshTerm. |
+| Your themes     | `/data/themes/<id>/` | Created on first start. Survives updates, because `/data` is your volume.                                         |
 
 - **Hot reload.** MeshTerm watches `/data/themes`. A new folder appears in the picker within about 2 seconds, and saving a theme's CSS restyles every browser using it, without a reload. On a network share (NFS, SMB) or some bind mounts, file events don't arrive: set `MESHTERM_THEMES_POLL=1` to check by polling instead.
 - **Changing a built-in.** Don't edit built-ins in the image. Instead, as an admin, open **Settings → Appearance**, select the theme and press **Duplicate … as a user theme**: MeshTerm copies it to `/data/themes/<new-id>/` for you to edit. A user theme with the same id as a built-in replaces it, but only while it's valid; a broken copy never hides the built-in.
@@ -138,6 +140,8 @@ You change MeshTerm in two ways:
 - **Tokens** are CSS custom properties named `--mt-*`, set on `:root`. Components use only tokens for colors, fonts, sizes, radii and shadows, so changing a token changes everything that uses it. Start here. The [token reference](#token-reference) lists them all.
 - **Hooks** are `data-mt` attributes on every meaningful element, so you can restyle a specific part: `[data-mt="toast"]`, `[data-mt="node-card"]`. Many also carry a runtime state (`data-mt-state`, for example `active`, `unread`, `failed`) and a static variant (`data-mt-variant`, for example `dm`, `channel`). The [hook reference](#hook-reference) lists them all.
 
+Some hooks exist mainly for themes and are hidden in Default: `message-time-clock` (a message's clock time, next to the relative `message-time-relative`) and `day-separator` (above the first message of each day). Retro Terminal uses them for its `[10:04] <K7AB> text` log lines.
+
 Hooks are a public API: MeshTerm doesn't rename or remove them without calling it a breaking change. Class names and the HTML structure inside components can change, so don't rely on them.
 
 `<html>` also tells you which theme and mode are showing: `data-mt-theme="<id>"` and `data-mt-mode="light"` or `"dark"`.
@@ -171,7 +175,7 @@ Putting the dark values on plain `:root` as well gives a complete palette even b
 The map page and the telemetry charts draw on a canvas, which CSS can't style. MeshTerm reads their colors from tokens instead, and reads them again whenever the theme or mode changes:
 
 - **Map:** `--mt-map-node-online` / `-recent` / `-stale` / `-offline` (dots), `--mt-map-label`, `--mt-map-label-halo`, `--mt-map-cluster-bg`, `--mt-map-cluster-text`, `--mt-font-map`.
-- **Charts:** `--mt-chart-1` … `--mt-chart-6` (series), `--mt-chart-grid`, `--mt-chart-axis`, `--mt-chart-crosshair`, `--mt-chart-band-alpha`, `--mt-chart-threshold-warn` / `-danger`, `--mt-chart-powered`, `--mt-chart-reboot`.
+- **Charts:** `--mt-chart-1` … `--mt-chart-6` (series), `--mt-chart-1-dash` … `-6-dash` (a dash pattern such as `6 3`, or `none`: useful when every series is the same hue, as in Retro Terminal), `--mt-chart-grid`, `--mt-chart-axis`, `--mt-chart-crosshair`, `--mt-chart-band-alpha`, `--mt-chart-threshold-warn` / `-danger`, `--mt-chart-powered`, `--mt-chart-reboot`.
 
 Any CSS color works (`#hex`, `rgb()`, `oklch()`, `var(--mt-accent)`, `color-mix()`). Sparklines and the mini maps on node cards are SVG and HTML: they follow tokens directly, and mini-map tiles can be restyled with `filter` on `[data-mt="mini-map-tiles"]`.
 
@@ -310,22 +314,28 @@ How recently a node was heard (status dots).
 
 Sparklines, dashboard charts and telemetry charts (canvas: read through chart-tokens.ts).
 
-| Token                         | Default (dark) | Default (light) | Without a theme                                               | Used for                                            |
-| ----------------------------- | -------------- | --------------- | ------------------------------------------------------------- | --------------------------------------------------- |
-| `--mt-chart-1`                | `#55a8ff`      | `#2563eb`       | `var(--mt-accent)`                                            | first series; sparklines                            |
-| `--mt-chart-2`                | `#35d49a`      | `#15803d`       | `var(--mt-status-ok)`                                         |                                                     |
-| `--mt-chart-3`                | `#a78bfa`      | `#7c3aed`       | `var(--mt-accent)`                                            |                                                     |
-| `--mt-chart-4`                | `#f472b6`      | `#db2777`       | `var(--mt-status-warn)`                                       |                                                     |
-| `--mt-chart-5`                | `#5b6878`      | `#9ca3af`       | `var(--mt-text-muted)`                                        | "other" in packet-type charts                       |
-| `--mt-chart-6`                | `#f5b84b`      | `#b45309`       | `var(--mt-status-info)`                                       |                                                     |
-| `--mt-chart-grid`             | —              | —               | `color-mix(in srgb, var(--mt-border-color) 60%, transparent)` |                                                     |
-| `--mt-chart-axis`             | —              | —               | `var(--mt-text-muted)`                                        |                                                     |
-| `--mt-chart-crosshair`        | —              | —               | `var(--mt-text-muted)`                                        |                                                     |
-| `--mt-chart-band-alpha`       | —              | —               | `0.2`                                                         | opacity of min–max bands and the Powered band (0–1) |
-| `--mt-chart-threshold-warn`   | —              | —               | `var(--mt-status-warn)`                                       |                                                     |
-| `--mt-chart-threshold-danger` | —              | —               | `var(--mt-status-error)`                                      |                                                     |
-| `--mt-chart-powered`          | —              | —               | `var(--mt-status-ok)`                                         | external power band                                 |
-| `--mt-chart-reboot`           | —              | —               | `var(--mt-status-warn)`                                       | reboot markers                                      |
+| Token                         | Default (dark) | Default (light) | Without a theme                                               | Used for                                                   |
+| ----------------------------- | -------------- | --------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
+| `--mt-chart-1`                | `#55a8ff`      | `#2563eb`       | `var(--mt-accent)`                                            | first series; sparklines                                   |
+| `--mt-chart-2`                | `#35d49a`      | `#15803d`       | `var(--mt-status-ok)`                                         |                                                            |
+| `--mt-chart-3`                | `#a78bfa`      | `#7c3aed`       | `var(--mt-accent)`                                            |                                                            |
+| `--mt-chart-4`                | `#f472b6`      | `#db2777`       | `var(--mt-status-warn)`                                       |                                                            |
+| `--mt-chart-5`                | `#5b6878`      | `#9ca3af`       | `var(--mt-text-muted)`                                        | "other" in packet-type charts                              |
+| `--mt-chart-6`                | `#f5b84b`      | `#b45309`       | `var(--mt-status-info)`                                       |                                                            |
+| `--mt-chart-grid`             | —              | —               | `color-mix(in srgb, var(--mt-border-color) 60%, transparent)` |                                                            |
+| `--mt-chart-axis`             | —              | —               | `var(--mt-text-muted)`                                        |                                                            |
+| `--mt-chart-crosshair`        | —              | —               | `var(--mt-text-muted)`                                        |                                                            |
+| `--mt-chart-band-alpha`       | —              | —               | `0.2`                                                         | opacity of min–max bands and the Powered band (0–1)        |
+| `--mt-chart-threshold-warn`   | —              | —               | `var(--mt-status-warn)`                                       |                                                            |
+| `--mt-chart-threshold-danger` | —              | —               | `var(--mt-status-error)`                                      |                                                            |
+| `--mt-chart-powered`          | —              | —               | `var(--mt-status-ok)`                                         | external power band                                        |
+| `--mt-chart-reboot`           | —              | —               | `var(--mt-status-warn)`                                       | reboot markers                                             |
+| `--mt-chart-1-dash`           | —              | —               | `none`                                                        | telemetry chart line dashes ("6 3"), for single-hue themes |
+| `--mt-chart-2-dash`           | —              | —               | `none`                                                        |                                                            |
+| `--mt-chart-3-dash`           | —              | —               | `none`                                                        |                                                            |
+| `--mt-chart-4-dash`           | —              | —               | `none`                                                        |                                                            |
+| `--mt-chart-5-dash`           | —              | —               | `none`                                                        |                                                            |
+| `--mt-chart-6-dash`           | —              | —               | `none`                                                        |                                                            |
 
 ### Mini maps
 
@@ -591,56 +601,59 @@ Every `data-mt` hook, grouped by where it appears. "From data" means the value c
 
 ### Messages
 
-| `data-mt`                    | Element                                                          | `data-mt-state`                                    | `data-mt-variant`                     |
-| ---------------------------- | ---------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------- |
-| `conversation-hash`          | Row parts                                                        |                                                    |                                       |
-| `conversation-item`          |                                                                  |                                                    |                                       |
-| `conversation-list`          | Conversation list and its toolbar                                |                                                    |                                       |
-| `conversation-list-loading`  |                                                                  |                                                    |                                       |
-| `conversation-long-name`     | Row parts                                                        |                                                    |                                       |
-| `conversation-menu-button`   |                                                                  |                                                    |                                       |
-| `conversation-meta`          |                                                                  |                                                    |                                       |
-| `conversation-name`          | Row parts                                                        |                                                    |                                       |
-| `conversation-preview`       | Row parts                                                        |                                                    |                                       |
-| `conversation-preview-text`  | Row parts                                                        |                                                    |                                       |
-| `conversation-row`           | One conversation (link)                                          | `active`, `idle`, `muted`, `unread`, … (from data) | `channel`, `dm`                       |
-| `conversation-rows`          | A list section                                                   |                                                    |                                       |
-| `conversation-search`        | Conversation list and its toolbar                                |                                                    |                                       |
-| `conversation-section`       | A list section                                                   |                                                    | `channels`, `dms`                     |
-| `conversation-section-empty` | A list section                                                   |                                                    |                                       |
-| `conversation-section-title` | A list section                                                   |                                                    |                                       |
-| `conversation-short-name`    | Row parts                                                        |                                                    |                                       |
-| `conversation-time`          | Row parts                                                        |                                                    |                                       |
-| `conversation-toolbar`       | Conversation list and its toolbar                                |                                                    |                                       |
-| `encryption-badge`           | Encryption of the conversation                                   |                                                    | `channel`, `none`, `pki`              |
-| `mention-marker`             |                                                                  |                                                    |                                       |
-| `messages-view`              | Messages page                                                    | `list`, `thread`                                   |                                       |
-| `new-dm-button`              | Conversation list and its toolbar                                |                                                    |                                       |
-| `node-picker`                | New DM picker (dialog)                                           |                                                    |                                       |
-| `node-picker-empty`          | New DM picker (dialog)                                           |                                                    |                                       |
-| `node-picker-header`         | New DM picker (dialog)                                           |                                                    |                                       |
-| `node-picker-item`           | One node                                                         | `favorite`, `normal`                               |                                       |
-| `node-picker-list`           | New DM picker (dialog)                                           |                                                    |                                       |
-| `node-picker-long`           | New DM picker (dialog)                                           |                                                    |                                       |
-| `node-picker-meta`           | New DM picker (dialog)                                           |                                                    |                                       |
-| `node-picker-names`          | New DM picker (dialog)                                           |                                                    |                                       |
-| `node-picker-search`         | New DM picker (dialog)                                           |                                                    |                                       |
-| `node-picker-short`          | New DM picker (dialog)                                           |                                                    |                                       |
-| `node-picker-title`          | New DM picker (dialog)                                           |                                                    |                                       |
-| `node-picker-warning`        | Why a DM might not go as expected                                |                                                    | `no-key`, `quiet`, … (from data)      |
-| `show-ignored`               |                                                                  |                                                    |                                       |
-| `thread`                     | Thread pane and the open conversation                            |                                                    | `channel`, `dm`                       |
-| `thread-back`                | Thread header (Back shows below 768 px; ⓘ opens the node drawer) |                                                    |                                       |
-| `thread-details`             | Thread header (Back shows below 768 px; ⓘ opens the node drawer) |                                                    |                                       |
-| `thread-empty`               | Thread pane and the open conversation                            |                                                    |                                       |
-| `thread-header`              | Thread header (Back shows below 768 px; ⓘ opens the node drawer) |                                                    | `channel`, `dm`                       |
-| `thread-heading`             | Thread header (Back shows below 768 px; ⓘ opens the node drawer) |                                                    |                                       |
-| `thread-info`                | Thread header (Back shows below 768 px; ⓘ opens the node drawer) |                                                    |                                       |
-| `thread-pane`                | Thread pane and the open conversation                            |                                                    |                                       |
-| `thread-pill`                | Channel role                                                     |                                                    | `primary`, `secondary`, … (from data) |
-| `thread-subtitle`            | Thread header (Back shows below 768 px; ⓘ opens the node drawer) |                                                    |                                       |
-| `thread-title`               | Thread header (Back shows below 768 px; ⓘ opens the node drawer) |                                                    |                                       |
-| `unread-badge`               |                                                                  |                                                    | `muted`                               |
+| `data-mt`                    | Element                                                                  | `data-mt-state`                                    | `data-mt-variant`                     |
+| ---------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------- | ------------------------------------- |
+| `conversation-hash`          | Row parts                                                                |                                                    |                                       |
+| `conversation-item`          |                                                                          |                                                    |                                       |
+| `conversation-list`          | Conversation list and its toolbar                                        |                                                    |                                       |
+| `conversation-list-loading`  |                                                                          |                                                    |                                       |
+| `conversation-long-name`     | Row parts                                                                |                                                    |                                       |
+| `conversation-menu-button`   |                                                                          |                                                    |                                       |
+| `conversation-meta`          |                                                                          |                                                    |                                       |
+| `conversation-name`          | Row parts                                                                |                                                    |                                       |
+| `conversation-preview`       | Row parts                                                                |                                                    |                                       |
+| `conversation-preview-text`  | Row parts                                                                |                                                    |                                       |
+| `conversation-row`           | One conversation (link)                                                  | `active`, `idle`, `muted`, `unread`, … (from data) | `channel`, `dm`                       |
+| `conversation-rows`          | A list section                                                           |                                                    |                                       |
+| `conversation-search`        | Conversation list and its toolbar                                        |                                                    |                                       |
+| `conversation-section`       | A list section                                                           |                                                    | `channels`, `dms`                     |
+| `conversation-section-empty` | A list section                                                           |                                                    |                                       |
+| `conversation-section-title` | A list section                                                           |                                                    |                                       |
+| `conversation-short-name`    | Row parts                                                                |                                                    |                                       |
+| `conversation-time`          | Row parts                                                                |                                                    |                                       |
+| `conversation-toolbar`       | Conversation list and its toolbar                                        |                                                    |                                       |
+| `day-separator`              | Above a day's first message (Tue 20 Oct); hidden unless a theme shows it |                                                    |                                       |
+| `encryption-badge`           | Encryption of the conversation                                           |                                                    | `channel`, `none`, `pki`              |
+| `mention-marker`             |                                                                          |                                                    |                                       |
+| `message-time-clock`         | Message time: clock (10:04); hidden unless a theme shows it              |                                                    |                                       |
+| `message-time-relative`      | Message time: relative (2 minutes ago)                                   |                                                    |                                       |
+| `messages-view`              | Messages page                                                            | `list`, `thread`                                   |                                       |
+| `new-dm-button`              | Conversation list and its toolbar                                        |                                                    |                                       |
+| `node-picker`                | New DM picker (dialog)                                                   |                                                    |                                       |
+| `node-picker-empty`          | New DM picker (dialog)                                                   |                                                    |                                       |
+| `node-picker-header`         | New DM picker (dialog)                                                   |                                                    |                                       |
+| `node-picker-item`           | One node                                                                 | `favorite`, `normal`                               |                                       |
+| `node-picker-list`           | New DM picker (dialog)                                                   |                                                    |                                       |
+| `node-picker-long`           | New DM picker (dialog)                                                   |                                                    |                                       |
+| `node-picker-meta`           | New DM picker (dialog)                                                   |                                                    |                                       |
+| `node-picker-names`          | New DM picker (dialog)                                                   |                                                    |                                       |
+| `node-picker-search`         | New DM picker (dialog)                                                   |                                                    |                                       |
+| `node-picker-short`          | New DM picker (dialog)                                                   |                                                    |                                       |
+| `node-picker-title`          | New DM picker (dialog)                                                   |                                                    |                                       |
+| `node-picker-warning`        | Why a DM might not go as expected                                        |                                                    | `no-key`, `quiet`, … (from data)      |
+| `show-ignored`               |                                                                          |                                                    |                                       |
+| `thread`                     | Thread pane and the open conversation                                    |                                                    | `channel`, `dm`                       |
+| `thread-back`                | Thread header (Back shows below 768 px; ⓘ opens the node drawer)         |                                                    |                                       |
+| `thread-details`             | Thread header (Back shows below 768 px; ⓘ opens the node drawer)         |                                                    |                                       |
+| `thread-empty`               | Thread pane and the open conversation                                    |                                                    |                                       |
+| `thread-header`              | Thread header (Back shows below 768 px; ⓘ opens the node drawer)         |                                                    | `channel`, `dm`                       |
+| `thread-heading`             | Thread header (Back shows below 768 px; ⓘ opens the node drawer)         |                                                    |                                       |
+| `thread-info`                | Thread header (Back shows below 768 px; ⓘ opens the node drawer)         |                                                    |                                       |
+| `thread-pane`                | Thread pane and the open conversation                                    |                                                    |                                       |
+| `thread-pill`                | Channel role                                                             |                                                    | `primary`, `secondary`, … (from data) |
+| `thread-subtitle`            | Thread header (Back shows below 768 px; ⓘ opens the node drawer)         |                                                    |                                       |
+| `thread-title`               | Thread header (Back shows below 768 px; ⓘ opens the node drawer)         |                                                    |                                       |
+| `unread-badge`               |                                                                          |                                                    | `muted`                               |
 
 ### Node drawer
 

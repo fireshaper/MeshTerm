@@ -393,6 +393,10 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     area: "Dashboard and nodes",
     element: "Loading, error, no nodes yet, nothing matches",
   },
+  "day-separator": {
+    area: "Messages",
+    element: "Above a day's first message (Tue 20 Oct); hidden unless a theme shows it",
+  },
   "detail-age": { area: "Node drawer", element: "Drawer contents" },
   "detail-field": {
     area: "Node drawer",
@@ -557,6 +561,11 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   },
   "message-text": { area: "Shared", element: "Parts of a message" },
   "message-time": { area: "Shared", element: "Parts of a message" },
+  "message-time-clock": {
+    area: "Messages",
+    element: "Message time: clock (10:04); hidden unless a theme shows it",
+  },
+  "message-time-relative": { area: "Messages", element: "Message time: relative (2 minutes ago)" },
   "messages-view": { area: "Messages", element: "Messages page", states: ["list", "thread"] },
   "metric-card": {
     area: "Dashboard and nodes",

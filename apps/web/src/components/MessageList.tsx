@@ -7,7 +7,7 @@ import { loadOlder, useConversation, useNodes } from "../data/queries.js";
 import { useMarkRead } from "../messages/unread.js";
 import { useNotifyCenter } from "../notifications/center.js";
 import { useMentionTerms } from "../notifications/mention-terms.js";
-import { MessageItem, senderName } from "./MessageItem.js";
+import { dayLabel, MessageItem, senderName } from "./MessageItem.js";
 import { useNow } from "./useNow.js";
 
 /** How close to an edge (px) counts as "at the top" / "at the bottom". */
@@ -140,6 +140,9 @@ export function MessageList({ connectionId, conversation }: MessageListProps) {
         {items.map((item) => {
           const message = messages[item.index];
           if (!message) return null;
+          const previous = messages[item.index - 1];
+          const day = dayLabel(message.rxTime);
+          const newDay = !previous || dayLabel(previous.rxTime) !== day;
           return (
             <div
               key={item.key}
@@ -148,6 +151,8 @@ export function MessageList({ connectionId, conversation }: MessageListProps) {
               data-mt="message-row"
               style={{ transform: `translateY(${item.start}px)` }}
             >
+              {/* Where a new day starts; hidden by default, some themes show it. */}
+              {newDay && <p data-mt="day-separator">{day}</p>}
               <MessageItem
                 message={message}
                 sender={senderName(message.fromNum, nodes)}

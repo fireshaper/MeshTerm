@@ -88,6 +88,12 @@
     --mt-chart-threshold-danger: var(--mt-status-error);
     --mt-chart-powered: var(--mt-status-ok); /* external power band */
     --mt-chart-reboot: var(--mt-status-warn); /* reboot markers */
+    --mt-chart-1-dash: none; /* telemetry chart line dashes ("6 3"), for single-hue themes */
+    --mt-chart-2-dash: none;
+    --mt-chart-3-dash: none;
+    --mt-chart-4-dash: none;
+    --mt-chart-5-dash: none;
+    --mt-chart-6-dash: none;
 
     /* @group Mini maps: the static maps on node cards */
     --mt-mini-map-height: 10rem;

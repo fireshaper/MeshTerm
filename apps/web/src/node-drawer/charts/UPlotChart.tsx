@@ -79,16 +79,20 @@ function buildOptions(
   const font = `11px ${tokens.font}`;
   const stroke = (line: ChartLine) =>
     tokens.series[line.color % tokens.series.length] ?? tokens.axis;
+  const dash = (line: ChartLine) =>
+    line.bars ? null : (tokens.dashes[line.color % tokens.dashes.length] ?? null);
   const { bars, stepped } = uPlot.paths;
   const series: uPlot.Series[] = [{}];
   const bands: uPlot.Band[] = [];
   for (const line of spec.lines) {
     const color = stroke(line);
+    const lineDash = dash(line);
     series.push({
       label: line.label,
       scale: line.scale ?? "y",
       stroke: color,
       width: 1.5,
+      ...(lineDash ? { dash: lineDash } : {}),
       spanGaps: false,
       points: { show: false },
       ...(line.bars && bars

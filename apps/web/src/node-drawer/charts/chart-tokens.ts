@@ -6,6 +6,8 @@
 export interface ChartTokens {
   /** `--mt-chart-1` … `--mt-chart-6`. */
   series: string[];
+  /** `--mt-chart-1-dash` … `-6-dash`: a line dash pattern per series, null for solid (CR-004). */
+  dashes: (number[] | null)[];
   grid: string;
   axis: string;
   crosshair: string;
@@ -20,6 +22,7 @@ export interface ChartTokens {
 
 const FALLBACK: ChartTokens = {
   series: ["#55a8ff", "#35d49a", "#a78bfa", "#f472b6", "#5b6878", "#f5b84b"],
+  dashes: [null, null, null, null, null, null],
   grid: "#26303d",
   axis: "#8b98a8",
   crosshair: "#8b98a8",
@@ -47,6 +50,9 @@ export function readChartTokens(root: HTMLElement = document.documentElement): C
     const alpha = Number.parseFloat(style.getPropertyValue("--mt-chart-band-alpha"));
     return {
       series: FALLBACK.series.map((f, i) => color(`--mt-chart-${i + 1}`, f)),
+      dashes: FALLBACK.series.map((_, i) =>
+        parseDash(style.getPropertyValue(`--mt-chart-${i + 1}-dash`)),
+      ),
       grid: color("--mt-chart-grid", FALLBACK.grid),
       axis: color("--mt-chart-axis", FALLBACK.axis),
       crosshair: color("--mt-chart-crosshair", FALLBACK.crosshair),
@@ -60,6 +66,16 @@ export function readChartTokens(root: HTMLElement = document.documentElement): C
   } finally {
     probe.remove();
   }
+}
+
+/** "6 3" → [6, 3]; empty, `none` or anything else → null (a solid line). */
+export function parseDash(value: string): number[] | null {
+  const parts = value
+    .trim()
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .map(Number);
+  return parts.length > 0 && parts.every((n) => Number.isFinite(n) && n >= 0) ? parts : null;
 }
 
 /** `rgb(…)`/`rgba(…)`/`#rrggbb` with a new alpha, for canvas fills (bands, shading). */

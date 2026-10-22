@@ -19,6 +19,20 @@ export const STATUS_LABELS: Record<MessageStatus, string> = {
 };
 
 /** A DM our node heard rebroadcast, without an ACK from its recipient (yet). */
+/** "10:04": a message's local time of day, 24-hour. */
+export function clockTime(at: number): string {
+  return new Date(at).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+}
+
+/** "Tue 20 Oct": the day a message is from, for day separators. */
+export function dayLabel(at: number): string {
+  return new Date(at).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
+}
+
 export const RELAYED_HINT =
   "The mesh relayed it, but the recipient hasn't confirmed it. It may still arrive, or it may not reach them.";
 
@@ -65,7 +79,11 @@ export const MessageItem = memo(function MessageItem({
           dateTime={new Date(rxTime).toISOString()}
           title={new Date(rxTime).toLocaleString()}
         >
-          {formatDistanceStrict(rxTime, Math.max(now, rxTime), { addSuffix: true })}
+          <span data-mt="message-time-relative">
+            {formatDistanceStrict(rxTime, Math.max(now, rxTime), { addSuffix: true })}
+          </span>
+          {/* For themes that show clock times (Retro's log lines); hidden by default. */}
+          <span data-mt="message-time-clock">{clockTime(rxTime)}</span>
         </time>
       </header>
       <p data-mt="message-text">

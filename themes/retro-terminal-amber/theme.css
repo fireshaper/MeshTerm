@@ -1,0 +1,19 @@
+/*
+ * Retro Terminal Amber (CR-004 Phase C): Retro Terminal with amber phosphor. Everything
+ * but the colors comes from the green theme's stylesheet.
+ */
+@import url("../retro-terminal/theme.css");
+
+@layer theme {
+  :root {
+    --rt-bg: #0a0600;
+    --rt-panel: #140d02;
+    --rt-well: #060400;
+    --rt-raised: #1c1304;
+    --rt-line: #86601a;
+    --rt-dim: #c88a1e;
+    --rt-text: #ffb000;
+    --rt-bright: #ffe7b3;
+    --rt-hot: #ffd27a;
+  }
+}
