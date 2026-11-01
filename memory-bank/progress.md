@@ -710,6 +710,12 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` 
 
 State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` (PR set) and `test:visual` (full set) green.
 
+### CR-005: Field Kit redesign planned (2026-11-01)
+
+- Four visual directions were mocked up as artifacts (Ops Console, Field Kit, Spectrum, Beacon); the user picked **Field Kit**, kept everything in it and asked for all three accents (signal orange, amber, moss).
+- The Field Kit mockup was extended to every main screen (Overview, Messages, Map, Nodes, node drawer, Settings with LoRa and the apply flow) and saved in `memory-bank/mockups/field-kit/` (excluded from Prettier and ESLint).
+- CR: [cr-005-field-kit.md](cr-005-field-kit.md); plan: [cr-005-plan.md](cr-005-plan.md), phases K0–K7. Open questions in CR §12 are built with their defaults unless the user answers otherwise.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.
