@@ -21,6 +21,22 @@ export interface ThemeHook {
 }
 
 export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
+  "accent-option": {
+    area: "Settings",
+    element: "One accent choice (CR-005); the variant is the accent id",
+    states: ["active", "idle"],
+    variants: ["orange", "amber", "moss"],
+    openVariants: true,
+  },
+  "accent-options": { area: "Settings", element: "The accent choices (radiogroup)" },
+  "accent-picker": {
+    area: "Settings",
+    element: "Settings → Appearance: Accent, for themes that offer accents (CR-005)",
+  },
+  "accent-swatch": {
+    area: "Settings",
+    element: "An accent's color dot (`--mt-swatch-accent`)",
+  },
   "activity-error": { area: "Dashboard and nodes" },
   "activity-feed": { area: "Dashboard and nodes", element: "Activity feed" },
   "activity-icon": { area: "Dashboard and nodes", element: "Activity feed" },

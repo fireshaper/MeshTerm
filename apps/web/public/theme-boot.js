@@ -48,6 +48,27 @@
           : "light"
         : pref;
   root.setAttribute("data-mt-mode", mode);
+  // Accent (CR-005 §7): `?accent=<id>` for this load, else the one saved for this theme.
+  // A theme without accents ignores the attribute; the app removes it once it loads.
+  var accentId = /^[a-z0-9-]{1,20}$/;
+  var accent = null;
+  try {
+    accent = new URLSearchParams(location.search).get("accent");
+  } catch {
+    accent = null;
+  }
+  var themeId = root.getAttribute("data-mt-theme");
+  if (accent && accentId.test(accent)) {
+    root.setAttribute("data-mt-accent", accent);
+    root.setAttribute("data-mt-accent-forced", "");
+  } else if (
+    saved &&
+    saved.accents &&
+    typeof saved.accents[themeId] === "string" &&
+    accentId.test(saved.accents[themeId])
+  ) {
+    root.setAttribute("data-mt-accent", saved.accents[themeId]);
+  }
   var meta = document.querySelector('meta[name="color-scheme"]');
   if (meta) meta.setAttribute("content", mode);
   // Effects (CR-004 §7): the saved theme's, unless turned off here or under more contrast;

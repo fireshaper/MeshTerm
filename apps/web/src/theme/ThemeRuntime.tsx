@@ -1,15 +1,18 @@
 import type { ServerMessageOf, ThemeDTO, ThemeMapStyle } from "@meshterm/shared";
 import { useQuery, type QueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../data/api.js";
 import { queryKeys } from "../data/keys.js";
 import { miniMapLook } from "../map/map-style.js";
 import { useThemeStore } from "./store.js";
 import {
   activeEffects,
+  applyAccent,
   applyTheme,
+  forcedAccentId,
   forcedThemeId,
   pickTheme,
+  resolveAccent,
   resolveMode,
   saveTheme,
   type StylesheetLoader,
@@ -30,6 +33,13 @@ export function useActiveTheme(): ThemeDTO | null {
   const chosenId = useThemeStore((s) => s.chosenId);
   const [forced] = useState(forcedThemeId);
   return data ? pickTheme(data.themes, [forced, chosenId, data.defaultId]) : null;
+}
+
+/** The accent in use for a theme: `?accent=`, this browser's pick, else the theme's first. */
+export function useThemeAccent(theme: ThemeDTO | null): string | null {
+  const picked = useThemeStore((s) => (theme ? s.accents[theme.id] : undefined));
+  const [forced] = useState(forcedAccentId);
+  return resolveAccent(theme?.manifest, forced ?? picked);
 }
 
 /** `theme.changed` (a theme in /data/themes changed): reload the list; the runtime re-applies. */
@@ -96,11 +106,19 @@ export function ThemeRuntime({ load }: { load?: StylesheetLoader }) {
   const scheme = theme?.manifest?.colorScheme ?? "auto";
   const mode = resolveMode(scheme, modePref, systemDark);
   const persist = theme !== null && forced === null && previewId === null;
+  const accent = useThemeAccent(theme);
+  const accentRef = useRef(accent);
+  useEffect(() => {
+    accentRef.current = accent;
+  });
+  const applied = useRef<string | null>(null);
 
   useEffect(() => {
     if (!theme) return;
     let cancelled = false;
-    void applyTheme(theme, mode, load).then((ok) => {
+    applied.current = null;
+    void applyTheme(theme, mode, load, () => accentRef.current).then((ok) => {
+      if (ok && !cancelled) applied.current = theme.id;
       if (cancelled || !ok || !persist) return;
       saveTheme({
         id: theme.id,
@@ -110,6 +128,7 @@ export function ThemeRuntime({ load }: { load?: StylesheetLoader }) {
         mode: modePref,
         chosen: chosenId === theme.id,
         effects: [...(theme.manifest?.effects ?? [])],
+        accents: useThemeStore.getState().accents,
       });
     });
     return () => {
@@ -119,8 +138,15 @@ export function ThemeRuntime({ load }: { load?: StylesheetLoader }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme?.id, theme?.hash, mode, persist, modePref, chosenId, scheme, load]);
 
+  // A new accent for the theme already in place: no stylesheet work, just the attribute.
+  useEffect(() => {
+    if (theme && applied.current === theme.id) applyAccent(theme.id, mode, accent);
+    // Only accent changes; theme and mode changes go through applyTheme above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accent]);
+
   // The theme's base-map style (CR-004 §8.3): for the map page, and as CSS for mini maps.
-  const mapStyleFile = theme?.manifest?.mapStyle ?? null;
+  const mapStyleFile = theme?.manifest?.mapStyleModes?.[mode] ?? theme?.manifest?.mapStyle ?? null;
   const themeId = theme?.id ?? null;
   const themeHash = theme?.hash ?? null;
   useEffect(() => {

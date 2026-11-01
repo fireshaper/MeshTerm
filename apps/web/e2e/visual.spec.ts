@@ -86,12 +86,13 @@ interface VisualTheme {
   theme?: string;
   mode?: "dark" | "light";
   effects?: boolean;
+  accent?: string;
 }
 const visualTheme = () => test.info().project.metadata as VisualTheme;
 
 test.beforeEach(async ({ page }) => {
-  const { theme = "default", mode = "dark", effects = false } = visualTheme();
-  await useTheme(page, theme, mode, effects);
+  const { theme = "default", mode = "dark", effects = false, accent } = visualTheme();
+  await useTheme(page, theme, mode, effects, accent);
 });
 
 /**

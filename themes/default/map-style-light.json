@@ -1,0 +1,18 @@
+{
+  "version": 8,
+  "sources": { "base": { "type": "raster" } },
+  "layers": [
+    { "id": "paper", "type": "background", "paint": { "background-color": "#efeadf" } },
+    {
+      "id": "tiles",
+      "type": "raster",
+      "source": "base",
+      "paint": {
+        "raster-saturation": -0.55,
+        "raster-contrast": -0.05,
+        "raster-brightness-min": 0.08,
+        "raster-opacity": 0.85
+      }
+    }
+  ]
+}

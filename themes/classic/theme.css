@@ -1,0 +1,113 @@
+/*
+ * Classic: MeshTerm's original look (the Default theme before CR-005), a calm
+ * network-monitoring palette in dark and light. Field Kit (themes/default) is now the
+ * reference for every token.
+ */
+@layer theme {
+  :root {
+    --mt-card-radius: 0.625rem;
+
+    /* QR codes stay dark on light in every mode: scanners expect it. */
+    --mt-qr-fg: #000;
+    --mt-qr-bg: #fff;
+  }
+
+  :root,
+  :root:where([data-mt-mode="dark"]) {
+    color-scheme: dark;
+
+    --mt-surface-bg: #0b1018;
+    --mt-surface-raised: #161f2c;
+    --mt-surface-elevated: #1d2938;
+    --mt-surface-sunken: #0e141e;
+    --mt-sidebar-bg: #111823;
+    --mt-border-color: #2a3545;
+
+    --mt-text: #e8eef5;
+    --mt-text-muted: #93a2b7;
+    --mt-text-inverse: #0b1018;
+
+    --mt-accent: #55a8ff;
+    --mt-accent-text: #0b1018;
+    --mt-status-ok: #35d49a;
+    --mt-status-warn: #f5b84b;
+    --mt-status-error: #f16d79;
+    --mt-status-info: #55a8ff;
+
+    --mt-bubble-in-bg: #1d2938;
+    --mt-bubble-in-text: #e8eef5;
+    --mt-bubble-out-bg: #2b6fbf;
+    --mt-bubble-out-text: #fff;
+
+    --mt-card-bg: #161f2c;
+    --mt-card-border: #2a3545;
+    --mt-card-shadow: none;
+    --mt-card-self-accent: #55a8ff;
+    --mt-battery-low: #f5b84b;
+    --mt-battery-critical: #f16d79;
+    --mt-chart-1: #55a8ff;
+    --mt-chart-2: #35d49a;
+    --mt-chart-3: #a78bfa;
+    --mt-chart-4: #f472b6;
+    --mt-chart-5: #5b6878;
+    --mt-chart-6: #f5b84b;
+
+    --mt-signal-online: #35d49a;
+    --mt-signal-recent: #55a8ff;
+    --mt-signal-stale: #f5b84b;
+    --mt-signal-offline: #5b6878;
+
+    --mt-map-marker: #55a8ff;
+    --mt-map-marker-self: #f16d79;
+    --mt-shadow-popover: 0 8px 24px #0006;
+  }
+
+  :root:where([data-mt-mode="light"]) {
+    color-scheme: light;
+
+    --mt-surface-bg: #f4f6f9;
+    --mt-surface-raised: #fff;
+    --mt-surface-elevated: #fff;
+    --mt-surface-sunken: #eceef2;
+    --mt-sidebar-bg: #fff;
+    --mt-border-color: #d5d9e0;
+
+    --mt-text: #1b1f27;
+    --mt-text-muted: #5d6675;
+    --mt-text-inverse: #fff;
+
+    --mt-accent: #2563eb;
+    --mt-accent-text: #fff;
+    --mt-status-ok: #15803d;
+    --mt-status-warn: #b45309;
+    --mt-status-error: #b91c1c;
+    --mt-status-info: #2563eb;
+
+    --mt-bubble-in-bg: #eceef2;
+    --mt-bubble-in-text: #1b1f27;
+    --mt-bubble-out-bg: #2563eb;
+    --mt-bubble-out-text: #fff;
+
+    --mt-card-bg: #fff;
+    --mt-card-border: #d5d9e0;
+    --mt-card-shadow: 0 1px 2px #1b1f2714;
+    --mt-card-self-accent: #2563eb;
+    --mt-battery-low: #b45309;
+    --mt-battery-critical: #b91c1c;
+    --mt-chart-1: #2563eb;
+    --mt-chart-2: #15803d;
+    --mt-chart-3: #7c3aed;
+    --mt-chart-4: #db2777;
+    --mt-chart-5: #9ca3af;
+    --mt-chart-6: #b45309;
+
+    --mt-signal-online: #16a34a;
+    --mt-signal-recent: #2563eb;
+    --mt-signal-stale: #d97706;
+    --mt-signal-offline: #9ca3af;
+
+    --mt-map-marker: #2563eb;
+    --mt-map-marker-self: #db2777;
+    --mt-shadow-popover: 0 8px 24px #1b1f2729;
+  }
+}

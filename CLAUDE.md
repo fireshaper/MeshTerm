@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-**Base app complete** (Phases 0–11 of the implementation plan; M1 scope). Since then: CR-001 (node drawer), CR-002 (device config editor, sign-in), CR-003 (notifications) and CR-004 (themes: loader, picker, Retro Terminal, Cyberpunk, effects, map styles) are done. History and agreed changes: [memory-bank/progress.md](memory-bank/progress.md). Next work (map, telemetry, themes, auth, …) is listed under "Out of scope" in the implementation plan and will be planned separately. Planning docs:
+**Base app complete** (Phases 0–11 of the implementation plan; M1 scope). Since then: CR-001 (node drawer), CR-002 (device config editor, sign-in), CR-003 (notifications) and CR-004 (themes: loader, picker, Retro Terminal, Cyberpunk, effects, map styles) are done. CR-005 (Field Kit redesign, [plan](memory-bank/cr-005-plan.md)) is in progress: K0 (accents, Field Kit as the Default theme, Classic) is done. History and agreed changes: [memory-bank/progress.md](memory-bank/progress.md). Next work (map, telemetry, themes, auth, …) is listed under "Out of scope" in the implementation plan and will be planned separately. Planning docs:
 
 - [memory-bank/app-design-document.md](memory-bank/app-design-document.md) covers product scope, architecture, data model, theming rules and milestones (M1–M5).
 - [memory-bank/tech-stack.md](memory-bank/tech-stack.md) covers library choices and tooling. It is newer than the design doc. Where they conflict, follow tech-stack.md. Exception: `engines.node` is **>=24** (local dev runs Node 24). The Docker image still uses `node:26-alpine`.
@@ -50,7 +50,7 @@ pnpm --filter @meshterm/server test  # one package's tests
 pnpm test:e2e                        # build the SPA, then Playwright (desktop 1280 px + mobile 390 px)
 pnpm --filter @meshterm/web exec playwright install chromium   # once per machine
 pnpm test:gate                       # base-app gate spec, three runs in a row
-pnpm test:visual                     # visual baselines, full set: every screen × every theme/mode (Default Dark/Light, Retro, Retro Amber, Cyberpunk) × 1280/390 px, plus effects-on runs
+pnpm test:visual                     # visual baselines, full set: every screen × every theme/mode (Default (Field Kit) Dark/Light, Classic, Retro, Retro Amber, Cyberpunk) × 1280/390 px, plus effects-on and Field Kit accent runs
 VISUAL_SET=full pnpm test:e2e        # the e2e suite with the full visual set (CI: nightly and theme/token/hook changes); default is the PR set
 pnpm test:visual:update              # rewrite this platform's baselines after an intended UI change
 pnpm test:visual:linux               # rewrite the Linux (CI) baselines in the Playwright Docker image

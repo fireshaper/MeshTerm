@@ -1,6 +1,12 @@
 import type { ThemeMapStyle } from "@meshterm/shared";
 import { create } from "zustand";
-import { readEffectsEnabled, readSavedTheme, saveEffectsEnabled, type ModePref } from "./theme.js";
+import {
+  readEffectsEnabled,
+  readSavedTheme,
+  saveEffectsEnabled,
+  saveTheme,
+  type ModePref,
+} from "./theme.js";
 
 interface ThemeState {
   /** The user's pick in this browser; null follows the server default. */
@@ -12,11 +18,14 @@ interface ThemeState {
   effectsEnabled: boolean;
   /** The active theme's `map-style.json` (CR-004 §8.3), null for the plain map. */
   mapStyle: ThemeMapStyle | null;
+  /** The accent picked per theme id (CR-005 §7); a theme not listed uses its first. */
+  accents: Record<string, string>;
   choose: (id: string) => void;
   preview: (id: string | null) => void;
   setModePref: (mode: ModePref) => void;
   setEffectsEnabled: (enabled: boolean) => void;
   setMapStyle: (style: ThemeMapStyle | null) => void;
+  setAccent: (themeId: string, accent: string) => void;
 }
 
 const saved = readSavedTheme();
@@ -28,6 +37,7 @@ export const useThemeStore = create<ThemeState>()((set) => ({
   modePref: saved?.mode ?? "system",
   effectsEnabled: readEffectsEnabled(),
   mapStyle: null,
+  accents: saved?.accents ?? {},
   choose: (chosenId) => {
     set({ chosenId, previewId: null });
   },
@@ -43,5 +53,14 @@ export const useThemeStore = create<ThemeState>()((set) => ({
   },
   setMapStyle: (mapStyle) => {
     set({ mapStyle });
+  },
+  setAccent: (themeId, accent) => {
+    set((s) => {
+      const accents = { ...s.accents, [themeId]: accent };
+      // Saved right away (the boot script reads it); the rest of the record stays as it is.
+      const current = readSavedTheme();
+      if (current) saveTheme({ ...current, accents });
+      return { accents };
+    });
   },
 }));

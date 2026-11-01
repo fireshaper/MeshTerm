@@ -6,13 +6,19 @@ import { expect, test } from "@playwright/test";
 import { HISTORY_PORT } from "./ports.js";
 import { themeReady, useTheme } from "./theme-helpers.js";
 
-const THEMES = [
+const THEMES: { id: string; mode: "dark" | "light"; accent?: string }[] = [
   { id: "default", mode: "dark" },
   { id: "default", mode: "light" },
+  { id: "default", mode: "dark", accent: "amber" },
+  { id: "default", mode: "light", accent: "amber" },
+  { id: "default", mode: "dark", accent: "moss" },
+  { id: "default", mode: "light", accent: "moss" },
+  { id: "classic", mode: "dark" },
+  { id: "classic", mode: "light" },
   { id: "retro-terminal", mode: "dark" },
   { id: "retro-terminal-amber", mode: "dark" },
   { id: "cyberpunk", mode: "dark" },
-] as const;
+];
 
 const H = `http://127.0.0.1:${HISTORY_PORT}`;
 const SCREENS: [string, string][] = [
@@ -27,11 +33,13 @@ const SCREENS: [string, string][] = [
   ["appearance", "/settings/appearance"],
 ];
 
-for (const { id, mode } of THEMES) {
-  test(`text contrast meets WCAG AA: ${id} (${mode})`, async ({ page }) => {
+for (const { id, mode, accent } of THEMES) {
+  test(`text contrast meets WCAG AA: ${id} (${mode}${accent ? `, ${accent}` : ""})`, async ({
+    page,
+  }) => {
     test.skip((page.viewportSize()?.width ?? 0) < 768, "once per theme, on desktop");
     test.setTimeout(120_000);
-    await useTheme(page, id, mode);
+    await useTheme(page, id, mode, false, accent);
     const problems: string[] = [];
     for (const [screen, url] of SCREENS) {
       await page.goto(url);

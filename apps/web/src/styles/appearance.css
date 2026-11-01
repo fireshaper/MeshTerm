@@ -108,6 +108,7 @@
   }
 
   [data-mt="mode-toggle"],
+  [data-mt="accent-picker"],
   [data-mt="effects-toggle"] {
     display: flex;
     flex-direction: column;
@@ -125,5 +126,42 @@
   [data-mt="mode-toggle"]:disabled [data-mt="segment"] {
     cursor: not-allowed;
     opacity: 0.6;
+  }
+
+  /* Accents (CR-005): pills with the accent's own color dot. */
+  [data-mt="accent-options"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mt-space-2);
+  }
+
+  [data-mt="accent-option"] {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mt-space-2);
+    padding: var(--mt-space-1) var(--mt-space-3) var(--mt-space-1) var(--mt-space-1);
+    border: var(--mt-border-width) solid var(--mt-border-strong);
+    border-radius: 999px;
+    background: var(--mt-surface-raised);
+    color: var(--mt-text);
+    font: inherit;
+    font-weight: var(--mt-font-weight-medium);
+    cursor: pointer;
+  }
+
+  [data-mt="accent-option"]:hover {
+    border-color: var(--mt-text-muted);
+  }
+
+  [data-mt="accent-option"][data-mt-state="active"] {
+    border-color: var(--mt-text);
+    box-shadow: 0 0 0 var(--mt-border-width) var(--mt-text);
+  }
+
+  [data-mt="accent-swatch"] {
+    inline-size: 1.375rem;
+    block-size: 1.375rem;
+    border-radius: 50%;
+    background: var(--mt-swatch-accent, var(--mt-accent));
   }
 }

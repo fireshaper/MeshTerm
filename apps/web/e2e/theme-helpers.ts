@@ -7,10 +7,11 @@ export async function useTheme(
   id: string,
   mode: "dark" | "light",
   effects = false,
+  accent?: string,
 ): Promise<void> {
   await page.emulateMedia({ colorScheme: mode });
   await page.addInitScript(
-    ([theme, m, fx]) => {
+    ([theme, m, fx, a]) => {
       localStorage.setItem(
         "meshterm.theme",
         JSON.stringify({
@@ -21,11 +22,12 @@ export async function useTheme(
           mode: m,
           chosen: true,
           effects: [],
+          accents: a ? { [theme]: a } : {},
         }),
       );
       localStorage.setItem("meshterm.effects", String(fx));
     },
-    [id, mode, effects] as const,
+    [id, mode, effects, accent ?? ""] as const,
   );
 }
 

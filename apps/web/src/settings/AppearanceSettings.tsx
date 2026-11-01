@@ -8,7 +8,12 @@ import { ApiError, api } from "../data/api.js";
 import { queryKeys } from "../data/keys.js";
 import { useUiStore } from "../data/ui-store.js";
 import { useThemeStore } from "../theme/store.js";
-import { useActiveTheme, useEffectMedia, useThemes } from "../theme/ThemeRuntime.js";
+import {
+  useActiveTheme,
+  useEffectMedia,
+  useThemeAccent,
+  useThemes,
+} from "../theme/ThemeRuntime.js";
 import type { ModePref } from "../theme/theme.js";
 
 const ICON = { "aria-hidden": true, focusable: false } as const;
@@ -80,6 +85,8 @@ export function AppearanceSettingsPage() {
           </p>
         </fieldset>
 
+        <AccentPicker theme={active} />
+
         <EffectsToggle theme={active} />
 
         {admin && data && (
@@ -101,6 +108,42 @@ export function AppearanceSettingsPage() {
         </p>
       </div>
     </section>
+  );
+}
+
+/** The accents the theme offers (CR-005 §7), remembered per theme in this browser. */
+function AccentPicker({ theme }: { theme: ThemeDTO | null }) {
+  const accent = useThemeAccent(theme);
+  const setAccent = useThemeStore((s) => s.setAccent);
+  const accents = theme?.manifest?.accents ?? [];
+  if (!theme || accents.length === 0) return null;
+  return (
+    <fieldset data-mt="accent-picker">
+      <legend data-mt="config-group-title">Accent</legend>
+      <div data-mt="accent-options" role="radiogroup" aria-label="Accent">
+        {accents.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            role="radio"
+            aria-checked={a.id === accent}
+            data-mt="accent-option"
+            data-mt-state={a.id === accent ? "active" : "idle"}
+            data-mt-variant={a.id}
+            style={{ "--mt-swatch-accent": a.preview }}
+            onClick={() => {
+              setAccent(theme.id, a.id);
+            }}
+          >
+            <span data-mt="accent-swatch" aria-hidden="true" />
+            {a.name}
+          </button>
+        ))}
+      </div>
+      <p data-mt="config-help">
+        Used for your own node, links, selections and primary buttons. Kept in this browser.
+      </p>
+    </fieldset>
   );
 }
 

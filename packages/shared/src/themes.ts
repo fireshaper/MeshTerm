@@ -59,6 +59,17 @@ const SwatchColor = z
     "a CSS color",
   );
 
+/** An accent a theme offers (CR-005 §7): `<html data-mt-accent="<id>">` selects it. */
+export const ThemeAccentId = z.string().regex(/^[a-z0-9-]{1,20}$/, "a-z, 0-9 and -, at most 20");
+
+export const ThemeAccent = z.object({
+  id: ThemeAccentId,
+  name: z.string().trim().min(1).max(30),
+  /** The accent color for the picker's swatch. */
+  preview: SwatchColor,
+});
+export type ThemeAccent = z.infer<typeof ThemeAccent>;
+
 export const THEME_EFFECTS = ["scanlines", "glow", "crt", "noise", "flicker"] as const;
 export const ThemeEffect = z.enum(THEME_EFFECTS);
 export type ThemeEffect = z.infer<typeof ThemeEffect>;
@@ -99,6 +110,10 @@ export const ThemeManifest = z.object({
     .max(12)
     .optional(),
   mapStyle: asset([".json"]).optional(),
+  /** A map style per mode (CR-005); each wins over `mapStyle` in its mode. */
+  mapStyleModes: z
+    .object({ light: asset([".json"]).optional(), dark: asset([".json"]).optional() })
+    .optional(),
   sounds: z
     .object({
       message: asset(SOUNDS).optional(),
@@ -107,6 +122,15 @@ export const ThemeManifest = z.object({
     })
     .optional(),
   effects: z.array(ThemeEffect).max(THEME_EFFECTS.length).optional(),
+  /** Accent choices; the first is the default. */
+  accents: z
+    .array(ThemeAccent)
+    .min(1)
+    .max(6)
+    .refine((list) => new Set(list.map((a) => a.id)).size === list.length, {
+      message: "accent ids must be unique",
+    })
+    .optional(),
   minAppVersion: z
     .string()
     .regex(/^\d+\.\d+\.\d+$/)

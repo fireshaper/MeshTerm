@@ -131,3 +131,42 @@ describe("map-style.json (CR-004 §8.3)", () => {
     expect(registry().list(true)[0]?.error).toMatch(error);
   });
 });
+
+describe("map styles per mode (CR-005)", () => {
+  it("checks each mode's file like map-style.json", () => {
+    theme("user", "modes", { mapStyleModes: { dark: "dark.json", light: "light.json" } });
+    writeFileSync(
+      join(root, "user", "modes", "dark.json"),
+      JSON.stringify({ layers: [{ id: "bg", type: "background", paint: {} }] }),
+    );
+    expect(registry().list(true)[0]?.error).toMatch(/names light.json, which isn't in the folder/);
+    writeFileSync(join(root, "user", "modes", "light.json"), JSON.stringify({ version: 8 }));
+    expect(registry().list(true)[0]?.error).toMatch(/^light.json: layers/);
+    writeFileSync(
+      join(root, "user", "modes", "light.json"),
+      JSON.stringify({ layers: [{ id: "bg", type: "background", paint: {} }] }),
+    );
+    expect(registry().list(true)[0]?.valid).toBe(true);
+  });
+
+  it("the built-in themes load without errors or warnings", () => {
+    const builtin = new ThemeRegistry({
+      builtinDir: join(import.meta.dirname, "../../../../themes"),
+      userDir: join(root, "user"),
+    });
+    builtin.scanAll();
+    for (const t of builtin.list(true)) {
+      expect({ id: t.id, error: t.error, warnings: t.warnings }).toEqual({
+        id: t.id,
+        error: undefined,
+        warnings: undefined,
+      });
+    }
+    expect(builtin.get("default")?.manifest?.accents?.map((a) => a.id)).toEqual([
+      "orange",
+      "amber",
+      "moss",
+    ]);
+    expect(builtin.get("classic")?.manifest?.name).toBe("Classic");
+  });
+});

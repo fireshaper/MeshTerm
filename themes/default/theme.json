@@ -1,14 +1,20 @@
 {
   "id": "default",
-  "name": "Default",
+  "name": "Field Kit",
   "author": "MeshTerm",
-  "version": "1.0.0",
-  "description": "MeshTerm's reference theme: a calm network-monitoring look.",
+  "version": "2.0.0",
+  "description": "MeshTerm's reference theme: an outdoors field-radio look, warm basalt by night, survey paper by day.",
   "colorScheme": "auto",
   "preview": {
-    "bg": "#0b1018",
-    "surface": "#161f2c",
-    "accent": "#55a8ff",
-    "text": "#e8eef5"
-  }
+    "bg": "#14120f",
+    "surface": "#1b1915",
+    "accent": "#f58a45",
+    "text": "#efe9de"
+  },
+  "accents": [
+    { "id": "orange", "name": "Signal orange", "preview": "#f58a45" },
+    { "id": "amber", "name": "Amber", "preview": "#e8a524" },
+    { "id": "moss", "name": "Moss", "preview": "#9dc24f" }
+  ],
+  "mapStyleModes": { "dark": "map-style-dark.json", "light": "map-style-light.json" }
 }

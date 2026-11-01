@@ -117,6 +117,42 @@ describe("Settings → Appearance (CR-004 §4.7)", () => {
     expect(screen.getByText("Theme retro has a fixed dark look.")).toBeInTheDocument();
   });
 
+  it("offers the theme's accents and remembers the pick per theme (CR-005)", async () => {
+    const user = userEvent.setup();
+    const withAccents: ThemesDTO = {
+      ...THEMES,
+      themes: THEMES.themes.map((t) =>
+        t.id === "default"
+          ? {
+              ...t,
+              manifest: {
+                ...manifestOf(t),
+                accents: [
+                  { id: "orange", name: "Signal orange", preview: "#f58a45" },
+                  { id: "amber", name: "Amber", preview: "#e8a524" },
+                ],
+              },
+            }
+          : t,
+      ),
+    };
+    useThemeStore.setState({ accents: {} });
+    await renderApp("/settings/appearance", { queries: [[queryKeys.themes, withAccents]] });
+    const group = screen.getByRole("radiogroup", { name: "Accent" });
+    const options = within(group).getAllByRole("radio");
+    expect(options.map((o) => o.textContent)).toEqual(["Signal orange", "Amber"]);
+    expect(options[0]).toHaveAttribute("aria-checked", "true");
+    await user.click(within(group).getByRole("radio", { name: "Amber" }));
+    expect(useThemeStore.getState().accents).toEqual({ default: "amber" });
+    expect(within(group).getByRole("radio", { name: "Amber" })).toHaveAttribute(
+      "data-mt-state",
+      "active",
+    );
+    // A theme without accents shows no picker.
+    await user.click(screen.getByRole("radio", { name: /Theme retro/ }));
+    expect(screen.queryByRole("radiogroup", { name: "Accent" })).not.toBeInTheDocument();
+  });
+
   it("admins set the server default and duplicate the selected theme", async () => {
     const user = userEvent.setup();
     await render();

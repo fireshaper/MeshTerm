@@ -17,16 +17,25 @@
     --mt-surface-elevated: var(--mt-surface-raised); /* popovers, menus, dialogs */
     --mt-sidebar-bg: var(--mt-surface-raised); /* the navigation sidebar */
     --mt-border-color: GrayText; /* borders and dividers everywhere */
+    --mt-border-strong: var(--mt-border-color); /* control outlines and hovered cards */
     --mt-shadow-popover: none; /* menus, popovers, dialogs */
 
     /* @group Text */
     --mt-text: CanvasText; /* body text */
     --mt-text-muted: GrayText; /* secondary text, labels, axes */
+    --mt-text-faint: var(
+      --mt-text-muted
+    ); /* captions, units, timestamps (still AA on every surface) */
     --mt-text-inverse: Canvas; /* text on accent or status fills */
 
     /* @group Accent and status: links, focus, primary buttons; ok / warn / error / info */
     --mt-accent: AccentColor; /* links, focus rings, active tabs, primary buttons */
     --mt-accent-text: AccentColorText; /* text on the accent */
+    --mt-accent-soft: color-mix(
+      in srgb,
+      var(--mt-accent) 13%,
+      transparent
+    ); /* selected rows, chips and tabs */
     --mt-status-ok: AccentColor; /* connected, acked, good battery */
     --mt-status-warn: Mark; /* warnings, stale */
     --mt-status-error: LinkText; /* errors, failed messages, danger */
@@ -123,6 +132,7 @@
     --mt-font-body: system-ui, sans-serif;
     --mt-font-mono: ui-monospace, monospace; /* ids, numbers, raw data */
     --mt-font-display: var(--mt-font-body); /* headings: page titles, section and card headers */
+    --mt-font-display-stretch: 100%; /* width of the display face; below 100% needs a font with a width axis */
     --mt-font-size-xs: 0.75rem;
     --mt-font-size-sm: 0.875rem;
     --mt-font-size-md: 1rem;

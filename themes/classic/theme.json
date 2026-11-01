@@ -1,0 +1,14 @@
+{
+  "id": "classic",
+  "name": "Classic",
+  "author": "MeshTerm",
+  "version": "1.0.0",
+  "description": "MeshTerm's original look: a calm network-monitoring palette in blue and slate.",
+  "colorScheme": "auto",
+  "preview": {
+    "bg": "#0b1018",
+    "surface": "#161f2c",
+    "accent": "#55a8ff",
+    "text": "#e8eef5"
+  }
+}

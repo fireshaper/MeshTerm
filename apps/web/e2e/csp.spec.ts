@@ -46,6 +46,6 @@ test("no Content Security Policy violations on any screen", async ({ page }) => 
   await expect(page.locator("[data-mt=chart-group] canvas").first()).toBeVisible();
   // The layer-order <style> was allowed by hash: the theme still wins over base.
   const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-  expect(bg).toBe("rgb(11, 16, 24)");
+  expect(bg).toBe("rgb(20, 18, 15)");
   expect(violations).toEqual([]);
 });

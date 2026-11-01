@@ -24,9 +24,16 @@ describe("ThemeManifest (CR-004 §4.2)", () => {
       mapStyle: "map-style.json",
       sounds: { message: "sounds/blip.wav" },
       effects: ["glow", "scanlines"],
+      accents: [
+        { id: "orange", name: "Signal orange", preview: "#f58a45" },
+        { id: "moss", name: "Moss", preview: "oklch(0.76 0.13 128)" },
+      ],
+      mapStyleModes: { dark: "map-dark.json", light: "map-light.json" },
       minAppVersion: "1.0.0",
     });
     expect(full.fonts?.[0]?.src).toBe("fonts/orbitron.woff2");
+    expect(full.accents?.map((a) => a.id)).toEqual(["orange", "moss"]);
+    expect(full.mapStyleModes?.light).toBe("map-light.json");
   });
 
   it.each([
@@ -42,6 +49,19 @@ describe("ThemeManifest (CR-004 §4.2)", () => {
     [{ fonts: [{ family: "X", src: "x.ttf" }] }, "fonts"],
     [{ sounds: { message: "a.css" } }, "sounds"],
     [{ effects: ["sparkles"] }, "effects"],
+    [{ accents: [] }, "accents"],
+    [{ accents: [{ id: "Orange", name: "Orange", preview: "#f80" }] }, "accents"],
+    [{ accents: [{ id: "o", name: "Orange", preview: "url(x)" }] }, "accents"],
+    [
+      {
+        accents: [
+          { id: "o", name: "A", preview: "#f80" },
+          { id: "o", name: "B", preview: "#f80" },
+        ],
+      },
+      "accents",
+    ],
+    [{ mapStyleModes: { dark: "../map.json" } }, "mapStyleModes"],
   ])("refuses %o", (patch, field) => {
     const result = ThemeManifest.safeParse({ ...base, ...patch });
     expect(result.success).toBe(false);

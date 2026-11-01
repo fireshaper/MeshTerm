@@ -77,15 +77,15 @@ Light ("survey paper"):
 | `--mt-surface-raised` / `-elevated`             | `#f7f6f1` / `#ffffff`                         |
 | `--mt-border-color` / `--mt-border-strong`      | `#d3cec1` / `#bab3a3`                         |
 | `--mt-text` / `-muted` / `-faint`               | `#1f1b15` / `#554d41` / `#685f52`             |
-| `--mt-status-ok` / `-warn` / `-error` / `-info` | `#4f7a1f` / `#9a6400` / `#b93a2a` / `#2f7495` |
+| `--mt-status-ok` / `-warn` / `-error` / `-info` | `#3e6416` / `#855600` / `#a83223` / `#286480` |
 
-Accents are defined in OKLCH so one hue drives every accent-derived token (`--mt-accent`, `-soft`, `-line`, bubbles, chart series 1). Lightness and chroma come from the mode, the hue from the accent:
+The accents were designed in OKLCH (one hue per accent, lightness and chroma per mode), but the theme writes them as plain hex per accent and mode: canvas consumers (MapLibre) can't parse `oklch()` from computed styles. Light values are darker than the OKLCH design so accent links pass AA on the sunken surface:
 
-| Accent                  | Hue | Dark L / C  | Light L / C |
-| ----------------------- | --- | ----------- | ----------- |
-| Signal orange (default) | 52  | 0.76 / 0.16 | 0.60 / 0.17 |
-| Amber                   | 78  | same        | same        |
-| Moss                    | 128 | same        | same        |
+| Accent                  | Hue | Dark      | Light     |
+| ----------------------- | --- | --------- | --------- |
+| Signal orange (default) | 52  | `#f58a45` | `#a3430a` |
+| Amber                   | 78  | `#e8a524` | `#885000` |
+| Moss                    | 128 | `#9dc24f` | `#42630f` |
 
 `--mt-accent-text` is near-black in dark mode and white in light mode. All text pairs must pass WCAG AA in all six combinations (3 accents × 2 modes); the axe check (§11) enforces it.
 
@@ -246,14 +246,14 @@ Phases ship in order; each is releasable on its own.
 
 ## 13. Risks
 
-| Risk                                                                          | Mitigation                                                                                              |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| ~190 nodes overload the hero map, roster and faceplate                        | Time window and clustering on the map, capped roster, faceplate shows only my node's readings           |
-| Condensed caps hurt readability                                               | Only for headings, tabs, callsigns and big numbers; body text at normal width; contrast checks          |
-| Removing the sidebar breaks Retro/Cyberpunk layouts and hundreds of baselines | Structure changes in K1 come with their theme CSS fixes and re-baselining in the same phase             |
-| Accent tokens in OKLCH aren't readable by canvas consumers                    | The token bridge already reads computed values; add a test that map and chart colors resolve to `rgb()` |
-| Frequency slot calculation drifts from firmware                               | Tests against values from the official apps for several regions, presets and channel names              |
-| Large CSS rewrite of the Default theme changes many hooks at once             | K0 changes only tokens and fonts; layout changes come phase by phase                                    |
+| Risk                                                                          | Mitigation                                                                                     |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| ~190 nodes overload the hero map, roster and faceplate                        | Time window and clustering on the map, capped roster, faceplate shows only my node's readings  |
+| Condensed caps hurt readability                                               | Only for headings, tabs, callsigns and big numbers; body text at normal width; contrast checks |
+| Removing the sidebar breaks Retro/Cyberpunk layouts and hundreds of baselines | Structure changes in K1 come with their theme CSS fixes and re-baselining in the same phase    |
+| Accent tokens in OKLCH aren't readable by canvas consumers                    | Resolved in K0: accents are plain hex per accent and mode                                      |
+| Frequency slot calculation drifts from firmware                               | Tests against values from the official apps for several regions, presets and channel names     |
+| Large CSS rewrite of the Default theme changes many hooks at once             | K0 changes only tokens and fonts; layout changes come phase by phase                           |
 
 ## 14. Acceptance (overall)
 

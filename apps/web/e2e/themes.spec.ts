@@ -19,8 +19,8 @@ const BASE = `http://127.0.0.1:${THEME_PORT}`;
 const node = controlClient(THEME_CONTROL_PORT);
 const USER_THEMES = join(THEME_DATA_DIR, "themes");
 const CONTRAST_BG = "rgb(42, 13, 46)";
-const DEFAULT_DARK_BG = "rgb(11, 16, 24)";
-const DEFAULT_LIGHT_BG = "rgb(244, 246, 249)";
+const DEFAULT_DARK_BG = "rgb(20, 18, 15)";
+const DEFAULT_LIGHT_BG = "rgb(235, 233, 225)";
 
 test.beforeEach(({ page }) => {
   test.skip((page.viewportSize()?.width ?? 0) < 768, "theme switching once, on desktop");
@@ -70,8 +70,56 @@ test("picking a theme restyles the page at once and survives a reload with no fl
 
   // Back to Default for the other tests.
   await openAppearance(page);
-  await card(page, /^Default/).click();
+  await card(page, /^Field Kit/).click();
   await expect.poll(() => bodyBg(page)).toBe(DEFAULT_DARK_BG);
+});
+
+test("accents (CR-005): picked live, remembered per theme, set before the app loads, and ?accent=", async ({
+  page,
+}) => {
+  const accent = () => page.evaluate(() => document.documentElement.dataset.mtAccent ?? null);
+  const accentColor = () =>
+    page.evaluate(() => getComputedStyle(document.body).getPropertyValue("--mt-accent").trim());
+  await openAppearance(page);
+  const group = page.getByRole("radiogroup", { name: "Accent" });
+  await expect(group.getByRole("radio")).toHaveText(["Signal orange", "Amber", "Moss"]);
+  await expect.poll(accent).toBe("orange");
+  expect(await accentColor()).toBe("#f58a45");
+
+  await group.getByRole("radio", { name: "Amber" }).click();
+  await expect.poll(accentColor).toBe("#e8a524");
+  expect(await accent()).toBe("amber");
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect.poll(accentColor).toBe("#885000");
+  await page.emulateMedia({ colorScheme: "dark" });
+
+  // The boot script sets it before the app's JavaScript runs.
+  await page.route("**/assets/*.js", (route) => route.abort());
+  await page.reload();
+  expect(await accent()).toBe("amber");
+  expect(await accentColor()).toBe("#e8a524");
+  await page.unroute("**/assets/*.js");
+
+  // A theme without accents drops the attribute; coming back restores this theme's pick.
+  await openAppearance(page);
+  await card(page, /Contrast \(test\)/).click();
+  await expect.poll(accent).toBeNull();
+  await expect(page.getByRole("radiogroup", { name: "Accent" })).toHaveCount(0);
+  await card(page, /^Field Kit/).click();
+  await expect.poll(accent).toBe("amber");
+
+  // ?accent= wins for one load and isn't saved.
+  await page.goto(`${BASE}/dashboard?accent=moss`);
+  await expect(page.locator("[data-mt=app-shell]")).toBeVisible();
+  await expect.poll(accentColor).toBe("#9dc24f");
+  await page.goto(`${BASE}/settings/appearance`);
+  await expect.poll(accent).toBe("amber");
+
+  await page
+    .getByRole("radiogroup", { name: "Accent" })
+    .getByRole("radio", { name: "Signal orange" })
+    .click();
+  await expect.poll(accent).toBe("orange");
 });
 
 test("hovering a card previews it; leaving puts the chosen theme back", async ({ page }) => {
@@ -243,7 +291,7 @@ test("THEMING.md's first-theme walkthrough produces a working theme", async ({ p
     await expect.poll(() => bodyBg(page)).toBe("rgb(13, 27, 36)");
     const active = page.locator("[data-mt=nav-item][data-mt-state=active]").first();
     await expect(active).toHaveCSS("border-left-color", "rgb(46, 196, 182)");
-    await card(page, /^Default/).click();
+    await card(page, /^Field Kit/).click();
     await expect.poll(() => bodyBg(page)).toBe(DEFAULT_DARK_BG);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -285,7 +333,7 @@ test("Retro Terminal and its Amber variant: selectable, bundled font, log-line m
     .toMatch(/^"\[(\.\.|->|~>|ok)\]"$/);
 
   await openAppearance(page);
-  await card(page, /^Default/).click();
+  await card(page, /^Field Kit/).click();
   await expect.poll(() => bodyBg(page)).toBe(DEFAULT_DARK_BG);
 });
 
@@ -339,7 +387,7 @@ test("effects come from the theme, follow the toggle and the device, and never b
   await expect.poll(() => fx(page)).toBe("crt scanlines");
   await page.emulateMedia({ reducedMotion: "no-preference" });
 
-  await card(page, /^Default/).click();
+  await card(page, /^Field Kit/).click();
   await expect.poll(() => fx(page)).toBeNull();
 });
 
@@ -402,7 +450,7 @@ test("Cyberpunk: selectable, manifest font loaded, glitch toasts only without re
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect.poll(toastEnter).toBe("none");
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await card(page, /^Default/).click();
+  await card(page, /^Field Kit/).click();
   await expect.poll(() => bodyBg(page)).toBe(DEFAULT_DARK_BG);
 });
 
@@ -464,6 +512,17 @@ test("map styles restyle the base map live, keeping the camera, the nodes and th
   await expect(tiles).toBeVisible();
   expect(await tiles.evaluate((el) => getComputedStyle(el).filter)).toContain("invert(1)");
 
-  await pick("Default");
+  await pick("Classic");
   await expect.poll(() => tiles.evaluate((el) => getComputedStyle(el).filter)).toBe("none");
+
+  // Field Kit (CR-005): a map style per mode, swapped when the mode changes.
+  await page.goto(`http://127.0.0.1:${DASHBOARD_PORT}/map`);
+  await expect(page.locator("[data-mt=map-view]")).toHaveAttribute("data-mt-state", "ready", {
+    timeout: 15_000,
+  });
+  await pick("Field Kit");
+  await expect.poll(async () => (await base()).layers[0]).toBe("mt-base-basalt");
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect.poll(async () => (await base()).layers[0]).toBe("mt-base-paper");
+  await page.emulateMedia({ colorScheme: "dark" });
 });

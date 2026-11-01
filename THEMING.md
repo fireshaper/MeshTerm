@@ -9,12 +9,13 @@ This guide covers:
 3. [Your first theme in 10 minutes](#your-first-theme-in-10-minutes)
 4. [How styling works: layers, tokens and hooks](#how-styling-works)
 5. [Light and dark](#light-and-dark)
-6. [Canvas surfaces: the map and charts](#canvas-surfaces-the-map-and-charts)
-7. [Effects](#effects)
-8. [Fonts and sounds](#fonts-and-sounds)
-9. [Accessibility checklist](#accessibility-checklist)
-10. [Token reference](#token-reference)
-11. [Hook reference](#hook-reference)
+6. [Accents](#accents)
+7. [Canvas surfaces: the map and charts](#canvas-surfaces-the-map-and-charts)
+8. [Effects](#effects)
+9. [Fonts and sounds](#fonts-and-sounds)
+10. [Accessibility checklist](#accessibility-checklist)
+11. [Token reference](#token-reference)
+12. [Hook reference](#hook-reference)
 
 ## What a theme is
 
@@ -58,6 +59,8 @@ my-theme/
 | `fonts`         | no       | `[{ "family": "Orbitron", "src": "fonts/orbitron.woff2", "weight": "400 900", "style": "normal" }]`. See [Fonts and sounds](#fonts-and-sounds). |
 | `sounds`        | no       | `{ "message": "sounds/dm.wav", "mention": "sounds/mention.wav", "channel": "sounds/channel.wav" }`.                                             |
 | `mapStyle`      | no       | A base-map style file. See [The base map](#the-base-map-map-stylejson).                                                                         |
+| `mapStyleModes` | no       | `{ "light": "map-light.json", "dark": "map-dark.json" }`: a base-map style per mode, winning over `mapStyle` in that mode (`auto` themes).      |
+| `accents`       | no       | `[{ "id": "orange", "name": "Signal orange", "preview": "#f58a45" }]`, up to 6; the first is the default. See [Accents](#accents).              |
 | `effects`       | no       | Which effects the theme draws: any of `scanlines`, `glow`, `crt`, `noise`, `flicker`. See [Effects](#effects).                                  |
 | `minAppVersion` | no       | The oldest MeshTerm it's made for; older versions show a warning to admins.                                                                     |
 
@@ -79,10 +82,10 @@ If a theme makes MeshTerm unusable, add `?theme=default` to the address (for exa
 
 ## Where to put it
 
-| Where           | In the container     | Notes                                                                                                  |
-| --------------- | -------------------- | ------------------------------------------------------------------------------------------------------ |
-| Built-in themes | `/app/themes/`       | Part of the image: Default, Retro Terminal, Retro Terminal Amber and Cyberpunk. Updated with MeshTerm. |
-| Your themes     | `/data/themes/<id>/` | Created on first start. Survives updates, because `/data` is your volume.                              |
+| Where           | In the container     | Notes                                                                                                                            |
+| --------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Built-in themes | `/app/themes/`       | Part of the image: Field Kit (id `default`), Classic, Retro Terminal, Retro Terminal Amber and Cyberpunk. Updated with MeshTerm. |
+| Your themes     | `/data/themes/<id>/` | Created on first start. Survives updates, because `/data` is your volume.                                                        |
 
 - **Hot reload.** MeshTerm watches `/data/themes`. A new folder appears in the picker within about 2 seconds, and saving a theme's CSS restyles every browser using it, without a reload. On a network share (NFS, SMB) or some bind mounts, file events don't arrive: set `MESHTERM_THEMES_POLL=1` to check by polling instead.
 - **Changing a built-in.** Don't edit built-ins in the image. Instead, as an admin, open **Settings → Appearance**, select the theme and press **Duplicate … as a user theme**: MeshTerm copies it to `/data/themes/<new-id>/` for you to edit. A user theme with the same id as a built-in replaces it, but only while it's valid; a broken copy never hides the built-in.
@@ -90,7 +93,7 @@ If a theme makes MeshTerm unusable, add `?theme=default` to the address (for exa
 
 ## Your first theme in 10 minutes
 
-1. **Copy Default.** In **Settings → Appearance** (as an admin), select Default and press **Duplicate Default as a user theme**. Call it `harbor`, named "Harbor". It's now selected, and its files are in `/data/themes/harbor/`.
+1. **Copy Default.** In **Settings → Appearance** (as an admin), select Field Kit (the Default theme, id `default`) and press **Duplicate Field Kit as a user theme**. Call it `harbor`, named "Harbor". It's now selected, and its files are in `/data/themes/harbor/`.
 
    Without admin access to the UI, copy the folder instead: `docker compose cp meshterm:/app/themes/default ./harbor`, change `id` and `name` in `harbor/theme.json`, and copy it back with `docker compose cp ./harbor meshterm:/data/themes/harbor`.
 
@@ -144,7 +147,7 @@ Some hooks exist mainly for themes and are hidden in Default: `message-time-cloc
 
 Hooks are a public API: MeshTerm doesn't rename or remove them without calling it a breaking change. Class names and the HTML structure inside components can change, so don't rely on them.
 
-`<html>` also tells you which theme and mode are showing: `data-mt-theme="<id>"` and `data-mt-mode="light"` or `"dark"`.
+`<html>` also tells you which theme and mode are showing: `data-mt-theme="<id>"`, `data-mt-mode="light"` or `"dark"`, and `data-mt-accent="<id>"` for themes with [accents](#accents).
 
 ## Light and dark
 
@@ -169,6 +172,38 @@ An `auto` theme styles each mode under `data-mt-mode`, as Default does:
 ```
 
 Putting the dark values on plain `:root` as well gives a complete palette even before a mode is set. Larger differences can go in separate files listed under `modes`, which load only in their mode. Set `color-scheme` in each mode so scrollbars and form controls match.
+
+## Accents
+
+A theme can offer a few accent colors that people pick in Settings → Appearance, the way Field Kit offers signal orange, amber and moss. List them in the manifest; the first is the default:
+
+```json
+"accents": [
+  { "id": "orange", "name": "Signal orange", "preview": "#f58a45" },
+  { "id": "amber", "name": "Amber", "preview": "#e8a524" }
+]
+```
+
+The chosen one is on `<html data-mt-accent="<id>">`, set before the first paint. Style the default on plain `:root` (or your mode blocks) and the others by id. In an `auto` theme, give each accent its own value per mode:
+
+```css
+@layer theme {
+  :root:where(:not([data-mt-mode="light"])[data-mt-accent="amber"]) {
+    --mt-accent: #e8a524;
+    --mt-chart-1: #e8a524;
+  }
+
+  :root:where([data-mt-mode="light"][data-mt-accent="amber"]) {
+    --mt-accent: #885000;
+    --mt-chart-1: #935700;
+  }
+}
+```
+
+- Put the light block after the plain light-mode block, so it wins.
+- Set every token that follows the accent in your theme (bubbles, chart series 1, map markers and clusters, the edge of your own node's card): tokens derived in MeshTerm's base styles follow `--mt-accent` on their own.
+- Each browser remembers its accent per theme; `?accent=<id>` forces one for a page load, like `?theme=`.
+- Check text on the accent and accent-colored links against every surface, in every mode, for every accent.
 
 ## Canvas surfaces: the map and charts
 
@@ -210,6 +245,8 @@ The OpenStreetMap tiles under the dots can be restyled with a small, partial [Ma
 - Vector layers (`line`, `fill`, …) are accepted for when vector maps arrive, but aren't drawn yet.
 - MeshTerm's dots, labels and clusters always stay on top. Switching themes swaps only the base map; the view doesn't move.
 - The mini maps on node cards get the same look as a CSS `filter` (and the background color behind them), worked out from these values.
+
+An `auto` theme can have one style per mode with `"mapStyleModes": { "dark": "map-dark.json", "light": "map-light.json" }`; each wins over `mapStyle` in its mode, and the map changes with the mode. Field Kit uses this for a darkened, desaturated map at night and a paper-toned one by day.
 
 An invalid file makes the theme **Broken**, with the reason.
 
@@ -261,7 +298,7 @@ Keep them cheap and readable:
 }
 ```
 
-`--mt-font-body` is for all text, `--mt-font-mono` for ids and numbers, and `--mt-font-display` for headings. You can also use `@font-face` in your CSS with a relative `url()`. Only bundle fonts whose license allows it (SIL Open Font License or Apache 2.0), and credit them in `LICENSES.md`.
+`--mt-font-body` is for all text, `--mt-font-mono` for ids and numbers, and `--mt-font-display` for headings. `--mt-font-display-stretch` sets the headings' width (Field Kit uses 72 % for condensed titles); anything other than 100 % needs a font with a width axis, like Archivo. You can also use `@font-face` in your CSS with a relative `url()`. Only bundle fonts whose license allows it (SIL Open Font License or Apache 2.0), and credit them in `LICENSES.md`.
 
 **Sounds.** List replacement notification sounds under `sounds`: `message` (DMs), `mention` (mentions and replies) and `channel` (channel messages). Keep them short (under a second) and quiet. A theme without sounds uses MeshTerm's own.
 
@@ -284,23 +321,24 @@ Every token, with Default's values in dark and light, the value without any them
 
 Page and panel backgrounds, borders.
 
-| Token                   | Default (dark)     | Default (light)        | Without a theme            | Used for                             |
-| ----------------------- | ------------------ | ---------------------- | -------------------------- | ------------------------------------ |
-| `--mt-surface-bg`       | `#0b1018`          | `#f4f6f9`              | `Canvas`                   | the page background                  |
-| `--mt-surface-raised`   | `#161f2c`          | `#fff`                 | `Canvas`                   | panels, cards, inputs                |
-| `--mt-surface-sunken`   | `#0e141e`          | `#eceef2`              | `Canvas`                   | wells: code, raw JSON, table stripes |
-| `--mt-surface-elevated` | `#1d2938`          | `#fff`                 | `var(--mt-surface-raised)` | popovers, menus, dialogs             |
-| `--mt-sidebar-bg`       | `#111823`          | `#fff`                 | `var(--mt-surface-raised)` | the navigation sidebar               |
-| `--mt-border-color`     | `#2a3545`          | `#d5d9e0`              | `GrayText`                 | borders and dividers everywhere      |
-| `--mt-shadow-popover`   | `0 8px 24px #0006` | `0 8px 24px #1b1f2729` | `none`                     | menus, popovers, dialogs             |
+| Token                   | Default (dark)                             | Default (light)                            | Without a theme            | Used for                             |
+| ----------------------- | ------------------------------------------ | ------------------------------------------ | -------------------------- | ------------------------------------ |
+| `--mt-surface-bg`       | `#14120f`                                  | `#ebe9e1`                                  | `Canvas`                   | the page background                  |
+| `--mt-surface-raised`   | `#1b1915`                                  | `#f7f6f1`                                  | `Canvas`                   | panels, cards, inputs                |
+| `--mt-surface-sunken`   | `#0e0d0a`                                  | `#e1ded4`                                  | `Canvas`                   | wells: code, raw JSON, table stripes |
+| `--mt-surface-elevated` | `#25221c`                                  | `#fff`                                     | `var(--mt-surface-raised)` | popovers, menus, dialogs             |
+| `--mt-sidebar-bg`       | `#0e0d0a`                                  | `#e1ded4`                                  | `var(--mt-surface-raised)` | the navigation sidebar               |
+| `--mt-border-color`     | `#2f2b24`                                  | `#d3cec1`                                  | `GrayText`                 | borders and dividers everywhere      |
+| `--mt-border-strong`    | `#443e34`                                  | `#bab3a3`                                  | `var(--mt-border-color)`   | control outlines and hovered cards   |
+| `--mt-shadow-popover`   | `0 18px 40px #00000080, 0 0 0 1px #443e34` | `0 16px 36px #3c280a29, 0 0 0 1px #d3cec1` | `none`                     | menus, popovers, dialogs             |
 
 ### Text
 
 | Token               | Default (dark) | Default (light) | Without a theme | Used for                       |
 | ------------------- | -------------- | --------------- | --------------- | ------------------------------ |
-| `--mt-text`         | `#e8eef5`      | `#1b1f27`       | `CanvasText`    | body text                      |
-| `--mt-text-muted`   | `#93a2b7`      | `#5d6675`       | `GrayText`      | secondary text, labels, axes   |
-| `--mt-text-inverse` | `#0b1018`      | `#fff`          | `Canvas`        | text on accent or status fills |
+| `--mt-text`         | `#efe9de`      | `#1f1b15`       | `CanvasText`    | body text                      |
+| `--mt-text-muted`   | `#b3a998`      | `#554d41`       | `GrayText`      | secondary text, labels, axes   |
+| `--mt-text-inverse` | `#14120f`      | `#fff`          | `Canvas`        | text on accent or status fills |
 
 ### Accent and status
 
@@ -308,21 +346,21 @@ Links, focus, primary buttons; ok / warn / error / info.
 
 | Token               | Default (dark) | Default (light) | Without a theme   | Used for                                         |
 | ------------------- | -------------- | --------------- | ----------------- | ------------------------------------------------ |
-| `--mt-accent`       | `#55a8ff`      | `#2563eb`       | `AccentColor`     | links, focus rings, active tabs, primary buttons |
-| `--mt-accent-text`  | `#0b1018`      | `#fff`          | `AccentColorText` | text on the accent                               |
-| `--mt-status-ok`    | `#35d49a`      | `#15803d`       | `AccentColor`     | connected, acked, good battery                   |
-| `--mt-status-warn`  | `#f5b84b`      | `#b45309`       | `Mark`            | warnings, stale                                  |
-| `--mt-status-error` | `#f16d79`      | `#b91c1c`       | `LinkText`        | errors, failed messages, danger                  |
-| `--mt-status-info`  | `#55a8ff`      | `#2563eb`       | `AccentColor`     | information                                      |
+| `--mt-accent`       | `#f58a45`      | `#42630f`       | `AccentColor`     | links, focus rings, active tabs, primary buttons |
+| `--mt-accent-text`  | `#1c0f05`      | `#fff`          | `AccentColorText` | text on the accent                               |
+| `--mt-status-ok`    | `#a3c46f`      | `#3e6416`       | `AccentColor`     | connected, acked, good battery                   |
+| `--mt-status-warn`  | `#eeb544`      | `#855600`       | `Mark`            | warnings, stale                                  |
+| `--mt-status-error` | `#f06d5c`      | `#a83223`       | `LinkText`        | errors, failed messages, danger                  |
+| `--mt-status-info`  | `#7fbad3`      | `#286480`       | `AccentColor`     | information                                      |
 
 ### Message bubbles
 
 | Token                  | Default (dark) | Default (light) | Without a theme   | Used for          |
 | ---------------------- | -------------- | --------------- | ----------------- | ----------------- |
-| `--mt-bubble-in-bg`    | `#1d2938`      | `#eceef2`       | `Field`           | received messages |
-| `--mt-bubble-in-text`  | `#e8eef5`      | `#1b1f27`       | `FieldText`       |                   |
-| `--mt-bubble-out-bg`   | `#2b6fbf`      | `#2563eb`       | `AccentColor`     | sent messages     |
-| `--mt-bubble-out-text` | `#fff`         | `#fff`          | `AccentColorText` |                   |
+| `--mt-bubble-in-bg`    | `#25221c`      | `#fff`          | `Field`           | received messages |
+| `--mt-bubble-in-text`  | `#efe9de`      | `#1f1b15`       | `FieldText`       |                   |
+| `--mt-bubble-out-bg`   | `#4a2f1d`      | `#e1ebcd`       | `AccentColor`     | sent messages     |
+| `--mt-bubble-out-text` | `#f8efe4`      | `#1f1b15`       | `AccentColorText` |                   |
 
 ### Badges and mentions
 
@@ -354,14 +392,14 @@ Dashboard and node cards.
 
 | Token                   | Default (dark) | Default (light)       | Without a theme            | Used for                               |
 | ----------------------- | -------------- | --------------------- | -------------------------- | -------------------------------------- |
-| `--mt-card-bg`          | `#161f2c`      | `#fff`                | `var(--mt-surface-raised)` |                                        |
-| `--mt-card-border`      | `#2a3545`      | `#d5d9e0`             | `var(--mt-border-color)`   |                                        |
-| `--mt-card-radius`      | `0.625rem`     | `0.625rem`            | `var(--mt-radius-md)`      |                                        |
-| `--mt-card-shadow`      | `none`         | `0 1px 2px #1b1f2714` | `none`                     |                                        |
-| `--mt-card-self-accent` | `#55a8ff`      | `#2563eb`             | `var(--mt-accent)`         | the edge of your own node's card       |
+| `--mt-card-bg`          | `#1b1915`      | `#f7f6f1`             | `var(--mt-surface-raised)` |                                        |
+| `--mt-card-border`      | `#2f2b24`      | `#d3cec1`             | `var(--mt-border-color)`   |                                        |
+| `--mt-card-radius`      | `0.75rem`      | `0.75rem`             | `var(--mt-radius-md)`      |                                        |
+| `--mt-card-shadow`      | `none`         | `0 1px 2px #3c280a14` | `none`                     |                                        |
+| `--mt-card-self-accent` | `#f58a45`      | `#42630f`             | `var(--mt-accent)`         | the edge of your own node's card       |
 | `--mt-card-min-width`   | —              | —                     | `17.5rem`                  | the card grid's column width           |
-| `--mt-battery-low`      | `#f5b84b`      | `#b45309`             | `var(--mt-status-warn)`    | battery meters below the warning level |
-| `--mt-battery-critical` | `#f16d79`      | `#b91c1c`             | `var(--mt-status-error)`   | battery meters below the danger level  |
+| `--mt-battery-low`      | `#eeb544`      | `#855600`             | `var(--mt-status-warn)`    | battery meters below the warning level |
+| `--mt-battery-critical` | `#f06d5c`      | `#a83223`             | `var(--mt-status-error)`   | battery meters below the danger level  |
 
 ### Signal
 
@@ -369,10 +407,10 @@ How recently a node was heard (status dots).
 
 | Token                 | Default (dark) | Default (light) | Without a theme         | Used for |
 | --------------------- | -------------- | --------------- | ----------------------- | -------- |
-| `--mt-signal-online`  | `#35d49a`      | `#16a34a`       | `var(--mt-status-ok)`   |          |
-| `--mt-signal-recent`  | `#55a8ff`      | `#2563eb`       | `var(--mt-status-info)` |          |
-| `--mt-signal-stale`   | `#f5b84b`      | `#d97706`       | `var(--mt-status-warn)` |          |
-| `--mt-signal-offline` | `#5b6878`      | `#9ca3af`       | `var(--mt-text-muted)`  |          |
+| `--mt-signal-online`  | `#a3c46f`      | `#3e6416`       | `var(--mt-status-ok)`   |          |
+| `--mt-signal-recent`  | `#eeb544`      | `#b07400`       | `var(--mt-status-info)` |          |
+| `--mt-signal-stale`   | `#c98a5a`      | `#a5633a`       | `var(--mt-status-warn)` |          |
+| `--mt-signal-offline` | `#6c6457`      | `#9c9384`       | `var(--mt-text-muted)`  |          |
 
 ### Charts
 
@@ -380,13 +418,13 @@ Sparklines, dashboard charts and telemetry charts (canvas: read through chart-to
 
 | Token                         | Default (dark) | Default (light) | Without a theme                                               | Used for                                                   |
 | ----------------------------- | -------------- | --------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
-| `--mt-chart-1`                | `#55a8ff`      | `#2563eb`       | `var(--mt-accent)`                                            | first series; sparklines                                   |
-| `--mt-chart-2`                | `#35d49a`      | `#15803d`       | `var(--mt-status-ok)`                                         |                                                            |
-| `--mt-chart-3`                | `#a78bfa`      | `#7c3aed`       | `var(--mt-accent)`                                            |                                                            |
-| `--mt-chart-4`                | `#f472b6`      | `#db2777`       | `var(--mt-status-warn)`                                       |                                                            |
-| `--mt-chart-5`                | `#5b6878`      | `#9ca3af`       | `var(--mt-text-muted)`                                        | "other" in packet-type charts                              |
-| `--mt-chart-6`                | `#f5b84b`      | `#b45309`       | `var(--mt-status-info)`                                       |                                                            |
-| `--mt-chart-grid`             | —              | —               | `color-mix(in srgb, var(--mt-border-color) 60%, transparent)` |                                                            |
+| `--mt-chart-1`                | `#f58a45`      | `#42630f`       | `var(--mt-accent)`                                            | first series; sparklines                                   |
+| `--mt-chart-2`                | `#7fbad3`      | `#3f8db0`       | `var(--mt-status-ok)`                                         |                                                            |
+| `--mt-chart-3`                | `#c7a5e6`      | `#8a5cc4`       | `var(--mt-accent)`                                            |                                                            |
+| `--mt-chart-4`                | `#eeb544`      | `#a83223`       | `var(--mt-status-warn)`                                       |                                                            |
+| `--mt-chart-5`                | `#6c6457`      | `#b4ab9b`       | `var(--mt-text-muted)`                                        | "other" in packet-type charts                              |
+| `--mt-chart-6`                | `#a3c46f`      | `#a3430a`       | `var(--mt-status-info)`                                       |                                                            |
+| `--mt-chart-grid`             | `#2a2620`      | `#dcd7cb`       | `color-mix(in srgb, var(--mt-border-color) 60%, transparent)` |                                                            |
 | `--mt-chart-axis`             | —              | —               | `var(--mt-text-muted)`                                        |                                                            |
 | `--mt-chart-crosshair`        | —              | —               | `var(--mt-text-muted)`                                        |                                                            |
 | `--mt-chart-band-alpha`       | —              | —               | `0.2`                                                         | opacity of min–max bands and the Powered band (0–1)        |
@@ -408,25 +446,25 @@ The static maps on node cards.
 | Token                  | Default (dark) | Default (light) | Without a theme          | Used for |
 | ---------------------- | -------------- | --------------- | ------------------------ | -------- |
 | `--mt-mini-map-height` | —              | —               | `10rem`                  |          |
-| `--mt-map-marker`      | `#55a8ff`      | `#2563eb`       | `var(--mt-accent)`       |          |
-| `--mt-map-marker-self` | `#f16d79`      | `#db2777`       | `var(--mt-status-error)` |          |
+| `--mt-map-marker`      | `#f58a45`      | `#42630f`       | `var(--mt-accent)`       |          |
+| `--mt-map-marker-self` | `#f58a45`      | `#42630f`       | `var(--mt-status-error)` |          |
 
 ### Map page
 
 Dots, labels and clusters (canvas: read through map-tokens.ts).
 
-| Token                   | Default (dark) | Default (light) | Without a theme            | Used for                                              |
-| ----------------------- | -------------- | --------------- | -------------------------- | ----------------------------------------------------- |
-| `--mt-map-node-online`  | —              | —               | `var(--mt-signal-online)`  |                                                       |
-| `--mt-map-node-recent`  | —              | —               | `var(--mt-signal-recent)`  |                                                       |
-| `--mt-map-node-stale`   | —              | —               | `var(--mt-signal-stale)`   |                                                       |
-| `--mt-map-node-offline` | —              | —               | `var(--mt-signal-offline)` |                                                       |
-| `--mt-map-label`        | —              | —               | `var(--mt-text)`           |                                                       |
-| `--mt-map-label-halo`   | —              | —               | `var(--mt-surface-bg)`     |                                                       |
-| `--mt-map-cluster-bg`   | —              | —               | `var(--mt-accent)`         |                                                       |
-| `--mt-map-cluster-text` | —              | —               | `var(--mt-accent-text)`    |                                                       |
-| `--mt-font-map`         | —              | —               | `var(--mt-font-body)`      | node labels on the map                                |
-| `--mt-map-node-glow`    | —              | —               | `0`                        | opacity (0–1) of a soft halo under each dot; 0 = none |
+| Token                   | Default (dark)                     | Default (light)                    | Without a theme            | Used for                                              |
+| ----------------------- | ---------------------------------- | ---------------------------------- | -------------------------- | ----------------------------------------------------- |
+| `--mt-map-node-online`  | —                                  | —                                  | `var(--mt-signal-online)`  |                                                       |
+| `--mt-map-node-recent`  | —                                  | —                                  | `var(--mt-signal-recent)`  |                                                       |
+| `--mt-map-node-stale`   | —                                  | —                                  | `var(--mt-signal-stale)`   |                                                       |
+| `--mt-map-node-offline` | —                                  | —                                  | `var(--mt-signal-offline)` |                                                       |
+| `--mt-map-label`        | —                                  | —                                  | `var(--mt-text)`           |                                                       |
+| `--mt-map-label-halo`   | `#18150f`                          | `#f7f3ea`                          | `var(--mt-surface-bg)`     |                                                       |
+| `--mt-map-cluster-bg`   | `#f58a45`                          | `#42630f`                          | `var(--mt-accent)`         |                                                       |
+| `--mt-map-cluster-text` | `#1c0f05`                          | `#fff`                             | `var(--mt-accent-text)`    |                                                       |
+| `--mt-font-map`         | `"Archivo", system-ui, sans-serif` | `"Archivo", system-ui, sans-serif` | `var(--mt-font-body)`      | node labels on the map                                |
+| `--mt-map-node-glow`    | —                                  | —                                  | `0`                        | opacity (0–1) of a soft halo under each dot; 0 = none |
 
 ### Device settings
 
@@ -442,27 +480,28 @@ Staged, conflicting and dangerous changes; QR codes.
 
 ### Typography
 
-| Token                     | Default (dark) | Default (light) | Without a theme           | Used for                                        |
-| ------------------------- | -------------- | --------------- | ------------------------- | ----------------------------------------------- |
-| `--mt-font-body`          | —              | —               | `system-ui, sans-serif`   |                                                 |
-| `--mt-font-mono`          | —              | —               | `ui-monospace, monospace` | ids, numbers, raw data                          |
-| `--mt-font-display`       | —              | —               | `var(--mt-font-body)`     | headings: page titles, section and card headers |
-| `--mt-font-size-xs`       | —              | —               | `0.75rem`                 |                                                 |
-| `--mt-font-size-sm`       | —              | —               | `0.875rem`                |                                                 |
-| `--mt-font-size-md`       | —              | —               | `1rem`                    |                                                 |
-| `--mt-font-size-lg`       | —              | —               | `1.25rem`                 |                                                 |
-| `--mt-font-size-xl`       | —              | —               | `1.625rem`                |                                                 |
-| `--mt-font-weight-medium` | —              | —               | `500`                     |                                                 |
-| `--mt-font-weight-bold`   | —              | —               | `600`                     |                                                 |
-| `--mt-line-height`        | —              | —               | `1.5`                     |                                                 |
+| Token                       | Default (dark)                                                | Default (light)                                               | Without a theme           | Used for                                                             |
+| --------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------- | -------------------------------------------------------------------- |
+| `--mt-font-body`            | `"Archivo", system-ui, -apple-system, "Segoe UI", sans-serif` | `"Archivo", system-ui, -apple-system, "Segoe UI", sans-serif` | `system-ui, sans-serif`   |                                                                      |
+| `--mt-font-mono`            | `"JetBrains Mono", ui-monospace, "Cascadia Mono", monospace`  | `"JetBrains Mono", ui-monospace, "Cascadia Mono", monospace`  | `ui-monospace, monospace` | ids, numbers, raw data                                               |
+| `--mt-font-display`         | `"Archivo", "Arial Narrow", system-ui, sans-serif`            | `"Archivo", "Arial Narrow", system-ui, sans-serif`            | `var(--mt-font-body)`     | headings: page titles, section and card headers                      |
+| `--mt-font-display-stretch` | `72%`                                                         | `72%`                                                         | `100%`                    | width of the display face; below 100% needs a font with a width axis |
+| `--mt-font-size-xs`         | —                                                             | —                                                             | `0.75rem`                 |                                                                      |
+| `--mt-font-size-sm`         | —                                                             | —                                                             | `0.875rem`                |                                                                      |
+| `--mt-font-size-md`         | —                                                             | —                                                             | `1rem`                    |                                                                      |
+| `--mt-font-size-lg`         | —                                                             | —                                                             | `1.25rem`                 |                                                                      |
+| `--mt-font-size-xl`         | —                                                             | —                                                             | `1.625rem`                |                                                                      |
+| `--mt-font-weight-medium`   | `500`                                                         | `500`                                                         | `500`                     |                                                                      |
+| `--mt-font-weight-bold`     | `650`                                                         | `650`                                                         | `600`                     |                                                                      |
+| `--mt-line-height`          | —                                                             | —                                                             | `1.5`                     |                                                                      |
 
 ### Shape
 
 | Token               | Default (dark) | Default (light) | Without a theme | Used for |
 | ------------------- | -------------- | --------------- | --------------- | -------- |
-| `--mt-radius-sm`    | —              | —               | `0.25rem`       |          |
-| `--mt-radius-md`    | —              | —               | `0.5rem`        |          |
-| `--mt-radius-lg`    | —              | —               | `1rem`          |          |
+| `--mt-radius-sm`    | `0.25rem`      | `0.25rem`       | `0.25rem`       |          |
+| `--mt-radius-md`    | `0.5rem`       | `0.5rem`        | `0.5rem`        |          |
+| `--mt-radius-lg`    | `0.75rem`      | `0.75rem`       | `1rem`          |          |
 | `--mt-border-width` | —              | —               | `1px`           |          |
 
 ### Spacing
@@ -796,6 +835,10 @@ Every `data-mt` hook, grouped by where it appears. "From data" means the value c
 
 | `data-mt`                 | Element                                                                                  | `data-mt-state`                          | `data-mt-variant`                                          |
 | ------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
+| `accent-option`           | One accent choice (CR-005); the variant is the accent id                                 | `active`, `idle`                         | `orange`, `amber`, `moss`, … (from data)                   |
+| `accent-options`          | The accent choices (radiogroup)                                                          |                                          |                                                            |
+| `accent-picker`           | Settings → Appearance: Accent, for themes that offer accents (CR-005)                    |                                          |                                                            |
+| `accent-swatch`           | An accent's color dot (`--mt-swatch-accent`)                                             |                                          |                                                            |
 | `appearance-settings`     | Settings → Appearance (CR-004)                                                           |                                          |                                                            |
 | `apply-progress`          |                                                                                          | (from data)                              |                                                            |
 | `apply-step`              |                                                                                          | `active`, `done`, `pending`              |                                                            |

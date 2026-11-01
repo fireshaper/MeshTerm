@@ -41,11 +41,12 @@ const FULL =
   // `pnpm test:visual` and `test:visual:update` always cover everything.
   (process.env.npm_lifecycle_event ?? "").startsWith("test:visual");
 const SMOKE = /dashboard|channel view/;
+const ACCENT_SET = /dashboard|appearance/;
 
 function visualProject(
   name: string,
   device: typeof DESKTOP | typeof MOBILE,
-  theme: { theme?: string; mode?: "dark" | "light"; effects?: boolean },
+  theme: { theme?: string; mode?: "dark" | "light"; effects?: boolean; accent?: string },
   grep?: RegExp,
 ) {
   return {
@@ -65,6 +66,7 @@ const THEMED = [
   { id: "retro-terminal", always: true },
   { id: "retro-terminal-amber", always: false },
   { id: "cyberpunk", always: true },
+  { id: "classic", always: false },
 ];
 
 const visualProjects = [
@@ -82,6 +84,18 @@ const visualProjects = [
         ? [visualProject(`visual-${id}-desktop`, DESKTOP, { theme: id }, SMOKE)]
         : [],
   ),
+  // Field Kit's other accents (CR-005): the dashboard and Appearance, dark and light.
+  ...(FULL
+    ? [
+        visualProject("visual-default-amber-desktop", DESKTOP, { accent: "amber" }, ACCENT_SET),
+        visualProject(
+          "visual-default-moss-light-desktop",
+          DESKTOP,
+          { mode: "light", accent: "moss" },
+          ACCENT_SET,
+        ),
+      ]
+    : []),
   ...(FULL
     ? ["retro-terminal", "cyberpunk"].map((id) =>
         visualProject(`visual-${id}-fx-desktop`, DESKTOP, { theme: id, effects: true }, SMOKE),

@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
-/** The Default theme is dark by default. */
-const DEFAULT_SURFACE_BG = "#0b1018";
+/** The Default theme (Field Kit) is dark by default. */
+const DEFAULT_SURFACE_BG = "#14120f";
 
 const token = (page: Page, name: string) =>
   page.evaluate((n) => getComputedStyle(document.body).getPropertyValue(n).trim(), name);
@@ -18,7 +18,7 @@ test.describe("theme layers", () => {
     expect(await token(page, "--mt-surface-bg")).toBe(DEFAULT_SURFACE_BG);
     // The token reaches actual paint, not just the variable.
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    expect(bg).toBe("rgb(11, 16, 24)");
+    expect(bg).toBe("rgb(20, 18, 15)");
   });
 
   test("a later theme file in @layer theme overrides a token without !important", async ({

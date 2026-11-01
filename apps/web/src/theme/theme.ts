@@ -17,6 +17,8 @@ export const THEME_APPLIED_EVENT = "theme:applied";
 export interface ThemeAppliedDetail {
   id: string;
   mode: Mode;
+  /** The theme's accent (CR-005 §7), null for a theme without accents. */
+  accent: string | null;
 }
 
 export interface SavedTheme {
@@ -29,6 +31,19 @@ export interface SavedTheme {
   chosen: boolean;
   /** The theme's manifest `effects`, so the boot script can set them before the app loads. */
   effects: string[];
+  /** The accent picked per theme id (CR-005 §7); the boot script sets the saved theme's. */
+  accents: Record<string, string>;
+}
+
+const ACCENT_ID = /^[a-z0-9-]{1,20}$/;
+
+function readAccents(raw: unknown): Record<string, string> {
+  if (typeof raw !== "object" || raw === null) return {};
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, unknown>).filter(
+      (e): e is [string, string] => typeof e[1] === "string" && ACCENT_ID.test(e[1]),
+    ),
+  );
 }
 
 const MODES: readonly ModePref[] = ["system", "light", "dark"];
@@ -47,6 +62,7 @@ export function readSavedTheme(): SavedTheme | null {
       mode: MODES.includes(s.mode as ModePref) ? (s.mode as ModePref) : "system",
       chosen: s.chosen === true,
       effects: Array.isArray(s.effects) ? s.effects.filter((e) => typeof e === "string") : [],
+      accents: readAccents(s.accents),
     };
   } catch {
     return null;
@@ -100,6 +116,41 @@ export function activeEffects(
 export function forcedThemeId(): string | null {
   const root = document.documentElement;
   return root.hasAttribute("data-mt-theme-forced") ? root.getAttribute("data-mt-theme") : null;
+}
+
+/** `?accent=<id>` for this page load, as the boot script found it (never saved). */
+export function forcedAccentId(): string | null {
+  const root = document.documentElement;
+  return root.hasAttribute("data-mt-accent-forced") ? root.getAttribute("data-mt-accent") : null;
+}
+
+/** The accent to show: the wanted one when the theme offers it, else its first, else none. */
+export function resolveAccent(
+  manifest: Pick<ThemeManifest, "accents"> | null | undefined,
+  wanted: string | null | undefined,
+): string | null {
+  const accents = manifest?.accents ?? [];
+  if (wanted && accents.some((a) => a.id === wanted)) return wanted;
+  return accents[0]?.id ?? null;
+}
+
+function setAccentAttribute(accent: string | null): void {
+  const root = document.documentElement;
+  if (accent) root.setAttribute("data-mt-accent", accent);
+  else root.removeAttribute("data-mt-accent");
+}
+
+/**
+ * Switches the accent of the theme already applied: `data-mt-accent` on `<html>`, then
+ * `theme:applied` so canvas renderers re-read their tokens. No stylesheet changes.
+ */
+export function applyAccent(themeId: string, mode: Mode, accent: string | null): void {
+  setAccentAttribute(accent);
+  window.dispatchEvent(
+    new CustomEvent<ThemeAppliedDetail>(THEME_APPLIED_EVENT, {
+      detail: { id: themeId, mode, accent },
+    }),
+  );
 }
 
 export function systemPrefersDark(): boolean {
@@ -218,7 +269,7 @@ let applying = 0;
 
 /**
  * Applies a theme and mode: stylesheet, mode stylesheet, fonts, `data-mt-theme` /
- * `data-mt-mode` on `<html>`, the color-scheme meta, then `theme:applied`. A newer call
+ * `data-mt-mode` / `data-mt-accent` on `<html>`, the color-scheme meta, then `theme:applied`. A newer call
  * wins over one still loading. Resolves false when the stylesheet failed to load (the
  * previous theme stays).
  */
@@ -226,6 +277,8 @@ export async function applyTheme(
   theme: ThemeDTO,
   mode: Mode,
   load: StylesheetLoader = defaultLoader,
+  /** Read when the theme is in place, so an accent picked while it loaded wins. */
+  accent: () => string | null = () => null,
 ): Promise<boolean> {
   const run = ++applying;
   const stale = () => run !== applying;
@@ -247,9 +300,13 @@ export async function applyTheme(
   const root = document.documentElement;
   root.setAttribute("data-mt-theme", theme.id);
   root.setAttribute("data-mt-mode", mode);
+  const chosenAccent = accent();
+  setAccentAttribute(chosenAccent);
   document.querySelector('meta[name="color-scheme"]')?.setAttribute("content", mode);
   window.dispatchEvent(
-    new CustomEvent<ThemeAppliedDetail>(THEME_APPLIED_EVENT, { detail: { id: theme.id, mode } }),
+    new CustomEvent<ThemeAppliedDetail>(THEME_APPLIED_EVENT, {
+      detail: { id: theme.id, mode, accent: chosenAccent },
+    }),
   );
   return true;
 }

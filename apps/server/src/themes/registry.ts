@@ -218,6 +218,8 @@ export class ThemeRegistry {
       manifest.modes?.light,
       manifest.modes?.dark,
       manifest.mapStyle,
+      manifest.mapStyleModes?.light,
+      manifest.mapStyleModes?.dark,
       ...(manifest.fonts ?? []).map((f) => f.src),
       ...Object.values(manifest.sounds ?? {}),
     ].filter((p): p is string => p !== undefined);
@@ -225,7 +227,12 @@ export class ThemeRegistry {
       if (!files.includes(path))
         throw new Error(`theme.json names ${path}, which isn't in the folder`);
     }
-    if (manifest.mapStyle) warnings.push(...checkMapStyle(dir, manifest.mapStyle));
+    const mapStyles = new Set(
+      [manifest.mapStyle, manifest.mapStyleModes?.light, manifest.mapStyleModes?.dark].filter(
+        (p): p is string => p !== undefined,
+      ),
+    );
+    for (const file of mapStyles) warnings.push(...checkMapStyle(dir, file));
     const app = this.options.appVersion;
     if (app && manifest.minAppVersion && compareVersions(app, manifest.minAppVersion) < 0) {
       warnings.push(`made for MeshTerm ${manifest.minAppVersion} or later (this is ${app})`);

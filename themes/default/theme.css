@@ -1,114 +1,251 @@
 /*
- * Default theme: a network-monitoring palette in dark and light (colorScheme "auto":
- * the mode follows Settings → Appearance, System by default). The reference value for
- * every --mt-* token; other themes override what they need inside @layer theme, never
- * with !important. The dark palette is also the fallback before data-mt-mode is set.
+ * Field Kit (the Default theme, CR-005): an outdoors field-radio look. Warm basalt in
+ * dark mode, survey paper in light mode (colorScheme "auto": the mode follows Settings →
+ * Appearance, System by default), with three accents picked through
+ * html[data-mt-accent]: signal orange (the default), amber and moss.
+ *
+ * The reference value for every --mt-* token; other themes override what they need
+ * inside @layer theme, never with !important. The dark palette and the orange accent are
+ * also the fallback before data-mt-mode / data-mt-accent are set.
+ *
+ * Fonts (fonts/, OFL, see LICENSES.md): Archivo, a variable face with a width axis, for
+ * body text and condensed uppercase headings; JetBrains Mono for readings and ids.
  */
+@font-face {
+  font-family: Archivo;
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  src: url("fonts/archivo-latin-wdth-normal.woff2") format("woff2-variations");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url("fonts/jetbrains-mono-latin-500-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url("fonts/jetbrains-mono-latin-600-normal.woff2") format("woff2");
+}
+
 @layer theme {
   :root {
-    --mt-card-radius: 0.625rem;
+    --mt-font-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mt-font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+    --mt-font-display-stretch: 72%;
+    --mt-font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
+    --mt-font-map: "Archivo", system-ui, sans-serif;
+    --mt-font-weight-medium: 500;
+    --mt-font-weight-bold: 650;
+
+    --mt-radius-sm: 0.25rem;
+    --mt-radius-md: 0.5rem;
+    --mt-radius-lg: 0.75rem;
+    --mt-card-radius: 0.75rem;
 
     /* QR codes stay dark on light in every mode: scanners expect it. */
     --mt-qr-fg: #000;
     --mt-qr-bg: #fff;
   }
 
+  /* ---------- dark: warm basalt ---------- */
   :root,
   :root:where([data-mt-mode="dark"]) {
     color-scheme: dark;
 
-    --mt-surface-bg: #0b1018;
-    --mt-surface-raised: #161f2c;
-    --mt-surface-elevated: #1d2938;
-    --mt-surface-sunken: #0e141e;
-    --mt-sidebar-bg: #111823;
-    --mt-border-color: #2a3545;
+    --mt-surface-bg: #14120f;
+    --mt-surface-sunken: #0e0d0a;
+    --mt-surface-raised: #1b1915;
+    --mt-surface-elevated: #25221c;
+    --mt-sidebar-bg: #0e0d0a;
+    --mt-border-color: #2f2b24;
+    --mt-border-strong: #443e34;
 
-    --mt-text: #e8eef5;
-    --mt-text-muted: #93a2b7;
-    --mt-text-inverse: #0b1018;
+    --mt-text: #efe9de;
+    --mt-text-muted: #b3a998;
+    --mt-text-faint: #918676;
+    --mt-text-inverse: #14120f;
 
-    --mt-accent: #55a8ff;
-    --mt-accent-text: #0b1018;
-    --mt-status-ok: #35d49a;
-    --mt-status-warn: #f5b84b;
-    --mt-status-error: #f16d79;
-    --mt-status-info: #55a8ff;
+    --mt-accent: #f58a45;
+    --mt-accent-text: #1c0f05;
+    --mt-accent-soft: #f58a4521;
+    --mt-status-ok: #a3c46f;
+    --mt-status-warn: #eeb544;
+    --mt-status-error: #f06d5c;
+    --mt-status-info: #7fbad3;
 
-    --mt-bubble-in-bg: #1d2938;
-    --mt-bubble-in-text: #e8eef5;
-    --mt-bubble-out-bg: #2b6fbf;
-    --mt-bubble-out-text: #fff;
+    --mt-bubble-in-bg: #25221c;
+    --mt-bubble-in-text: #efe9de;
+    --mt-bubble-out-bg: #4a2f1d;
+    --mt-bubble-out-text: #f8efe4;
 
-    --mt-card-bg: #161f2c;
-    --mt-card-border: #2a3545;
+    --mt-card-bg: #1b1915;
+    --mt-card-border: #2f2b24;
     --mt-card-shadow: none;
-    --mt-card-self-accent: #55a8ff;
-    --mt-battery-low: #f5b84b;
-    --mt-battery-critical: #f16d79;
-    --mt-chart-1: #55a8ff;
-    --mt-chart-2: #35d49a;
-    --mt-chart-3: #a78bfa;
-    --mt-chart-4: #f472b6;
-    --mt-chart-5: #5b6878;
-    --mt-chart-6: #f5b84b;
+    --mt-card-self-accent: #f58a45;
+    --mt-battery-low: #eeb544;
+    --mt-battery-critical: #f06d5c;
 
-    --mt-signal-online: #35d49a;
-    --mt-signal-recent: #55a8ff;
-    --mt-signal-stale: #f5b84b;
-    --mt-signal-offline: #5b6878;
+    --mt-chart-1: #f58a45;
+    --mt-chart-2: #7fbad3;
+    --mt-chart-3: #c7a5e6;
+    --mt-chart-4: #eeb544;
+    --mt-chart-5: #6c6457;
+    --mt-chart-6: #a3c46f;
+    --mt-chart-grid: #2a2620;
 
-    --mt-map-marker: #55a8ff;
-    --mt-map-marker-self: #f16d79;
-    --mt-shadow-popover: 0 8px 24px #0006;
+    --mt-signal-online: #a3c46f;
+    --mt-signal-recent: #eeb544;
+    --mt-signal-stale: #c98a5a;
+    --mt-signal-offline: #6c6457;
+
+    --mt-map-marker: #f58a45;
+    --mt-map-marker-self: #f58a45;
+    --mt-map-label-halo: #18150f;
+    --mt-map-cluster-bg: #f58a45;
+    --mt-map-cluster-text: #1c0f05;
+    --mt-shadow-popover: 0 18px 40px #00000080, 0 0 0 1px #443e34;
   }
 
+  :root:where(:not([data-mt-mode="light"])[data-mt-accent="amber"]) {
+    --mt-accent: #e8a524;
+    --mt-accent-text: #1a1103;
+    --mt-accent-soft: #e8a52421;
+    --mt-bubble-out-bg: #46351a;
+    --mt-card-self-accent: #e8a524;
+    --mt-chart-1: #e8a524;
+    --mt-chart-4: #f06d5c;
+    --mt-map-marker: #e8a524;
+    --mt-map-marker-self: #e8a524;
+    --mt-map-cluster-bg: #e8a524;
+    --mt-map-cluster-text: #1a1103;
+  }
+
+  :root:where(:not([data-mt-mode="light"])[data-mt-accent="moss"]) {
+    --mt-accent: #9dc24f;
+    --mt-accent-text: #0f1505;
+    --mt-accent-soft: #9dc24f21;
+    --mt-bubble-out-bg: #303d1d;
+    --mt-card-self-accent: #9dc24f;
+    --mt-chart-1: #9dc24f;
+    --mt-chart-6: #f58a45;
+    --mt-map-marker: #9dc24f;
+    --mt-map-marker-self: #9dc24f;
+    --mt-map-cluster-bg: #9dc24f;
+    --mt-map-cluster-text: #0f1505;
+  }
+
+  /* ---------- light: survey paper ---------- */
   :root:where([data-mt-mode="light"]) {
     color-scheme: light;
 
-    --mt-surface-bg: #f4f6f9;
-    --mt-surface-raised: #fff;
+    --mt-surface-bg: #ebe9e1;
+    --mt-surface-sunken: #e1ded4;
+    --mt-surface-raised: #f7f6f1;
     --mt-surface-elevated: #fff;
-    --mt-surface-sunken: #eceef2;
-    --mt-sidebar-bg: #fff;
-    --mt-border-color: #d5d9e0;
+    --mt-sidebar-bg: #e1ded4;
+    --mt-border-color: #d3cec1;
+    --mt-border-strong: #bab3a3;
 
-    --mt-text: #1b1f27;
-    --mt-text-muted: #5d6675;
+    --mt-text: #1f1b15;
+    --mt-text-muted: #554d41;
+    --mt-text-faint: #685f52;
     --mt-text-inverse: #fff;
 
-    --mt-accent: #2563eb;
+    --mt-accent: #a3430a;
     --mt-accent-text: #fff;
-    --mt-status-ok: #15803d;
-    --mt-status-warn: #b45309;
-    --mt-status-error: #b91c1c;
-    --mt-status-info: #2563eb;
+    --mt-accent-soft: #a3430a1f;
+    --mt-status-ok: #3e6416;
+    --mt-status-warn: #855600;
+    --mt-status-error: #a83223;
+    --mt-status-info: #286480;
 
-    --mt-bubble-in-bg: #eceef2;
-    --mt-bubble-in-text: #1b1f27;
-    --mt-bubble-out-bg: #2563eb;
-    --mt-bubble-out-text: #fff;
+    --mt-bubble-in-bg: #fff;
+    --mt-bubble-in-text: #1f1b15;
+    --mt-bubble-out-bg: #f6e0cf;
+    --mt-bubble-out-text: #1f1b15;
 
-    --mt-card-bg: #fff;
-    --mt-card-border: #d5d9e0;
-    --mt-card-shadow: 0 1px 2px #1b1f2714;
-    --mt-card-self-accent: #2563eb;
-    --mt-battery-low: #b45309;
-    --mt-battery-critical: #b91c1c;
-    --mt-chart-1: #2563eb;
-    --mt-chart-2: #15803d;
-    --mt-chart-3: #7c3aed;
-    --mt-chart-4: #db2777;
-    --mt-chart-5: #9ca3af;
-    --mt-chart-6: #b45309;
+    --mt-card-bg: #f7f6f1;
+    --mt-card-border: #d3cec1;
+    --mt-card-shadow: 0 1px 2px #3c280a14;
+    --mt-card-self-accent: #a3430a;
+    --mt-battery-low: #855600;
+    --mt-battery-critical: #a83223;
 
-    --mt-signal-online: #16a34a;
-    --mt-signal-recent: #2563eb;
-    --mt-signal-stale: #d97706;
-    --mt-signal-offline: #9ca3af;
+    --mt-chart-1: #a3430a;
+    --mt-chart-2: #3f8db0;
+    --mt-chart-3: #8a5cc4;
+    --mt-chart-4: #c88d16;
+    --mt-chart-5: #b4ab9b;
+    --mt-chart-6: #6f9a3a;
+    --mt-chart-grid: #dcd7cb;
 
-    --mt-map-marker: #2563eb;
-    --mt-map-marker-self: #db2777;
-    --mt-shadow-popover: 0 8px 24px #1b1f2729;
+    --mt-signal-online: #3e6416;
+    --mt-signal-recent: #b07400;
+    --mt-signal-stale: #a5633a;
+    --mt-signal-offline: #9c9384;
+
+    --mt-map-marker: #a3430a;
+    --mt-map-marker-self: #a3430a;
+    --mt-map-label-halo: #f7f3ea;
+    --mt-map-cluster-bg: #a3430a;
+    --mt-map-cluster-text: #fff;
+    --mt-shadow-popover: 0 16px 36px #3c280a29, 0 0 0 1px #d3cec1;
+  }
+
+  :root:where([data-mt-mode="light"][data-mt-accent="amber"]) {
+    --mt-accent: #885000;
+    --mt-accent-soft: #8850001f;
+    --mt-bubble-out-bg: #f2e3c4;
+    --mt-card-self-accent: #885000;
+    --mt-chart-1: #885000;
+    --mt-chart-4: #a83223;
+    --mt-map-marker: #885000;
+    --mt-map-marker-self: #885000;
+    --mt-map-cluster-bg: #885000;
+  }
+
+  :root:where([data-mt-mode="light"][data-mt-accent="moss"]) {
+    --mt-accent: #42630f;
+    --mt-accent-soft: #42630f1f;
+    --mt-bubble-out-bg: #e1ebcd;
+    --mt-card-self-accent: #42630f;
+    --mt-chart-1: #42630f;
+    --mt-chart-6: #a3430a;
+    --mt-map-marker: #42630f;
+    --mt-map-marker-self: #42630f;
+    --mt-map-cluster-bg: #42630f;
+  }
+
+  /* ---------- type: condensed caps for titles, mono for readings ---------- */
+  :where(h1, h2, [data-mt="page-title"]) {
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 750;
+  }
+
+  :where(h1, [data-mt="page-title"]) {
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  :where(code, kbd, samp, pre) {
+    font-family: var(--mt-font-mono);
   }
 }

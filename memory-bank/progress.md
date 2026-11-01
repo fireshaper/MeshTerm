@@ -716,6 +716,16 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` 
 - The Field Kit mockup was extended to every main screen (Overview, Messages, Map, Nodes, node drawer, Settings with LoRa and the apply flow) and saved in `memory-bank/mockups/field-kit/` (excluded from Prettier and ESLint).
 - CR: [cr-005-field-kit.md](cr-005-field-kit.md); plan: [cr-005-plan.md](cr-005-plan.md), phases K0–K7. Open questions in CR §12 are built with their defaults unless the user answers otherwise.
 
+### CR-005 Phase K0: accents and the Field Kit palette (done 2026-11-01)
+
+- **Accents** (a generic theme feature): manifest `accents` (1–6, first = default), `<html data-mt-accent>` set by the boot script (saved per theme in `meshterm.theme`, or `?accent=` for one load) and by the runtime without reloading the stylesheet; `theme:applied` carries the accent so the map, charts, sparklines and favicon re-read tokens. Settings → Appearance has an Accent picker (`accent-picker`, `accent-option`) for themes that offer accents.
+- **Map style per mode:** manifest `mapStyleModes {light, dark}`, checked by the registry like `mapStyle`.
+- **Field Kit is the Default theme** (id `default`, name "Field Kit", version 2.0.0): basalt dark and survey-paper light palettes, signal orange / amber / moss accents, Archivo (condensed via `--mt-font-display-stretch: 72%`, uppercase titles) and JetBrains Mono bundled (OFL), a darkened map at night and a paper-toned map by day. Light-mode accents and statuses were darkened from the mockup to pass AA on the sunken surface.
+- **Classic** keeps the old Default look as a built-in theme.
+- **New base tokens:** `--mt-text-faint`, `--mt-border-strong`, `--mt-accent-soft`, `--mt-font-display-stretch`.
+- THEMING.md: Accents section, `mapStyleModes`, the width token, Field Kit and Classic in the built-in list; references regenerated.
+- **Tests:** manifest (accents, `mapStyleModes`), registry (per-mode map styles, every built-in theme loads cleanly), `resolveAccent` / `applyAccent` / `applyTheme` with an accent, saved accents, the Appearance picker, e2e (accent live, per theme, before the app's JS, `?accent=`; Field Kit's map style follows the mode; Classic for the no-filter map), contrast for Field Kit × 3 accents × 2 modes and Classic; visual baselines re-recorded (Default is now Field Kit; Classic and two accent runs added to the full set).
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

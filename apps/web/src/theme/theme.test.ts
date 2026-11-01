@@ -2,9 +2,11 @@ import type { ThemeDTO, ThemeManifest } from "@meshterm/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   activeEffects,
+  applyAccent,
   applyTheme,
   pickTheme,
   readSavedTheme,
+  resolveAccent,
   resolveMode,
   saveTheme,
   THEME_APPLIED_EVENT,
@@ -63,12 +65,23 @@ describe("saved theme", () => {
       mode: "light",
       chosen: true,
       effects: [],
+      accents: { default: "amber" },
     });
-    expect(readSavedTheme()).toMatchObject({ id: "retro", mode: "light", chosen: true });
+    expect(readSavedTheme()).toMatchObject({
+      id: "retro",
+      mode: "light",
+      chosen: true,
+      accents: { default: "amber" },
+    });
     localStorage.setItem(THEME_STORAGE_KEY, "{ nope");
     expect(readSavedTheme()).toBeNull();
     localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ id: "x", mode: "purple" }));
-    expect(readSavedTheme()).toMatchObject({ id: "x", mode: "system", chosen: false });
+    expect(readSavedTheme()).toMatchObject({ id: "x", mode: "system", chosen: false, accents: {} });
+    localStorage.setItem(
+      THEME_STORAGE_KEY,
+      JSON.stringify({ id: "x", accents: { default: "moss", bad: "<script>", n: 3 } }),
+    );
+    expect(readSavedTheme()?.accents).toEqual({ default: "moss" });
   });
 
   it("works without storage", () => {
@@ -87,6 +100,7 @@ describe("saved theme", () => {
         mode: "system",
         chosen: true,
         effects: [],
+        accents: {},
       });
     }).not.toThrow();
     expect(readSavedTheme()).toBeNull();
@@ -178,5 +192,56 @@ describe("activeEffects (CR-004 §7)", () => {
     expect(
       activeEffects(["scanlines", "flicker", "glow"], true, { ...media, reducedMotion: true }),
     ).toEqual(["scanlines", "glow"]);
+  });
+});
+
+describe("accents (CR-005 §7)", () => {
+  const accents = [
+    { id: "orange", name: "Signal orange", preview: "#f08a4b" },
+    { id: "amber", name: "Amber", preview: "#e8a33a" },
+  ];
+
+  it("resolveAccent: the wanted one if offered, else the first, else none", () => {
+    expect(resolveAccent({ accents }, "amber")).toBe("amber");
+    expect(resolveAccent({ accents }, "moss")).toBe("orange");
+    expect(resolveAccent({ accents }, null)).toBe("orange");
+    expect(resolveAccent({}, "amber")).toBeNull();
+    expect(resolveAccent(null, "amber")).toBeNull();
+  });
+
+  it("applyTheme sets the accent the callback returns, then announces it", async () => {
+    const applied = vi.fn();
+    window.addEventListener(THEME_APPLIED_EVENT, applied);
+    await applyTheme(
+      theme("field"),
+      "light",
+      () => Promise.resolve(true),
+      () => "amber",
+    );
+    expect(document.documentElement.dataset.mtAccent).toBe("amber");
+    expect((applied.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
+      id: "field",
+      mode: "light",
+      accent: "amber",
+    });
+    await applyTheme(theme("plain"), "light", () => Promise.resolve(true));
+    expect(document.documentElement.hasAttribute("data-mt-accent")).toBe(false);
+    window.removeEventListener(THEME_APPLIED_EVENT, applied);
+  });
+
+  it("applyAccent changes only the attribute and announces it", () => {
+    document.head.innerHTML =
+      '<link id="mt-theme" rel="stylesheet" href="/themes/field/theme.css" data-mt="theme-link">';
+    const applied = vi.fn();
+    window.addEventListener(THEME_APPLIED_EVENT, applied);
+    applyAccent("field", "dark", "moss");
+    expect(document.documentElement.dataset.mtAccent).toBe("moss");
+    expect(document.getElementById("mt-theme")?.getAttribute("href")).toBe(
+      "/themes/field/theme.css",
+    );
+    expect(applied).toHaveBeenCalledTimes(1);
+    applyAccent("field", "dark", null);
+    expect(document.documentElement.hasAttribute("data-mt-accent")).toBe(false);
+    window.removeEventListener(THEME_APPLIED_EVENT, applied);
   });
 });
