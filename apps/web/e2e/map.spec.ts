@@ -128,6 +128,56 @@ test("layer toggles hide links and rings, and are remembered", async ({ page }) 
   await expect.poll(() => visibility("mt-links")).toBe("visible");
 });
 
+test("topographic tiles by default; the switch shows the street map on both maps", async ({
+  page,
+}) => {
+  const tiles = (prefix: string) =>
+    page
+      .evaluate<string[]>(
+        `JSON.stringify(window.__meshtermMap.getStyle().sources["mt-base"].tiles)`,
+      )
+      .then((json) =>
+        (JSON.parse(String(json)) as string[]).map((u) => new URL(u).pathname.startsWith(prefix)),
+      );
+  await openMap(page);
+  const topo = page.getByRole("button", { name: "Topographic map" });
+  await expect(topo).toHaveAttribute("aria-pressed", "true");
+  expect(await tiles("/api/tiles/topo/")).toEqual([true]);
+  await expect(page.locator("[data-mt=map-attribution]")).toContainText("OpenTopoMap");
+
+  await page.evaluate(`(async () => {
+    const map = window.__meshtermMap;
+    map.jumpTo({ center: [-122.2, 47.62], zoom: 11 });
+    await new Promise((r) => map.once("idle", r));
+  })()`);
+  const before = await camera(page);
+  await topo.click();
+  await expect(topo).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(() => tiles("/api/tiles/topo/")).toEqual([false]);
+  await expect(page.locator("[data-mt=map-attribution]")).not.toContainText("OpenTopoMap");
+  expect(await camera(page)).toEqual(before);
+
+  // The Overview follows this browser's choice.
+  await page.goto(`${BASE}/dashboard`);
+  const hero = page.locator("[data-mt=overview-hero]");
+  await expect(hero.locator("[data-mt=overview-hero-tiles] img").first()).toHaveAttribute(
+    "src",
+    /^\/api\/tiles\/\d+\//,
+  );
+  await expect(hero.locator("[data-mt=map-attribution]")).toHaveText(
+    "© OpenStreetMap contributors",
+  );
+  await page.evaluate(() => {
+    localStorage.removeItem("meshterm.baseMap");
+  });
+  await page.reload();
+  await expect(hero.locator("[data-mt=overview-hero-tiles] img").first()).toHaveAttribute(
+    "src",
+    /^\/api\/tiles\/topo\//,
+  );
+  await expect(hero.locator("[data-mt=map-attribution]")).toContainText("OpenTopoMap");
+});
+
 test("switching light and dark recolors the map without moving it", async ({ page }) => {
   await openMap(page);
   await page.evaluate(`(async () => {

@@ -788,6 +788,13 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` 
 - **Docs:** THEMING "Field Kit, the reference theme" and the new token; README screenshots (`docs/screenshots/`, made with `README_SHOTS=1`); architecture, DECISIONS.
 - **CR-005 is complete.** Left over: the Traceroute action (no client flow yet), the Retro map's black tile in headless baselines.
 
+### Topographic base map (done 2026-11-02)
+
+- The Overview and the Map page show OpenTopoMap tiles by default; the mountain button on the Map page and Settings → Appearance → Map switch this browser to the street map (remembered). The Map page swaps tiles without moving the camera.
+- Server: `MESHTERM_TOPO_TILE_URL`, a second tile cache in `/data/tiles-topo` behind `/api/tiles/topo/…`, zoom capped at 17.
+- Credits: OpenStreetMap, plus SRTM and OpenTopoMap (CC-BY-SA) on the topographic map, on both maps.
+- Tests: the topo route and its separate cache, preference default and storage, credits, tile source zoom, the Appearance switch, e2e (default, switch, camera kept, Overview follows); baselines re-recorded.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

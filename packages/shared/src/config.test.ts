@@ -51,6 +51,7 @@ describe("parseConfig", () => {
       backoffMinMs: 2_000,
       backoffMaxMs: 60_000,
       tileUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      topoTileUrl: "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
       tileCacheMb: 500,
       auth: "local",
       initialAdmin: null,

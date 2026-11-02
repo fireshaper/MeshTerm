@@ -20,6 +20,8 @@ export interface TileCacheOptions {
   timeoutMs?: number;
   /** Upstream requests in flight at once; more wait in a queue. Default 2. */
   maxConcurrent?: number;
+  /** Highest zoom the upstream has (OpenTopoMap: 17). Default 19. */
+  maxZoom?: number;
 }
 
 export interface Tile {
@@ -74,7 +76,7 @@ export class TileCache {
 
   /** Throws `TileError` 400 for coordinates outside the zoom level, 502 when upstream fails with nothing cached. */
   async get(z: number, x: number, y: number): Promise<Tile> {
-    validate(z, x, y);
+    validate(z, x, y, this.options.maxZoom ?? MAX_ZOOM);
     await this.load();
     const key = `${z}/${x}/${y}`;
     const pending = this.inFlight.get(key);
@@ -201,9 +203,9 @@ export class TileCache {
   }
 }
 
-function validate(z: number, x: number, y: number): void {
+function validate(z: number, x: number, y: number, maxZoom: number): void {
   const ok =
-    Number.isInteger(z) && z >= 0 && z <= MAX_ZOOM && Number.isInteger(x) && Number.isInteger(y);
+    Number.isInteger(z) && z >= 0 && z <= maxZoom && Number.isInteger(x) && Number.isInteger(y);
   const max = 2 ** z;
   if (!ok || x < 0 || y < 0 || x >= max || y >= max) {
     throw new TileError(400, `no tile ${z}/${x}/${y}`);

@@ -7,6 +7,7 @@ import { useIsAdmin } from "../auth/me.js";
 import { ApiError, api } from "../data/api.js";
 import { queryKeys } from "../data/keys.js";
 import { useUiStore } from "../data/ui-store.js";
+import { BASE_MAPS, useBaseMap } from "../map/base-map.js";
 import { useThemeStore } from "../theme/store.js";
 import {
   useActiveTheme,
@@ -89,6 +90,8 @@ export function AppearanceSettingsPage() {
 
         <EffectsToggle theme={active} />
 
+        <BaseMapPicker />
+
         {admin && data && (
           <AdminSection themes={data.themes} defaultId={data.defaultId} active={active} />
         )}
@@ -108,6 +111,38 @@ export function AppearanceSettingsPage() {
         </p>
       </div>
     </section>
+  );
+}
+
+/** Topographic or street tiles under the Overview and the Map page, for this browser. */
+function BaseMapPicker() {
+  const base = useBaseMap((st) => st.base);
+  const setBase = useBaseMap((st) => st.setBase);
+  return (
+    <fieldset data-mt="config-group" data-mt-variant="base-map">
+      <legend data-mt="config-group-title">Map</legend>
+      <div data-mt="mode-options" data-mt-variant="segmented">
+        {(["topo", "street"] as const).map((b) => (
+          <button
+            key={b}
+            type="button"
+            data-mt="segment"
+            data-mt-variant={b}
+            data-mt-state={base === b ? "active" : "inactive"}
+            aria-pressed={base === b}
+            onClick={() => {
+              setBase(b);
+            }}
+          >
+            {BASE_MAPS[b].label}
+          </button>
+        ))}
+      </div>
+      <p data-mt="config-help">
+        The tiles under the Overview and the Map page. Topographic (OpenTopoMap) shows hills and
+        contour lines for planning links; you can also switch on the Map page.
+      </p>
+    </fieldset>
   );
 }
 

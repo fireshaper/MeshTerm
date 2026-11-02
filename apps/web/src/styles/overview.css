@@ -246,9 +246,10 @@
     font-size: var(--mt-font-size-sm);
   }
 
+  /* Above the credit line. */
   [data-mt="overview-hero-foot"] {
     position: absolute;
-    inset-block-end: var(--mt-space-3);
+    inset-block-end: calc(var(--mt-space-3) + 1.25rem);
     inset-inline: var(--mt-space-3);
     display: flex;
     flex-wrap: wrap;
@@ -472,5 +473,29 @@
     [data-mt="overview-hero-foot"] [data-mt="button"][data-mt-variant="open-map"] {
       display: none;
     }
+  }
+}
+
+/* The tiles' credit on the Overview map (the Map page styles its own in map.css). */
+@layer base {
+  [data-mt="map-attribution"][data-mt-variant="overview"] {
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline-end: 0;
+    z-index: 1;
+    padding: 0.125rem var(--mt-space-2);
+    border-start-start-radius: var(--mt-radius-sm);
+    background: color-mix(in srgb, var(--mt-surface-bg) 75%, transparent);
+    color: var(--mt-text);
+    font-size: var(--mt-font-size-xs);
+
+    /* The tile licences require the credit; important declarations in base beat themes. */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  [data-mt="map-attribution"][data-mt-variant="overview"] a {
+    color: inherit;
   }
 }

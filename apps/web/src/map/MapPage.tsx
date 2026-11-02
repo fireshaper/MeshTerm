@@ -1,6 +1,6 @@
 import { nodeNumFromId, type MapNodeFeature } from "@meshterm/shared";
 import { useSearch } from "@tanstack/react-router";
-import { Crosshair, Maximize2, Minus, Plus, Radar, Spline } from "lucide-react";
+import { Crosshair, Maximize2, Minus, Mountain, Plus, Radar, Spline } from "lucide-react";
 import {
   Map as MapLibreMap,
   setWorkerUrl,
@@ -15,6 +15,7 @@ import { nodeStatus } from "../dashboard/view.js";
 import { useMapNodes } from "../data/queries.js";
 import { useLiveStore } from "../data/store.js";
 import { openNodeDetails } from "../data/ui-store.js";
+import { MapCredit, useBaseMap } from "./base-map.js";
 import { boundsOf, readViewport, toMapSource, writeViewport } from "./map-data.js";
 import {
   directLinks,
@@ -27,6 +28,7 @@ import {
 import { MapSheet } from "./MapSheet.js";
 import {
   applyBaseLayers,
+  applyBaseMap,
   buildStyle,
   LAYER,
   LINK_SOURCE,
@@ -124,6 +126,9 @@ export function MapPage() {
   const [showUnplaced, setShowUnplaced] = useState(false);
   const [layers, setLayers] = useState<LayerPrefs>(readLayerPrefs);
   const layersRef = useRef(layers);
+  const base = useBaseMap((st) => st.base);
+  const setBase = useBaseMap((st) => st.setBase);
+  const baseRef = useRef(base);
 
   // Create the map once; it becomes usable (state) when its style has loaded.
   useEffect(() => {
@@ -139,6 +144,7 @@ export function MapPage() {
         tokens,
         useThemeStore.getState().mapStyle,
         layersRef.current,
+        baseRef.current,
       ),
       center: saved?.center ?? [0, 20],
       zoom: saved?.zoom ?? 1.5,
@@ -267,6 +273,13 @@ export function MapPage() {
       }
     }
   }, [map, layers]);
+
+  // Topographic ↔ street: the tiles change in place, so the camera and nodes stay.
+  useEffect(() => {
+    if (!map || baseRef.current === base) return;
+    baseRef.current = base;
+    applyBaseMap(map, window.location.origin, base, useThemeStore.getState().mapStyle);
+  }, [map, base]);
 
   useThemeChange(() => {
     if (!map) return;
@@ -397,6 +410,20 @@ export function MapPage() {
           >
             <Radar data-mt="icon" aria-hidden focusable={false} />
           </button>
+          <button
+            type="button"
+            data-mt="map-button"
+            data-mt-variant="topo"
+            data-mt-state={base === "topo" ? "on" : "off"}
+            aria-pressed={base === "topo"}
+            aria-label="Topographic map"
+            title={base === "topo" ? "Topographic map (switch to street map)" : "Topographic map"}
+            onClick={() => {
+              setBase(base === "topo" ? "street" : "topo");
+            }}
+          >
+            <Mountain data-mt="icon" aria-hidden focusable={false} />
+          </button>
         </div>
       </div>
       <Compass />
@@ -481,18 +508,7 @@ export function MapPage() {
           }}
         />
       )}
-      <div data-mt="map-attribution">
-        ©{" "}
-        <a
-          data-mt="map-attribution-link"
-          href="https://www.openstreetmap.org/copyright"
-          target="_blank"
-          rel="noreferrer"
-        >
-          OpenStreetMap
-        </a>{" "}
-        contributors
-      </div>
+      <MapCredit base={base} />
     </section>
   );
 }

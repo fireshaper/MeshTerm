@@ -3,6 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "../data/keys.js";
+import { BASE_MAP_KEY, useBaseMap } from "../map/base-map.js";
 import { useThemeStore } from "../theme/store.js";
 import { renderApp } from "../test/render-app.js";
 import { TEST_VIEWER } from "../test/me.js";
@@ -207,5 +208,25 @@ describe("effects toggle (CR-004 §7)", () => {
     expect(localStorage.getItem("meshterm.effects")).toBe("false");
     await user.click(toggle);
     expect(useThemeStore.getState().effectsEnabled).toBe(true);
+  });
+});
+
+describe("base map (topographic by default)", () => {
+  it("switches between topographic and street tiles and remembers it", async () => {
+    const user = userEvent.setup();
+    useBaseMap.setState({ base: "topo" });
+    await render();
+    const map = await screen.findByRole("group", { name: "Map" });
+    expect(within(map).getByRole("button", { name: "Topographic" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await user.click(within(map).getByRole("button", { name: "Street" }));
+    expect(useBaseMap.getState().base).toBe("street");
+    expect(localStorage.getItem(BASE_MAP_KEY)).toBe("street");
+    expect(within(map).getByRole("button", { name: "Street" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 });

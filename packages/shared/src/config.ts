@@ -35,6 +35,15 @@ export const EnvSchema = z
         message: "must contain {z}, {x} and {y}",
       })
       .default("https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
+    /** Topographic tiles (the default base map in the browser); same rules as MESHTERM_TILE_URL. */
+    MESHTERM_TOPO_TILE_URL: z
+      .string()
+      .trim()
+      .pipe(z.url({ protocol: /^https?$/ }))
+      .refine((u) => u.includes("{z}") && u.includes("{x}") && u.includes("{y}"), {
+        message: "must contain {z}, {x} and {y}",
+      })
+      .default("https://a.tile.opentopomap.org/{z}/{x}/{y}.png"),
     /** Size cap of the on-disk tile cache (<data dir>/tiles). */
     MESHTERM_TILE_CACHE_MB: z.coerce.number().positive().default(500),
     /** `local`: accounts and sessions (default). `none`: no login, everyone is an admin. */
@@ -80,6 +89,7 @@ export const ConfigSchema = EnvSchema.transform((env) => ({
   backoffMinMs: env.MESHTERM_BACKOFF_MIN_MS,
   backoffMaxMs: env.MESHTERM_BACKOFF_MAX_MS,
   tileUrl: env.MESHTERM_TILE_URL,
+  topoTileUrl: env.MESHTERM_TOPO_TILE_URL,
   tileCacheMb: env.MESHTERM_TILE_CACHE_MB,
   auth: env.MESHTERM_AUTH,
   initialAdmin:

@@ -3,7 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { Expand } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { openNodeDetails } from "../data/ui-store.js";
-import { formatDistance, tileUrl } from "./geo.js";
+import { baseTileUrl, MapCredit, useBaseMap } from "../map/base-map.js";
+import { formatDistance } from "./geo.js";
 import { signalQuality, STATUS_LABELS } from "./insights.js";
 import { heroFrame, heroHeadline, heroNodes, visibleLabels, type HeroFrame } from "./overview.js";
 import { nodeStatus } from "./view.js";
@@ -58,6 +59,7 @@ export function OverviewHero({
   now: number;
 }) {
   const [mapRef, size] = useSize<HTMLDivElement>();
+  const base = useBaseMap((s) => s.base);
   const titleId = useId();
   const nodes = heroNodes(cards, now, thresholds);
   const self = nodes.find((n) => n.isSelf) ?? null;
@@ -91,7 +93,7 @@ export function OverviewHero({
               {frame.tiles.map((t) => (
                 <img
                   key={`${t.x}/${t.y}/${t.px}`}
-                  src={tileUrl(frame.z, t.x, t.y)}
+                  src={baseTileUrl(base, frame.z, t.x, t.y)}
                   alt=""
                   loading="lazy"
                   decoding="async"
@@ -202,6 +204,7 @@ export function OverviewHero({
           Open full map
         </Link>
       </div>
+      <MapCredit base={base} variant="overview" />
     </section>
   );
 }

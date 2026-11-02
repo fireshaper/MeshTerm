@@ -3,8 +3,10 @@ import type {
   ExpressionSpecification,
   LayerSpecification,
   Map as MapLibreMap,
+  RasterSourceSpecification,
   StyleSpecification,
 } from "maplibre-gl";
+import { BASE_MAPS, type BaseMap } from "./base-map.js";
 import type { MapTokens } from "./map-tokens.js";
 
 export const NODE_SOURCE = "mt-nodes";
@@ -116,6 +118,7 @@ export function buildStyle(
   tokens: MapTokens,
   mapStyle: ThemeMapStyle | null = null,
   visible: { links: boolean; rings: boolean } = { links: true, rings: true },
+  base: BaseMap = "street",
 ): StyleSpecification {
   const paint = tokenPaint(tokens);
   const visibility = (on: boolean) => (on ? "visible" : "none");
@@ -236,12 +239,7 @@ export function buildStyle(
   return {
     version: 8,
     sources: {
-      "mt-base": {
-        type: "raster",
-        tiles: [`${origin}/api/tiles/{z}/{x}/{y}.png`],
-        tileSize: 256,
-        maxzoom: MAX_ZOOM,
-      },
+      [BASE_PREFIX]: baseSource(origin, base),
       [LINK_SOURCE]: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
       [RING_SOURCE]: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
       [RING_LABEL_SOURCE]: {
@@ -309,6 +307,33 @@ export function applyBaseLayers(map: MapLibreMap, mapStyle: ThemeMapStyle | null
   }
   const below = map.getStyle().layers[0]?.id;
   for (const layer of baseLayers(mapStyle)) map.addLayer(layer, below);
+}
+
+/** The raster source for a base map; MapLibre scales its last zoom level up beyond it. */
+export function baseSource(origin: string, base: BaseMap): RasterSourceSpecification {
+  return {
+    type: "raster",
+    tiles: [`${origin}${BASE_MAPS[base].path}/{z}/{x}/{y}.png`],
+    tileSize: 256,
+    maxzoom: Math.min(MAX_ZOOM, BASE_MAPS[base].maxZoom),
+  };
+}
+
+/** Swaps the base map's tiles (topographic ↔ street) in place, keeping the camera. */
+export function applyBaseMap(
+  map: MapLibreMap,
+  origin: string,
+  base: BaseMap,
+  mapStyle: ThemeMapStyle | null,
+): void {
+  for (const layer of map.getStyle().layers) {
+    if (layer.id === BASE_PREFIX || layer.id.startsWith(`${BASE_PREFIX}-`)) {
+      map.removeLayer(layer.id);
+    }
+  }
+  map.removeSource(BASE_PREFIX);
+  map.addSource(BASE_PREFIX, baseSource(origin, base));
+  applyBaseLayers(map, mapStyle);
 }
 
 const round = (n: number) => Math.round(n * 1000) / 1000;

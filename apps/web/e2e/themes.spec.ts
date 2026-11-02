@@ -494,7 +494,8 @@ test("map styles restyle the base map live, keeping the camera, the nodes and th
   const retro = await base();
   expect(retro.saturation).toBe(-1);
   expect(retro.layers.slice(0, 2)).toEqual(["mt-base-phosphor", "mt-base-tiles"]);
-  expect(retro.tiles[0]).toMatch(/\/api\/tiles\/\{z\}\/\{x\}\/\{y\}\.png$/);
+  // Still the server's tile proxy (the topographic map by default).
+  expect(retro.tiles[0]).toMatch(/\/api\/tiles\/topo\/\{z\}\/\{x\}\/\{y\}\.png$/);
 
   // Switch theme without a reload (the user menu's shortcut).
   await pick("Cyberpunk");

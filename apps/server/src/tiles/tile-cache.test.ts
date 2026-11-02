@@ -216,3 +216,35 @@ describe("GET /api/tiles/:z/:x/:y.png", () => {
     }
   });
 });
+
+describe("GET /api/tiles/topo/:z/:x/:y.png", () => {
+  it("serves the topographic tiles from their own cache, up to zoom 17", async () => {
+    const tiles = cache();
+    const topoUpstream = new FakeTileServer();
+    await topoUpstream.start();
+    const topoDir = mkdtempSync(join(tmpdir(), "meshterm-topo-"));
+    const topoTiles = new TileCache({
+      dir: topoDir,
+      upstream: topoUpstream.urlTemplate,
+      maxBytes: 50 * 1024 * 1024,
+      maxZoom: 17,
+    });
+    const t = await startTestApp({ deps: { tiles, topoTiles } });
+    try {
+      const get = (url: string) => t.app.inject({ method: "GET", url });
+      const topo = await get("/api/tiles/topo/14/2621/5718.png");
+      expect(topo.statusCode).toBe(200);
+      expect(topo.headers["x-tile-cache"]).toBe("miss");
+      expect(topoUpstream.hits).toHaveLength(1);
+      // The street map's cache and upstream are untouched.
+      expect(upstream.hits).toEqual([]);
+      expect(existsSync(join(topoDir, "14", "2621", "5718.png"))).toBe(true);
+      expect(existsSync(tileFile(14, 2621, 5718))).toBe(false);
+      expect((await get("/api/tiles/topo/18/0/0.png")).statusCode).toBe(400);
+    } finally {
+      await t.close();
+      await topoUpstream.stop();
+      rmSync(topoDir, { recursive: true, force: true });
+    }
+  });
+});

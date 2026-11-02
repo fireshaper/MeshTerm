@@ -80,6 +80,8 @@ export interface AppDeps {
   userThemesDir?: string | null;
   /** Map tile cache. Default: `<dataDir>/tiles`, upstream `config.tileUrl`. */
   tiles?: TileCache;
+  /** Topographic tile cache. Default: `<dataDir>/tiles-topo`, upstream `config.topoTileUrl`. */
+  topoTiles?: TileCache;
   /** Key that encrypts config snapshots. Default: `MESHTERM_SECRET_KEY` or `<dataDir>/secret.key`. */
   secretKey?: Buffer;
   /** Apply timing overrides (tests). */
@@ -296,7 +298,16 @@ export async function buildApp(config: Config, deps: AppDeps = {}): Promise<App>
       upstream: config.tileUrl,
       maxBytes: config.tileCacheMb * 1024 * 1024,
     });
-  await app.register(tileRoutes(tiles));
+  const topoTiles =
+    deps.topoTiles ??
+    new TileCache({
+      dir: join(config.dataDir, "tiles-topo"),
+      upstream: config.topoTileUrl,
+      maxBytes: config.tileCacheMb * 1024 * 1024,
+      // OpenTopoMap stops at 17; MapLibre scales the last level up beyond it.
+      maxZoom: 17,
+    });
+  await app.register(tileRoutes(tiles, topoTiles));
   const sender = new MessageSender({
     db: handle.db,
     hub,

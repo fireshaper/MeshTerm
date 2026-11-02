@@ -55,8 +55,9 @@ Images are published for **amd64 and arm64** (e.g. a Raspberry Pi 4/5 with a 64-
 | `MESHTERM_LOG_LEVEL`                                 | `info`                                           | `debug`, `info`, `warn`, `error`, …                                                                                                   |
 | `MESHTERM_HEARTBEAT_INTERVAL_MS`                     | `60000`                                          | Keep-alive to the node                                                                                                                |
 | `MESHTERM_ACK_TIMEOUT_MS`                            | `120000`                                         | When an unacknowledged message is `failed`                                                                                            |
-| `MESHTERM_TILE_URL`                                  | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | Map tile source (the server fetches and caches tiles; browsers never contact it)                                                      |
-| `MESHTERM_TILE_CACHE_MB`                             | `500`                                            | Size cap of the tile cache in `/data/tiles`                                                                                           |
+| `MESHTERM_TILE_URL`                                  | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | Street map tile source (the server fetches and caches tiles; browsers never contact it)                                               |
+| `MESHTERM_TOPO_TILE_URL`                             | `https://a.tile.opentopomap.org/{z}/{x}/{y}.png` | Topographic tile source, the default base map in browsers (fetched and cached by the server like the street map)                      |
+| `MESHTERM_TILE_CACHE_MB`                             | `500`                                            | Size cap of each tile cache (`/data/tiles`, `/data/tiles-topo`)                                                                       |
 | `MESHTERM_AUTH`                                      | `local`                                          | `local`: accounts and sign-in (admin / viewer). `none`: no sign-in; everyone who can reach MeshTerm is an admin                       |
 | `MESHTERM_ADMIN_USERNAME`, `MESHTERM_ADMIN_PASSWORD` | unset                                            | Creates the first admin at startup when no account exists (set both or neither; password ≥ 8 characters)                              |
 | `MESHTERM_SESSION_DAYS`                              | `30`                                             | Sessions end after this many days (or after 7 days without use)                                                                       |
@@ -65,15 +66,13 @@ Images are published for **amd64 and arm64** (e.g. a Raspberry Pi 4/5 with a 64-
 
 Changing `MESHTERM_NODE_HOST` or `MESHTERM_NODE_PORT` later updates the same connection, so history is kept.
 
-### Other map tiles (topographic)
+### Map tiles: topographic and street
 
-Any XYZ raster source works in `MESHTERM_TILE_URL`; themes only tint the tiles (Field Kit warms them in dark mode and turns them to paper in light). For hills and contours, a topographic source such as OpenTopoMap is a common choice for mesh planning:
+The Overview and the Map page show topographic tiles from [OpenTopoMap](https://opentopomap.org) by default, with hills and contour lines for planning links. Anyone can switch their browser to the street map (OpenStreetMap) with the mountain button on the Map page or in Settings → Appearance; the choice is kept per browser. Node mini maps always use the street map.
 
-```sh
-MESHTERM_TILE_URL=https://a.tile.opentopomap.org/{z}/{x}/{y}.png
-```
+The server fetches and caches both (`/data/tiles` and `/data/tiles-topo`, each capped at `MESHTERM_TILE_CACHE_MB`), so browsers never contact the tile providers. Any XYZ raster source works in `MESHTERM_TILE_URL` (street) and `MESHTERM_TOPO_TILE_URL` (topographic); themes only tint the tiles (Field Kit warms them in dark mode and turns them to paper in light). The credit line names OpenStreetMap, plus OpenTopoMap on the topographic map; if you point either setting at another provider, check its terms and credit.
 
-Before switching, read the provider's terms. OpenTopoMap's [tile usage policy](https://opentopomap.org/about) asks for light use and a credit ("map data: © OpenStreetMap contributors, SRTM | map style: © OpenTopoMap (CC-BY-SA)"). **MeshTerm's map shows only the OpenStreetMap credit today**, so a configurable attribution is needed before another provider's tiles are used in public. MeshTerm's tile cache (`MESHTERM_TILE_CACHE_MB`) keeps the load on the provider low.
+OpenTopoMap is run by volunteers: its [usage policy](https://opentopomap.org/about) asks for light use, which the cache keeps the load to. Its tiles stop at zoom 17; closer in, the map scales them up.
 
 `GET /healthz` reports whether the process is up and each node connection's state. The image's `HEALTHCHECK` uses it.
 
