@@ -217,14 +217,15 @@ test("canvas and code-drawn colors follow a switch without a reload", async ({ p
   await expect.poll(icon).not.toBe(before);
   await page.emulateMedia({ colorScheme: "dark" });
 
-  // Map dots (MapLibre paint properties) and node-card sparklines.
+  // Map paint from tokens (MapLibre paint properties; pins are images redrawn the same way)
+  // and node-card sparklines.
   await page.goto(`http://127.0.0.1:${DASHBOARD_PORT}/map`);
   await expect(page.locator("[data-mt=map-view]")).toHaveAttribute("data-mt-state", "ready", {
     timeout: 15_000,
   });
   const dotColor = () =>
     page.evaluate(
-      `JSON.stringify(window.__meshtermMap.getPaintProperty("mt-nodes", "circle-color"))`,
+      `JSON.stringify(window.__meshtermMap.getPaintProperty("mt-links", "line-color"))`,
     );
   const darkDots = await dotColor();
   await page.emulateMedia({ colorScheme: "light" });

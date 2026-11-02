@@ -8,13 +8,40 @@ import type {
 import type { MapTokens } from "./map-tokens.js";
 
 export const NODE_SOURCE = "mt-nodes";
+/** CR-005: direct links and range rings, drawn by MeshTerm under the pins. */
+export const LINK_SOURCE = "mt-link-lines";
+export const RING_SOURCE = "mt-ring-lines";
+export const RING_LABEL_SOURCE = "mt-ring-points";
 export const LAYER = {
+  rings: "mt-rings",
+  ringLabels: "mt-ring-labels",
+  links: "mt-links",
+  linkLabels: "mt-link-labels",
   clusters: "mt-clusters",
   clusterCount: "mt-cluster-count",
   nodeGlow: "mt-node-glow",
   nodes: "mt-nodes",
   labels: "mt-node-labels",
 } as const;
+
+/** Layers each toggle shows or hides. */
+export const TOGGLE_LAYERS = {
+  links: [LAYER.links, LAYER.linkLabels],
+  rings: [LAYER.rings, LAYER.ringLabels],
+} as const;
+
+/** Pin image per node: `mt-pin-self`, else `mt-pin-<status>` (drawn from tokens on demand). */
+export const PIN_IMAGE: ExpressionSpecification = [
+  "case",
+  ["get", "isSelf"],
+  "mt-pin-self",
+  ["concat", "mt-pin-", ["get", "status"]],
+];
+
+/** Pins at rest, my node a little larger, the selected one larger still. */
+export function pinSize(selected: number | null): ExpressionSpecification {
+  return ["case", ["==", ["get", "num"], selected ?? -1], 1.35, ["get", "isSelf"], 1.1, 1];
+}
 
 /** Clustering per spec: radius 50 px, clusters break apart above zoom 13. */
 export const CLUSTER_RADIUS = 50;
@@ -61,10 +88,22 @@ export function tokenPaint(tokens: MapTokens): Record<string, Record<string, unk
       "circle-color": statusColor(tokens),
       "circle-opacity": tokens.glow,
     },
-    [LAYER.nodes]: {
-      "circle-color": statusColor(tokens),
-      "circle-stroke-color": ["case", ["get", "isSelf"], tokens.self, tokens.labelHalo],
+    [LAYER.links]: {
+      "line-color": [
+        "match",
+        ["get", "quality"],
+        "good",
+        tokens.quality.good,
+        "fair",
+        tokens.quality.fair,
+        "weak",
+        tokens.quality.weak,
+        "poor",
+        tokens.quality.poor,
+        tokens.quality.unknown,
+      ],
     },
+    [LAYER.rings]: { "line-color": tokens.ring },
   };
 }
 
@@ -76,10 +115,58 @@ export function buildStyle(
   origin: string,
   tokens: MapTokens,
   mapStyle: ThemeMapStyle | null = null,
+  visible: { links: boolean; rings: boolean } = { links: true, rings: true },
 ): StyleSpecification {
   const paint = tokenPaint(tokens);
+  const visibility = (on: boolean) => (on ? "visible" : "none");
   const layers: LayerSpecification[] = [
     ...baseLayers(mapStyle),
+    {
+      id: LAYER.rings,
+      type: "line",
+      source: RING_SOURCE,
+      layout: { visibility: visibility(visible.rings), "line-cap": "round" },
+      paint: {
+        ...paint[LAYER.rings],
+        "line-width": 1.5,
+        "line-opacity": 0.6,
+        "line-dasharray": [0.5, 3],
+      },
+    },
+    {
+      id: LAYER.ringLabels,
+      type: "symbol",
+      source: RING_LABEL_SOURCE,
+      layout: {
+        visibility: visibility(visible.rings),
+        "icon-image": ["concat", "mt-label-", ["get", "label"]],
+        "icon-allow-overlap": true,
+      },
+    },
+    {
+      id: LAYER.links,
+      type: "line",
+      source: LINK_SOURCE,
+      layout: { visibility: visibility(visible.links), "line-cap": "round" },
+      paint: {
+        ...paint[LAYER.links],
+        "line-width": 2,
+        "line-opacity": 0.75,
+        "line-dasharray": [3, 2],
+      },
+    },
+    {
+      id: LAYER.linkLabels,
+      type: "symbol",
+      source: LINK_SOURCE,
+      filter: ["!=", ["get", "label"], ""],
+      layout: {
+        visibility: visibility(visible.links),
+        "symbol-placement": "line-center",
+        "icon-image": ["concat", "mt-label-", ["get", "label"]],
+        "icon-rotation-alignment": "viewport",
+      },
+    },
     {
       id: LAYER.clusters,
       type: "circle",
@@ -112,17 +199,23 @@ export function buildStyle(
         ...paint[LAYER.nodeGlow],
         "circle-radius": ["case", ["get", "isSelf"], 20, 15],
         "circle-blur": 1,
+        // Around the pin's head, not its tip.
+        "circle-translate": [0, -18],
       },
     },
     {
+      // Teardrops, tip on the position (CR-005 §6.3).
       id: LAYER.nodes,
-      type: "circle",
+      type: "symbol",
       source: NODE_SOURCE,
       filter: ["!", ["has", "point_count"]],
-      paint: {
-        ...paint[LAYER.nodes],
-        "circle-radius": ["case", ["get", "isSelf"], 8, 6],
-        "circle-stroke-width": ["case", ["get", "isSelf"], 3, 1.5],
+      layout: {
+        "icon-image": PIN_IMAGE,
+        "icon-anchor": "bottom",
+        "icon-size": pinSize(null),
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        "symbol-sort-key": ["get", "rank"],
       },
     },
     {
@@ -133,7 +226,7 @@ export function buildStyle(
       layout: {
         "icon-image": ["concat", "mt-label-", ["get", "label"]],
         "icon-anchor": "top",
-        "icon-offset": [0, 7],
+        "icon-offset": [0, 3],
         // Labels give way to each other when crowded; dots always show.
         "icon-allow-overlap": false,
         "symbol-sort-key": ["-", 0, ["get", "rank"]],
@@ -148,6 +241,12 @@ export function buildStyle(
         tiles: [`${origin}/api/tiles/{z}/{x}/{y}.png`],
         tileSize: 256,
         maxzoom: MAX_ZOOM,
+      },
+      [LINK_SOURCE]: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
+      [RING_SOURCE]: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
+      [RING_LABEL_SOURCE]: {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
       },
       [NODE_SOURCE]: {
         type: "geojson",

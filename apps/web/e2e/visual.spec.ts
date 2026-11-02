@@ -319,6 +319,14 @@ test("map", async ({ page }) => {
     })`,
   );
   await freeze(page);
+  // The frozen clock also holds MapLibre's animation frames, so a shot taken now can
+  // catch a frame half drawn. Run the frozen clock on for a moment so it finishes.
+  await page.clock.runFor(2000);
+  await expect
+    .poll(() =>
+      page.evaluate(`window.__meshtermMap.loaded() && window.__meshtermMap.areTilesLoaded()`),
+    )
+    .toBe(true);
   // WebGL renders in software (SwiftShader) here, and its anti-aliasing differs a little
   // between CPUs, so the map gets more room than the DOM screens. A missing marker,
   // wrong colors or a layout change still exceed it.

@@ -692,3 +692,14 @@ One entry per decision: **step**, **decision**, **reason**. Add new entries at t
 | The composer grows with CSS `field-sizing: content` (no script).                                               | Browsers without it keep a one-line field that scrolls, which still works.            |
 | Retro keeps its log lines by flattening `message-bubble` / `message-foot` and hiding tiles, avatars and paths. | The hooks it styled stayed; the new elements are optional for themes.                 |
 | The search box and section headings stay in the list, with the filter above them.                              | Search was already there and finds DMs by node id; the filter only hides a section.   |
+
+## CR-005 — Phase K4 (Map)
+
+| Decision                                                                               | Reason                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The sheet has Message, Center and Details, but no Traceroute.                          | The client has no traceroute action yet; Details opens the drawer, where node actions live. Traceroute is added with the action itself.                                           |
+| RSSI, channel use and uptime in the sheet come from the node's details query.          | The map's node list doesn't carry them; the drawer uses the same query, so Details then opens from cache.                                                                         |
+| The compass is static: north is always up.                                             | Rotation is off on this map (as before); the compass says so instead of offering a reset that does nothing.                                                                       |
+| Pins are canvas images drawn from tokens, one per freshness state and one for my node. | MapLibre can't use CSS; images keep pins sharp and regenerate when the theme or mode changes.                                                                                     |
+| Links are dashed and colored like signal bars; rings are dotted in the accent.         | They read as the Overview's hero, so the two maps agree.                                                                                                                          |
+| Topographic tiles are documented, not built in (CR §12 question 3).                    | Tiles are the admin's choice; the README notes that MeshTerm shows only the OpenStreetMap credit, so another provider's credit has to come with a configurable attribution first. |

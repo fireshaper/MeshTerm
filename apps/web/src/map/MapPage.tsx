@@ -1,6 +1,6 @@
 import { nodeNumFromId, type MapNodeFeature } from "@meshterm/shared";
 import { useSearch } from "@tanstack/react-router";
-import { Crosshair, Maximize2, Minus, PanelRightOpen, Plus, X } from "lucide-react";
+import { Crosshair, Maximize2, Minus, Plus, Radar, Spline } from "lucide-react";
 import {
   Map as MapLibreMap,
   setWorkerUrl,
@@ -10,23 +10,37 @@ import {
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useRef, useState } from "react";
 import { useNow } from "../components/useNow.js";
-import { formatAbsolute, formatAgo } from "../dashboard/format.js";
+import { formatAgo } from "../dashboard/format.js";
 import { nodeStatus } from "../dashboard/view.js";
 import { useMapNodes } from "../data/queries.js";
 import { useLiveStore } from "../data/store.js";
 import { openNodeDetails } from "../data/ui-store.js";
 import { boundsOf, readViewport, toMapSource, writeViewport } from "./map-data.js";
 import {
+  directLinks,
+  nearestNodes,
+  rangeRings,
+  readLayerPrefs,
+  writeLayerPrefs,
+  type LayerPrefs,
+} from "./map-layers.js";
+import { MapSheet } from "./MapSheet.js";
+import {
   applyBaseLayers,
   buildStyle,
   LAYER,
+  LINK_SOURCE,
   MAX_ZOOM,
   NODE_SOURCE,
+  pinSize,
+  RING_LABEL_SOURCE,
+  RING_SOURCE,
+  TOGGLE_LAYERS,
   tokenPaint,
 } from "./map-style.js";
 import { useThemeStore } from "../theme/store.js";
 import { useThemeChange } from "../components/useThemeChange.js";
-import { drawLabel, readMapTokens, type MapTokens } from "./map-tokens.js";
+import { drawLabel, drawPin, readMapTokens, type MapTokens } from "./map-tokens.js";
 import "./map.css";
 
 // A same-origin module worker: allowed by the CSP's worker-src 'self' (no blob: URL).
@@ -66,103 +80,29 @@ function applyTheme(map: MapLibreMap, tokens: MapTokens): void {
   map.triggerRepaint();
 }
 
-function Popover({
-  feature,
-  status,
-  map,
-  now,
-  onClose,
-}: {
-  feature: MapNodeFeature;
-  status: string;
-  map: MapLibreMap;
-  now: number;
-  onClose: () => void;
-}) {
-  const [point, setPoint] = useState(() => map.project(feature.geometry.coordinates));
-  useEffect(() => {
-    const update = () => {
-      setPoint(map.project(feature.geometry.coordinates));
-    };
-    map.on("move", update);
-    return () => {
-      map.off("move", update);
-    };
-  }, [map, feature]);
-  const p = feature.properties;
-  const level = p.batteryLevel;
+/** The image for `mt-pin-<status>` / `mt-pin-self`, from the current tokens. */
+function pinImage(id: string, tokens: MapTokens) {
+  const key = id.slice("mt-pin-".length);
+  const fill =
+    key === "self"
+      ? tokens.self
+      : key in tokens.status
+        ? tokens.status[key as keyof MapTokens["status"]]
+        : null;
+  return fill === null ? null : drawPin(fill, tokens);
+}
+
+/** North is always up (rotation is off); the compass says so. */
+function Compass() {
   return (
-    <div
-      data-mt="map-popover"
-      role="dialog"
-      aria-label={p.longName || p.shortName || p.userId}
-      data-node-num={p.num}
-      style={{ transform: `translate(${point.x}px, ${point.y}px)` }}
-    >
-      <div data-mt="map-popover-card">
-        <header data-mt="map-popover-header">
-          <span data-mt="status-dot" data-mt-state={status} aria-hidden />
-          <span data-mt="map-popover-title">{p.longName || p.userId}</span>
-          <span data-mt="node-short-name">{p.shortName}</span>
-          <button type="button" data-mt="icon-button" aria-label="Close" onClick={onClose}>
-            <X data-mt="icon" aria-hidden focusable={false} />
-          </button>
-        </header>
-        <dl data-mt="map-popover-fields">
-          <div>
-            <dt>ID</dt>
-            <dd data-mt="node-id">{p.userId}</dd>
-          </div>
-          <div>
-            <dt>Last seen</dt>
-            <dd>
-              {p.lastHeard === null ? (
-                "Never"
-              ) : (
-                <time
-                  dateTime={new Date(p.lastHeard).toISOString()}
-                  title={formatAbsolute(p.lastHeard)}
-                >
-                  {formatAgo(p.lastHeard, now)}
-                </time>
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt>Battery</dt>
-            <dd>{level === null ? "Unknown" : level > 100 ? "External power" : `${level}%`}</dd>
-          </div>
-          <div>
-            <dt>Hops</dt>
-            <dd>
-              {p.isSelf
-                ? "My node"
-                : p.hopsAway === null
-                  ? "Unknown"
-                  : p.hopsAway === 0
-                    ? "Heard directly"
-                    : `${p.hopsAway} ${p.hopsAway === 1 ? "hop" : "hops"}`}
-            </dd>
-          </div>
-          {p.precisionMeters !== null && (
-            <div>
-              <dt>Position</dt>
-              <dd>Approximate (±{Math.round(p.precisionMeters / 100) / 10} km)</dd>
-            </div>
-          )}
-        </dl>
-        <button
-          type="button"
-          data-mt="button"
-          data-mt-variant="details"
-          onClick={() => {
-            openNodeDetails(p.num);
-          }}
-        >
-          <PanelRightOpen data-mt="icon" aria-hidden focusable={false} />
-          Details
-        </button>
-      </div>
+    <div data-mt="map-compass" role="img" aria-label="North is up">
+      <svg viewBox="0 0 24 24" aria-hidden focusable={false}>
+        <path data-mt-variant="north" d="M12 3 16 12H8z" />
+        <path data-mt-variant="south" d="M12 21 8 12h8z" />
+      </svg>
+      <span data-mt="map-compass-label" aria-hidden>
+        N
+      </span>
     </div>
   );
 }
@@ -182,6 +122,8 @@ export function MapPage() {
   const [map, setMap] = useState<MapLibreMap | null>(null);
   const [selected, setSelected] = useState<number | null>(deepNode);
   const [showUnplaced, setShowUnplaced] = useState(false);
+  const [layers, setLayers] = useState<LayerPrefs>(readLayerPrefs);
+  const layersRef = useRef(layers);
 
   // Create the map once; it becomes usable (state) when its style has loaded.
   useEffect(() => {
@@ -192,7 +134,12 @@ export function MapPage() {
     const saved = readViewport();
     const instance = new MapLibreMap({
       container,
-      style: buildStyle(window.location.origin, tokens, useThemeStore.getState().mapStyle),
+      style: buildStyle(
+        window.location.origin,
+        tokens,
+        useThemeStore.getState().mapStyle,
+        layersRef.current,
+      ),
       center: saved?.center ?? [0, 20],
       zoom: saved?.zoom ?? 1.5,
       maxZoom: MAX_ZOOM,
@@ -206,11 +153,13 @@ export function MapPage() {
     instance.setMissingStyleImageResolver((id) => {
       const t = tokensRef.current;
       if (!t || instance.hasImage(id)) return;
-      const image = id.startsWith("mt-count-")
-        ? drawLabel(id.slice("mt-count-".length), t, { bold: true, halo: false, size: 12 })
-        : id.startsWith("mt-label-")
-          ? drawLabel(id.slice("mt-label-".length), t)
-          : null;
+      const image = id.startsWith("mt-pin-")
+        ? pinImage(id, t)
+        : id.startsWith("mt-count-")
+          ? drawLabel(id.slice("mt-count-".length), t, { bold: true, halo: false, size: 12 })
+          : id.startsWith("mt-label-")
+            ? drawLabel(id.slice("mt-label-".length), t)
+            : null;
       if (image) {
         instance.addImage(
           id,
@@ -270,6 +219,10 @@ export function MapPage() {
     const push = () => {
       lastSetRef.current = Date.now();
       void map.getSource<GeoJSONSource>(NODE_SOURCE)?.setData(toMapSource(data, now));
+      const { rings, labels } = rangeRings(data);
+      void map.getSource<GeoJSONSource>(LINK_SOURCE)?.setData(directLinks(data));
+      void map.getSource<GeoJSONSource>(RING_SOURCE)?.setData(rings);
+      void map.getSource<GeoJSONSource>(RING_LABEL_SOURCE)?.setData(labels);
     };
     const wait = lastSetRef.current + SET_DATA_INTERVAL_MS - Date.now();
     if (wait <= 0) {
@@ -298,6 +251,23 @@ export function MapPage() {
     }
   }, [map, data, deepNode]);
 
+  // The selected pin grows.
+  useEffect(() => {
+    map?.setLayoutProperty(LAYER.nodes, "icon-size", pinSize(selected));
+  }, [map, selected]);
+
+  // Layer toggles, remembered in this browser.
+  useEffect(() => {
+    layersRef.current = layers;
+    writeLayerPrefs(layers);
+    if (!map) return;
+    for (const key of ["links", "rings"] as const) {
+      for (const id of TOGGLE_LAYERS[key]) {
+        map.setLayoutProperty(id, "visibility", layers[key] ? "visible" : "none");
+      }
+    }
+  }, [map, layers]);
+
   useThemeChange(() => {
     if (!map) return;
     const tokens = readMapTokens();
@@ -320,6 +290,18 @@ export function MapPage() {
   };
   const self = data?.features.find((f) => f.properties.isSelf) ?? null;
   const selectedFeature = data?.features.find((f) => f.id === selected) ?? null;
+  const nearest = data ? nearestNodes(data) : [];
+  const focus = (feature: MapNodeFeature) => {
+    if (!map) return;
+    map.flyTo({
+      center: feature.geometry.coordinates,
+      zoom: Math.max(map.getZoom(), NODE_ZOOM),
+    });
+    setSelected(feature.id);
+  };
+  const toggle = (key: keyof LayerPrefs) => {
+    setLayers((current) => ({ ...current, [key]: !current[key] }));
+  };
   const unplaced = data?.unplaced ?? [];
   const state = !supported ? "unsupported" : isError ? "error" : map ? "ready" : "loading";
 
@@ -337,55 +319,119 @@ export function MapPage() {
           Map data couldn&apos;t be loaded.
         </p>
       )}
-      <div data-mt="map-toolbar" role="toolbar" aria-label="Map controls">
-        <button
-          type="button"
-          data-mt="map-button"
-          aria-label="Zoom in"
-          title="Zoom in"
-          disabled={!map}
-          onClick={() => map?.zoomIn()}
-        >
-          <Plus data-mt="icon" aria-hidden focusable={false} />
-        </button>
-        <button
-          type="button"
-          data-mt="map-button"
-          aria-label="Zoom out"
-          title="Zoom out"
-          disabled={!map}
-          onClick={() => map?.zoomOut()}
-        >
-          <Minus data-mt="icon" aria-hidden focusable={false} />
-        </button>
-        <button
-          type="button"
-          data-mt="map-button"
-          aria-label="Fit all nodes"
-          title="Fit all"
-          disabled={!map || !data?.features.length}
-          onClick={fitAll}
-        >
-          <Maximize2 data-mt="icon" aria-hidden focusable={false} />
-        </button>
-        <button
-          type="button"
-          data-mt="map-button"
-          aria-label="My node"
-          title="My node"
-          disabled={!map || !self}
-          onClick={() => {
-            if (!map || !self) return;
-            map.flyTo({
-              center: self.geometry.coordinates,
-              zoom: Math.max(map.getZoom(), NODE_ZOOM),
-            });
-            setSelected(self.id);
-          }}
-        >
-          <Crosshair data-mt="icon" aria-hidden focusable={false} />
-        </button>
+      <div data-mt="map-tools" role="toolbar" aria-label="Map controls">
+        <div data-mt="map-tools-group" data-mt-variant="view">
+          <button
+            type="button"
+            data-mt="map-button"
+            data-mt-variant="zoom-in"
+            aria-label="Zoom in"
+            title="Zoom in"
+            disabled={!map}
+            onClick={() => map?.zoomIn()}
+          >
+            <Plus data-mt="icon" aria-hidden focusable={false} />
+          </button>
+          <button
+            type="button"
+            data-mt="map-button"
+            data-mt-variant="zoom-out"
+            aria-label="Zoom out"
+            title="Zoom out"
+            disabled={!map}
+            onClick={() => map?.zoomOut()}
+          >
+            <Minus data-mt="icon" aria-hidden focusable={false} />
+          </button>
+          <button
+            type="button"
+            data-mt="map-button"
+            data-mt-variant="my-node"
+            aria-label="My node"
+            title="My node"
+            disabled={!map || !self}
+            onClick={() => {
+              if (self) focus(self);
+            }}
+          >
+            <Crosshair data-mt="icon" aria-hidden focusable={false} />
+          </button>
+          <button
+            type="button"
+            data-mt="map-button"
+            data-mt-variant="fit"
+            aria-label="Fit all nodes"
+            title="Fit all"
+            disabled={!map || !data?.features.length}
+            onClick={fitAll}
+          >
+            <Maximize2 data-mt="icon" aria-hidden focusable={false} />
+          </button>
+        </div>
+        <div data-mt="map-tools-group" data-mt-variant="layers" aria-label="Layers" role="group">
+          <button
+            type="button"
+            data-mt="map-button"
+            data-mt-variant="links"
+            data-mt-state={layers.links ? "on" : "off"}
+            aria-pressed={layers.links}
+            aria-label="Direct links"
+            title="Direct links (SNR)"
+            onClick={() => {
+              toggle("links");
+            }}
+          >
+            <Spline data-mt="icon" aria-hidden focusable={false} />
+          </button>
+          <button
+            type="button"
+            data-mt="map-button"
+            data-mt-variant="rings"
+            data-mt-state={layers.rings ? "on" : "off"}
+            aria-pressed={layers.rings}
+            aria-label="Range rings"
+            title="Range rings (2, 5, 10 km)"
+            onClick={() => {
+              toggle("rings");
+            }}
+          >
+            <Radar data-mt="icon" aria-hidden focusable={false} />
+          </button>
+        </div>
       </div>
+      <Compass />
+      {nearest.length > 0 && (
+        <aside data-mt="map-nearest" aria-labelledby="map-nearest-title">
+          <h2 id="map-nearest-title" data-mt="map-nearest-title">
+            Nearest first
+          </h2>
+          <ul data-mt="map-nearest-list">
+            {nearest.map(({ feature, where }) => {
+              const p = feature.properties;
+              const status = data ? nodeStatus(p.lastHeard, now, data.thresholds) : "offline";
+              return (
+                <li key={feature.id}>
+                  <button
+                    type="button"
+                    data-mt="map-nearest-item"
+                    data-mt-state={status}
+                    data-node-num={p.num}
+                    aria-current={selected === feature.id ? "true" : undefined}
+                    onClick={() => {
+                      focus(feature);
+                    }}
+                  >
+                    <span data-mt="status-dot" data-mt-state={status} aria-hidden />
+                    <span data-mt="node-short-name">{p.shortName || p.userId.slice(-4)}</span>
+                    <span data-mt="map-nearest-name">{p.longName || p.userId}</span>
+                    <span data-mt="map-nearest-distance">{where ?? ""}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </aside>
+      )}
       {unplaced.length > 0 && (
         <div data-mt="map-unplaced">
           <button
@@ -421,11 +467,15 @@ export function MapPage() {
         </div>
       )}
       {map && data && selectedFeature && (
-        <Popover
+        <MapSheet
+          connectionId={connectionId}
           feature={selectedFeature}
-          status={nodeStatus(selectedFeature.properties.lastHeard, now, data.thresholds)}
-          map={map}
+          where={nearest.find((e) => e.feature.id === selectedFeature.id)?.where ?? null}
+          thresholds={data.thresholds}
           now={now}
+          onCenter={() => {
+            focus(selectedFeature);
+          }}
           onClose={() => {
             setSelected(null);
           }}

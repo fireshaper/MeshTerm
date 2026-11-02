@@ -752,6 +752,16 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` 
 - Retro keeps its log lines; Cyberpunk's bubble shapes moved to `message-bubble`.
 - **Tests:** `thread.ts` (grouping, hops, path text, byte meter, unread index, heard this hour); list (tiles, private lock, channel preview, filter), headers (key pills, heard, destination), message list (groups, New line, path, reply quote), composer (meter states and fill); e2e send shows destination and bytes and reaches acked in the bubble's foot; visual baselines re-recorded.
 
+### CR-005 Phase K4: Map (done 2026-11-02)
+
+- **Tools:** a left column with zoom in / out, my node and fit all, then layer toggles for direct links and range rings (remembered in `meshterm.mapLayers`). A compass in the top right.
+- **Layers:** dashed lines from my node to every node heard directly, colored by SNR quality with the SNR as a label; dotted 2 / 5 / 10 km rings around my node with labels. Both follow the theme and the light / dark switch without moving the camera.
+- **Pins:** teardrops in the freshness colors (my node in the self color) with halo labels; the selected pin grows.
+- **Nearest first** (from 1024 px): every node with a position by distance, with freshness, callsign, name and "4.6 km NE"; a click flies there and selects it.
+- **Bottom sheet** instead of the popover: callsign, name, `!id`, pills (heard, role, approximate position), stats (distance, signal or route, RSSI, battery, ch util, uptime) and Message / Center / Details.
+- README: how to use topographic tiles, and that MeshTerm only shows the OpenStreetMap credit today.
+- **Tests:** layer builders (direct links only, ring radius and closure, antimeridian, nearest order), toggles remembered and junk ignored, style order and visibility, pin size; e2e (pin → sheet → Details, nearest list → sheet → Close, toggles remembered across reload, light / dark keeps the camera); visual baselines re-recorded.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

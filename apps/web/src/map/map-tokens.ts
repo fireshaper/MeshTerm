@@ -1,4 +1,5 @@
 import type { NodeStatusName } from "@meshterm/shared";
+import type { SignalQuality } from "../dashboard/insights.js";
 
 /**
  * MapLibre paints on a canvas, so CSS can't style its dots and lines. These are the
@@ -15,6 +16,10 @@ export interface MapTokens {
   font: string;
   /** `--mt-map-node-glow`: opacity (0–1) of a soft halo under each dot; 0 = none (CR-004). */
   glow: number;
+  /** Direct links by SNR quality, as signal bars color them (CR-005). */
+  quality: Record<SignalQuality, string>;
+  /** Range rings: the accent. */
+  ring: string;
 }
 
 const FALLBACK: MapTokens = {
@@ -26,6 +31,14 @@ const FALLBACK: MapTokens = {
   clusterText: "#0b1018",
   font: "system-ui, sans-serif",
   glow: 0,
+  quality: {
+    good: "#35d49a",
+    fair: "#35d49a",
+    weak: "#f5b84b",
+    poor: "#f16d79",
+    unknown: "#e8eef5",
+  },
+  ring: "#55a8ff",
 };
 
 /**
@@ -62,6 +75,14 @@ export function readMapTokens(root: HTMLElement = document.documentElement): Map
       clusterBg: color("--mt-map-cluster-bg", FALLBACK.clusterBg),
       clusterText: color("--mt-map-cluster-text", FALLBACK.clusterText),
       glow: unit(getComputedStyle(root).getPropertyValue("--mt-map-node-glow")),
+      quality: {
+        good: color("--mt-status-ok", FALLBACK.quality.good),
+        fair: color("--mt-status-ok", FALLBACK.quality.fair),
+        weak: color("--mt-status-warn", FALLBACK.quality.weak),
+        poor: color("--mt-status-error", FALLBACK.quality.poor),
+        unknown: color("--mt-map-label", FALLBACK.quality.unknown),
+      },
+      ring: color("--mt-accent", FALLBACK.ring),
       font: font || FALLBACK.font,
     };
   } finally {
@@ -112,4 +133,42 @@ export function drawLabel(
   ctx.fillStyle = options.halo === false ? tokens.clusterText : tokens.label;
   ctx.fillText(text, x, y);
   return { width, height, data: ctx.getImageData(0, 0, width, height).data, pixelRatio: ratio };
+}
+
+/** The teardrop's outline in a 24 × 30 box, tip at the bottom (as on the Overview). */
+const PIN_PATH = "M12 29s10-9.5 10-17A10 10 0 0 0 2 12c0 7.5 10 17 10 17z";
+export const PIN_WIDTH = 24;
+export const PIN_HEIGHT = 30;
+
+/**
+ * A teardrop pin in `fill` with a halo outline and a hole, as an image for a symbol
+ * layer (CR-005 §6.3). Drawn from tokens, so it follows the theme.
+ */
+export function drawPin(fill: string, tokens: MapTokens): LabelImage | null {
+  if (typeof document === "undefined" || typeof Path2D === "undefined") return null;
+  const ratio = Math.max(1, Math.round(globalThis.devicePixelRatio || 1));
+  const pad = 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = (PIN_WIDTH + pad * 2) * ratio;
+  canvas.height = (PIN_HEIGHT + pad * 2) * ratio;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.scale(ratio, ratio);
+  ctx.translate(pad, pad);
+  const shape = new Path2D(PIN_PATH);
+  ctx.fillStyle = fill;
+  ctx.fill(shape);
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = tokens.labelHalo;
+  ctx.stroke(shape);
+  ctx.beginPath();
+  ctx.arc(12, 12, 3.6, 0, Math.PI * 2);
+  ctx.fillStyle = tokens.labelHalo;
+  ctx.fill();
+  return {
+    width: canvas.width,
+    height: canvas.height,
+    data: ctx.getImageData(0, 0, canvas.width, canvas.height).data,
+    pixelRatio: ratio,
+  };
 }

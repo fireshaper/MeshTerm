@@ -53,6 +53,16 @@ Images are published for **amd64 and arm64** (e.g. a Raspberry Pi 4/5 with a 64-
 
 Changing `MESHTERM_NODE_HOST` or `MESHTERM_NODE_PORT` later updates the same connection, so history is kept.
 
+### Other map tiles (topographic)
+
+Any XYZ raster source works in `MESHTERM_TILE_URL`; themes only tint the tiles (Field Kit warms them in dark mode and turns them to paper in light). For hills and contours, a topographic source such as OpenTopoMap is a common choice for mesh planning:
+
+```sh
+MESHTERM_TILE_URL=https://a.tile.opentopomap.org/{z}/{x}/{y}.png
+```
+
+Before switching, read the provider's terms. OpenTopoMap's [tile usage policy](https://opentopomap.org/about) asks for light use and a credit ("map data: © OpenStreetMap contributors, SRTM | map style: © OpenTopoMap (CC-BY-SA)"). **MeshTerm's map shows only the OpenStreetMap credit today**, so a configurable attribution is needed before another provider's tiles are used in public. MeshTerm's tile cache (`MESHTERM_TILE_CACHE_MB`) keeps the load on the provider low.
+
 `GET /healthz` reports whether the process is up and each node connection's state. The image's `HEALTHCHECK` uses it.
 
 ### Enable HTTPS for desktop notifications
