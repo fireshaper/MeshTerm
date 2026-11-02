@@ -159,7 +159,7 @@
     --mt-header-height: 3.5rem;
     --mt-tab-bar-height: 2.75rem; /* the tab row under the header on phones */
     --mt-status-band-height: 2.75rem; /* the radio status band */
-    --mt-conversation-list-width: 20rem;
+    --mt-conversation-list-width: 21rem;
     --mt-z-fx: 100; /* the effects overlay (fx-layer): above everything, ignores the pointer */
 
     /* @group Node drawer: node details (CR-001) */

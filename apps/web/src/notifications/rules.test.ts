@@ -126,6 +126,7 @@ describe("titleCount", () => {
     text: "",
     rxTime: 0,
     direction: "in" as const,
+    fromNum: 1,
     emoji: false,
     pkiEncrypted: false,
     status: null,

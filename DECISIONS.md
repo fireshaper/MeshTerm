@@ -679,3 +679,16 @@ One entry per decision: **step**, **decision**, **reason**. Add new entries at t
 | The roster card is the dashboard preview card redesigned; the Nodes page's `NodeCard` changes in K5.                       | One card per phase; the Nodes page gets its toolbar and cards together.                                                                                                                                         |
 | The packet-type chart and topology are folded into "Mesh detail" (closed by default).                                      | CR §12 question 2's default.                                                                                                                                                                                    |
 | The route stays `/dashboard`; the tab and page title say "Overview".                                                       | Links and bookmarks keep working.                                                                                                                                                                               |
+
+## CR-005 — Phase K3 (Messages)
+
+| Decision                                                                                                       | Reason                                                                                |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `MessagePreview` carries `fromNum`.                                                                            | Channel rows preview "RDG: …" as the CR asks; the server already had the sender.      |
+| A bubble's SNR shows only for messages heard directly.                                                         | For relayed packets `rx_snr` is the last relay's, not the sender's.                   |
+| Messages group by sender, side, day and a 10-minute gap; reactions never group.                                | Long gaps read as a new turn in the conversation; the "New" line also breaks a group. |
+| The "New" line uses the read mark the thread opened with.                                                      | Reading moves the mark at once; the line stays put until the thread is opened again.  |
+| "Heard this hour" counts every node my node heard, not per channel.                                            | The node DB doesn't say which channel a node was heard on.                            |
+| The composer grows with CSS `field-sizing: content` (no script).                                               | Browsers without it keep a one-line field that scrolls, which still works.            |
+| Retro keeps its log lines by flattening `message-bubble` / `message-foot` and hiding tiles, avatars and paths. | The hooks it styled stayed; the new elements are optional for themes.                 |
+| The search box and section headings stay in the list, with the filter above them.                              | Search was already there and finds DMs by node id; the filter only hides a section.   |

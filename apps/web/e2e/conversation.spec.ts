@@ -23,7 +23,7 @@ test.describe("channel conversation", () => {
     await expect(rows.locator("[data-mt=conversation-name]")).toHaveText(["#LongFast", "#Friends"]);
     await rows.nth(1).click();
     await expect(page).toHaveURL(/\/messages\/channel\/1$/);
-    await expect(page.getByRole("heading", { level: 2, name: "#Friends" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Friends" })).toBeVisible();
     if ((page.viewportSize()?.width ?? 0) >= 768) {
       await expect(rows.nth(1)).toHaveAttribute("data-mt-state", "active");
     }
@@ -34,7 +34,7 @@ test.describe("channel conversation", () => {
     await fakeNode.injectText(RIDGE, { channel: 0 }, text);
     const message = page.locator("[data-mt=message][data-mt-variant=in]", { hasText: text });
     await expect(message).toBeVisible();
-    await expect(message.locator("[data-mt=message-sender]")).toHaveText("RDG");
+    await expect(message.locator("[data-mt=message-sender-short]")).toHaveText("RDG");
   });
 
   test("sending hello: it appears, reaches acked, and the node gets one text transmit", async ({
@@ -44,13 +44,19 @@ test.describe("channel conversation", () => {
     const text = `hello ${info.project.name} ${Date.now()}`;
     const input = page.getByRole("textbox", { name: "Message" });
     await input.fill(text);
+    await expect(page.locator("[data-mt=composer-destination]")).toHaveText("CH 0 · LongFast");
+    await expect(page.locator("[data-mt=byte-counter]")).toHaveText(
+      `${String(new TextEncoder().encode(text).length)}/200 bytes`,
+    );
     await input.press("Enter");
     await expect(input).toHaveValue("");
 
     const message = page.locator("[data-mt=message][data-mt-variant=out]", { hasText: text });
     await expect(message).toBeVisible();
     await expect(message).toHaveAttribute("data-mt-state", "acked");
-    await expect(message.locator("[data-mt=message-status]")).toHaveText("Acknowledged");
+    await expect(message.locator("[data-mt=message-foot] [data-mt=message-status]")).toHaveText(
+      "Acknowledged",
+    );
 
     const inbound = await fakeNode.inbound();
     expect(inbound.counts.transmit).toBe(1);

@@ -48,6 +48,7 @@ const list = (over: Partial<ConversationsDTO["dms"][number]> = {}): Conversation
         text: M2.text,
         rxTime: M2.rxTime,
         direction: "in",
+        fromNum: RIDGE,
         emoji: false,
         pkiEncrypted: false,
         status: null,

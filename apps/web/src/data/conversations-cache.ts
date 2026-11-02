@@ -25,6 +25,7 @@ export function toPreview(m: Message): MessagePreview {
     text: m.text,
     rxTime: m.rxTime,
     direction: m.direction,
+    fromNum: m.fromNum,
     emoji: m.emoji,
     pkiEncrypted: m.pkiEncrypted,
     status: m.status,

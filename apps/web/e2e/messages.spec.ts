@@ -45,7 +45,7 @@ test("old /dm and /channels links redirect to the Messages view", async ({ page 
   await expect(page).toHaveURL(/\/messages\/dm\/!0badcafe$/);
   await page.goto("/channels/1");
   await expect(page).toHaveURL(/\/messages\/channel\/1$/);
-  await expect(page.getByRole("heading", { level: 2, name: "#Friends" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Friends" })).toBeVisible();
 });
 
 test("phone: the thread replaces the list, and Back returns to it", async ({ page }) => {

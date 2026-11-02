@@ -31,6 +31,8 @@ export const MessagePreview = z.object({
   text: z.string(),
   rxTime: EpochMs,
   direction: Direction,
+  /** CR-005: who sent it, so channel rows can say "RDG: …". */
+  fromNum: Uint32,
   /** A reaction: `text` is the emoji. */
   emoji: z.boolean(),
   pkiEncrypted: z.boolean(),

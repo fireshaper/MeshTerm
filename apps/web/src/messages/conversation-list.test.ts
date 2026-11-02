@@ -19,6 +19,7 @@ const preview = {
   text: "hello\n  there",
   rxTime: NOW,
   direction: "in" as const,
+  fromNum: 1,
   emoji: false,
   pkiEncrypted: false,
   status: null,

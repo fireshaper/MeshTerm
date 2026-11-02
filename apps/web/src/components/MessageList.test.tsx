@@ -131,6 +131,68 @@ describe("<MessageList />", () => {
     expect(screen.getByText("Start of conversation")).toBeInTheDocument();
   });
 
+  it("groups a sender's run, marks where unread starts, quotes replies, says how it came", async () => {
+    const [a, b, c] = channelMessages(3);
+    const messages: Message[] = [
+      { ...(a as Message), hopStart: 3, hopLimit: 3, rxSnr: 7.25 },
+      { ...(b as Message), hopStart: 3, hopLimit: 1 },
+      {
+        ...(c as Message),
+        fromNum: SCENARIO_MY_NODE,
+        direction: "out",
+        status: "acked",
+        replyId: (a as Message).packetId,
+      },
+    ];
+    const read = (b as Message).rxTime - 1;
+    await renderApp("/messages/channel/0", {
+      ...seedBase(),
+      conversationList: {
+        channels: [
+          {
+            index: 0,
+            name: "LongFast",
+            role: "PRIMARY",
+            encryption: "default",
+            lastMessage: null,
+            unread: 1,
+            unreadMentions: 0,
+            state: { lastReadRxTime: read, muted: false, favorite: false, notifyLevel: "all" },
+          },
+        ],
+        dms: [],
+      },
+      conversations: [[channel0, { messages, cursor: null }]],
+    });
+    const rowEls = [...document.querySelectorAll<HTMLElement>('[data-mt="message-row"]')];
+    // The second Ridge message would continue the group, but "New" starts there.
+    expect(rowEls.map((r) => r.dataset.mtState)).toEqual(["first", "first", "first"]);
+    expect(rowEls[1]?.querySelector('[data-mt="unread-line"]')).toHaveTextContent("New");
+    expect(document.querySelectorAll('[data-mt="unread-line"]')).toHaveLength(1);
+    expect(rowEls[0]?.querySelector('[data-mt="message-path"]')).toHaveTextContent(
+      /direct · 7.25 dB$/,
+    );
+    expect(rowEls[1]?.querySelector('[data-mt="message-path"]')).toHaveTextContent(/2 hops$/);
+    expect(rowEls[0]?.querySelector('[data-mt="message-avatar"]')).toHaveTextContent("RDG");
+    expect(rowEls[0]?.querySelector('[data-mt="message-sender-long"]')).toHaveTextContent(
+      "Ridge Repeater",
+    );
+    expect(rowEls[2]?.querySelector('[data-mt="message-reply"]')).toHaveTextContent("RDGmessage 0");
+    expect(rowEls[2]?.querySelector('[data-mt="message-avatar"]')).toBeNull();
+  });
+
+  it("consecutive messages from one sender group when nothing is unread", async () => {
+    await renderApp("/messages/channel/0", {
+      ...seedBase(),
+      conversations: [[channel0, { messages: channelMessages(3), cursor: null }]],
+    });
+    const states = [...document.querySelectorAll<HTMLElement>('[data-mt="message-row"]')].map(
+      (r) => r.dataset.mtState,
+    );
+    expect(states).toEqual(["first", "continued", "continued"]);
+    expect(document.querySelectorAll('[data-mt="day-separator"]')).toHaveLength(1);
+  });
+
   it("shows an empty state", async () => {
     await renderApp("/messages/channel/0", {
       ...seedBase(),

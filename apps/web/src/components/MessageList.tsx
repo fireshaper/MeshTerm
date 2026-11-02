@@ -3,11 +3,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Conversation } from "../data/keys.js";
-import { loadOlder, useConversation, useNodes } from "../data/queries.js";
+import { loadOlder, useConversation, useConversationList, useNodes } from "../data/queries.js";
+import { continuesGroup, firstUnreadIndex, messagePath } from "../messages/thread.js";
 import { useMarkRead } from "../messages/unread.js";
+import { usePositions } from "../messages/useNodeMap.js";
 import { useNotifyCenter } from "../notifications/center.js";
 import { useMentionTerms } from "../notifications/mention-terms.js";
-import { dayLabel, MessageItem, senderName } from "./MessageItem.js";
+import { dayLabel, MessageItem, senderName, type ReplyQuote } from "./MessageItem.js";
 import { useNow } from "./useNow.js";
 
 /** How close to an edge (px) counts as "at the top" / "at the bottom". */
@@ -33,6 +35,10 @@ export function MessageList({ connectionId, conversation }: MessageListProps) {
     () => new Map<number, MeshNode>((nodeList ?? []).map((n) => [n.num, n])),
     [nodeList],
   );
+  const positions = usePositions(connectionId);
+  const byPacket = useMemo(() => new Map(messages.map((m) => [m.packetId, m])), [messages]);
+  const readMark = useOpeningReadMark(connectionId, conversation);
+  const unreadAt = firstUnreadIndex(messages, readMark);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
@@ -143,19 +149,42 @@ export function MessageList({ connectionId, conversation }: MessageListProps) {
           const previous = messages[item.index - 1];
           const day = dayLabel(message.rxTime);
           const newDay = !previous || dayLabel(previous.rxTime) !== day;
+          const unreadLine = item.index === unreadAt;
+          const continued = !unreadLine && continuesGroup(previous, message);
+          const quoted = message.replyId === null ? undefined : byPacket.get(message.replyId);
+          const reply: ReplyQuote | null = quoted
+            ? { sender: senderName(quoted.fromNum, nodes), text: quoted.text }
+            : null;
           return (
             <div
               key={item.key}
               data-index={item.index}
               ref={virtualizer.measureElement}
               data-mt="message-row"
+              data-mt-state={continued ? "continued" : "first"}
+              data-mt-variant={message.direction}
               style={{ transform: `translateY(${item.start}px)` }}
             >
-              {/* Where a new day starts; hidden by default, some themes show it. */}
               {newDay && <p data-mt="day-separator">{day}</p>}
+              {unreadLine && (
+                <p data-mt="unread-line">
+                  <span data-mt="unread-line-label">New</span>
+                </p>
+              )}
               <MessageItem
                 message={message}
                 sender={senderName(message.fromNum, nodes)}
+                senderLong={nodes.get(message.fromNum)?.longName}
+                path={
+                  message.direction === "in"
+                    ? messagePath(
+                        message,
+                        positions.origin,
+                        positions.byNum.get(message.fromNum) ?? null,
+                      )
+                    : null
+                }
+                reply={reply}
                 now={now}
                 mentions={mentions}
               />
@@ -165,4 +194,21 @@ export function MessageList({ connectionId, conversation }: MessageListProps) {
       </div>
     </div>
   );
+}
+
+/**
+ * The conversation's read mark as it was when the thread opened, so the "New" line
+ * stays put while reading moves the mark on. Null until the conversation list loads.
+ */
+function useOpeningReadMark(connectionId: number, conversation: Conversation): number | null {
+  const { data } = useConversationList(connectionId);
+  const key = "channel" in conversation ? `c${conversation.channel}` : `d${conversation.peer}`;
+  const row =
+    "channel" in conversation
+      ? data?.channels.find((c) => c.index === conversation.channel)
+      : data?.dms.find((d) => d.peer === conversation.peer);
+  const mark = row?.state.lastReadRxTime;
+  const [opening, setOpening] = useState<{ key: string; mark: number } | null>(null);
+  if (mark !== undefined && opening?.key !== key) setOpening({ key, mark });
+  return opening?.key === key ? opening.mark : null;
 }

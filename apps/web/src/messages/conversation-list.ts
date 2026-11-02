@@ -33,11 +33,16 @@ export function writeLastConversation(ref: ConversationRef): void {
   }
 }
 
-/** One line for a conversation row: "You: " for our own messages; reactions say so. */
-export function previewText(m: MessagePreview): string {
+/**
+ * One line for a conversation row: "You: " for our own messages, "RDG: " for others'
+ * when `sender` is given (channels); reactions say so.
+ */
+export function previewText(m: MessagePreview, sender?: string): string {
   const body = m.emoji ? `Reacted ${m.text}` : m.text.replace(/\s+/g, " ").trim();
-  return m.direction === "out" ? `You: ${body}` : body;
+  return m.direction === "out" ? `You: ${body}` : sender ? `${sender}: ${body}` : body;
 }
+
+export type ConversationFilter = "all" | "channel" | "dm";
 
 const normalize = (s: string) => s.trim().toLowerCase();
 

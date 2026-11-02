@@ -10,6 +10,7 @@ import * as Menu from "@radix-ui/react-dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { BellOff, Lock, MoreHorizontal, SquarePen, Star } from "lucide-react";
+import { senderName } from "../components/MessageItem.js";
 import { useState } from "react";
 import { useIsAdmin } from "../auth/me.js";
 import { ApiError, api } from "../data/api.js";
@@ -31,6 +32,7 @@ import {
   filterDms,
   previewText,
   shortAgo,
+  type ConversationFilter,
   type ConversationRef,
 } from "./conversation-list.js";
 import { NodePicker } from "./NodePicker.js";
@@ -46,6 +48,7 @@ export function ConversationList({ active }: { active: ConversationRef | null })
   const [query, setQuery] = useState("");
   const [picking, setPicking] = useState(false);
   const [showIgnored, setShowIgnored] = useState(false);
+  const [filter, setFilter] = useState<ConversationFilter>("all");
 
   const channels = filterChannels(data?.channels ?? [], query);
   const ignoredCount = (data?.dms ?? []).filter((d) => d.ignored).length;
@@ -57,17 +60,11 @@ export function ConversationList({ active }: { active: ConversationRef | null })
 
   return (
     <aside data-mt="conversation-list" aria-label="Conversations">
-      <div data-mt="conversation-toolbar">
-        <input
-          data-mt="conversation-search"
-          type="search"
-          placeholder="Search…"
-          aria-label="Search conversations"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-          }}
-        />
+      <div data-mt="conversation-list-header">
+        {/* The page's h1 is visually hidden so it survives the phone layout's single pane. */}
+        <span data-mt="conversation-list-title" aria-hidden>
+          Messages
+        </span>
         <button
           type="button"
           data-mt="new-dm-button"
@@ -79,12 +76,51 @@ export function ConversationList({ active }: { active: ConversationRef | null })
           <span>New</span>
         </button>
       </div>
+      <div
+        data-mt="conversation-filter"
+        data-mt-variant="segmented"
+        role="group"
+        aria-label="Show conversations"
+      >
+        {FILTERS.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            data-mt="segment"
+            data-mt-variant={value}
+            data-mt-state={value === filter ? "active" : "inactive"}
+            aria-pressed={value === filter}
+            onClick={() => {
+              setFilter(value);
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div data-mt="conversation-toolbar">
+        <input
+          data-mt="conversation-search"
+          type="search"
+          placeholder="Search…"
+          aria-label="Search conversations"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+          }}
+        />
+      </div>
 
       {isPending && connectionId !== null ? (
         <p data-mt="conversation-list-loading">Loading conversations…</p>
       ) : (
         <>
-          <section data-mt="conversation-section" data-mt-variant="channels" aria-label="Channels">
+          <section
+            data-mt="conversation-section"
+            data-mt-variant="channels"
+            aria-label="Channels"
+            hidden={filter === "dm"}
+          >
             <h2 data-mt="conversation-section-title">Channels</h2>
             {channels.length === 0 ? (
               <p data-mt="conversation-section-empty">
@@ -105,17 +141,35 @@ export function ConversationList({ active }: { active: ConversationRef | null })
                         data-channel-index={c.index}
                         aria-current={isActive ? "page" : undefined}
                       >
+                        <span data-mt="conversation-tile" data-mt-variant="channel" aria-hidden>
+                          <span data-mt="conversation-tile-label">CH</span>
+                          <span data-mt="conversation-tile-value">{c.index}</span>
+                        </span>
                         <span data-mt="conversation-name">
                           <span data-mt="conversation-hash" aria-hidden>
                             #
                           </span>
                           {c.name}
+                          {c.encryption === "custom" && (
+                            <Lock
+                              data-mt="icon"
+                              data-mt-variant="private"
+                              aria-label="Private channel"
+                            />
+                          )}
                         </span>
                         <span data-mt="conversation-meta">
                           <RowFlags row={c} />
                           {c.lastMessage && <RowTime time={c.lastMessage.rxTime} />}
                           <UnreadBadge row={c} />
                         </span>
+                        {c.lastMessage && (
+                          <span data-mt="conversation-preview">
+                            <span data-mt="conversation-preview-text">
+                              {previewText(c.lastMessage, senderName(c.lastMessage.fromNum, nodes))}
+                            </span>
+                          </span>
+                        )}
                       </Link>
                       <RowMenu
                         connectionId={connectionId}
@@ -135,6 +189,7 @@ export function ConversationList({ active }: { active: ConversationRef | null })
             data-mt="conversation-section"
             data-mt-variant="dms"
             aria-label="Direct messages"
+            hidden={filter === "channel"}
           >
             <h2 data-mt="conversation-section-title">Direct messages</h2>
             {ignoredCount > 0 && (
@@ -184,6 +239,12 @@ export function ConversationList({ active }: { active: ConversationRef | null })
     </aside>
   );
 }
+
+const FILTERS: [ConversationFilter, string][] = [
+  ["all", "All"],
+  ["channel", "Channels"],
+  ["dm", "Direct"],
+];
 
 type Row = ChannelConversation | DmConversation;
 
@@ -372,7 +433,12 @@ function DmRow({
       data-node-num={dm.peer}
       aria-current={active ? "page" : undefined}
     >
-      <span data-mt="status-dot" data-mt-state={status} title={STATUS_LABELS[status]} />
+      <span data-mt="conversation-tile" data-mt-variant="dm">
+        <span data-mt="conversation-tile-value" aria-hidden>
+          {short}
+        </span>
+        <span data-mt="status-dot" data-mt-state={status} title={STATUS_LABELS[status]} />
+      </span>
       <span data-mt="conversation-name">
         <span data-mt="conversation-short-name">{short}</span>
         <span data-mt="conversation-long-name">{long}</span>

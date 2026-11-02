@@ -128,6 +128,8 @@ const VOLATILE = [
   "[data-mt=status-cell][data-mt-variant=last-packet] [data-mt=status-cell-value]",
   "[data-mt=status-cell][data-mt-variant=uptime] [data-mt=status-cell-value]",
   "[data-mt=thread-details]",
+  // The day pill names the real date the scenario messages were sent.
+  "[data-mt=day-separator]",
   // Node drawer (outside [data-mt=main]: it's a portal).
   "[data-mt=node-drawer-seen]",
   // Notifications (CR-003).

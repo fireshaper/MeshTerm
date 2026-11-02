@@ -162,17 +162,23 @@
   }
 
   /* ── Messages: outgoing pink, incoming outlined in cyan ─────────────────────── */
-  [data-mt="message"] {
+  [data-mt="message-bubble"] {
     border: 1px solid var(--cp-cyan);
+    border-radius: 0;
     clip-path: polygon(0 0, calc(100% - 0.5rem) 0, 100% 0.5rem, 100% 100%, 0 100%);
   }
 
-  [data-mt="message"][data-mt-variant="out"] {
+  [data-mt="message"][data-mt-variant="out"] [data-mt="message-bubble"] {
     border-color: var(--cp-pink);
+    border-radius: 0;
     clip-path: polygon(0.5rem 0, 100% 0, 100% 100%, 0 100%, 0 0.5rem);
   }
 
-  [data-mt="message"][data-mt-state="failed"] {
+  [data-mt="message"][data-mt-variant="out"] [data-mt="message-foot"] {
+    color: inherit;
+  }
+
+  [data-mt="message"][data-mt-state="failed"] [data-mt="message-bubble"] {
     outline: none;
     border-color: var(--mt-status-error);
     border-style: dashed;

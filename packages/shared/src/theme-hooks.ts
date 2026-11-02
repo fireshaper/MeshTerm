@@ -160,7 +160,21 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
       "show-on-map",
     ],
   },
-  "byte-counter": { area: "Shared", element: "`bytes/200`", states: ["ok", "over", "warn"] },
+  "byte-counter": {
+    area: "Shared",
+    element: "`12/200 bytes`",
+    states: ["near", "ok", "over", "warn"],
+  },
+  "byte-meter": {
+    area: "Shared",
+    element: "Composer byte meter (CR-005)",
+    states: ["near", "ok", "over"],
+  },
+  "byte-meter-fill": { area: "Shared", element: "Composer byte meter (CR-005)" },
+  "callsign-tag": {
+    area: "Messages",
+    element: "A callsign chip (channel header: heard this hour)",
+  },
   "card-cell": { area: "Dashboard and nodes", element: "Card grid (`ul`) and cell (`li`)" },
   "card-grid": {
     area: "Dashboard and nodes",
@@ -290,13 +304,19 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     states: ["disabled", "error", "ready", "sending"],
     openStates: true,
   },
+  "composer-destination": {
+    area: "Shared",
+    element: 'Composer foot: "CH 0 · LongFast", "DM · TRL"',
+  },
   "composer-error": { area: "Shared", element: "Send error; why sending is off" },
+  "composer-foot": { area: "Shared", element: "Composer foot: destination and byte meter" },
   "composer-hint": {
     area: "Shared",
     element: "Send error; why sending is off",
     variants: ["viewer"],
   },
   "composer-input": { area: "Shared", element: "Textarea and button" },
+  "composer-row": { area: "Shared", element: "Composer field and send button" },
   "config-conflict": { area: "Settings" },
   "config-connection": { area: "Settings", states: ["unknown"], openStates: true },
   "config-connection-state": { area: "Settings" },
@@ -331,10 +351,17 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     element: "List + composer of one conversation",
     variants: ["channel", "dm"],
   },
+  "conversation-filter": {
+    area: "Messages",
+    element: "All / Channels / Direct",
+    variants: ["segmented"],
+  },
   "conversation-hash": { area: "Messages", element: "Row parts" },
   "conversation-item": { area: "Messages" },
   "conversation-list": { area: "Messages", element: "Conversation list and its toolbar" },
+  "conversation-list-header": { area: "Messages", element: "Conversation list title and New" },
   "conversation-list-loading": { area: "Messages" },
+  "conversation-list-title": { area: "Messages", element: "Conversation list title and New" },
   "conversation-long-name": { area: "Messages", element: "Row parts" },
   "conversation-menu": { area: "Shared" },
   "conversation-menu-button": { area: "Messages" },
@@ -359,6 +386,13 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "conversation-section-empty": { area: "Messages", element: "A list section" },
   "conversation-section-title": { area: "Messages", element: "A list section" },
   "conversation-short-name": { area: "Messages", element: "Row parts" },
+  "conversation-tile": {
+    area: "Messages",
+    element: "Row tile: CH + index, or the callsign",
+    variants: ["channel", "dm"],
+  },
+  "conversation-tile-label": { area: "Messages", element: "Row tile: CH + index, or the callsign" },
+  "conversation-tile-value": { area: "Messages", element: "Row tile: CH + index, or the callsign" },
   "conversation-time": { area: "Messages", element: "Row parts" },
   "conversation-toolbar": { area: "Messages", element: "Conversation list and its toolbar" },
   "conversation-waiting": { area: "Shared", element: "Shown before a connection is known" },
@@ -486,7 +520,7 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "encryption-badge": {
     area: "Messages",
     element: "Encryption of the conversation",
-    variants: ["channel", "none", "pki"],
+    variants: ["channel", "default", "none", "pki"],
   },
   favicon: { area: "Theme", element: '`<link rel="icon">` (badged with the unread count)' },
   "favorite-toggle": { area: "Shared", element: "★ button", states: ["off", "on"] },
@@ -515,7 +549,7 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   icon: {
     area: "Shared",
     element: "Inline SVG icon (`currentColor`)",
-    variants: ["favorite", "muted", "pki"],
+    variants: ["favorite", "muted", "pki", "private"],
   },
   "header-actions": {
     area: "Shell",
@@ -613,6 +647,12 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     openStates: true,
     openVariants: true,
   },
+  "message-avatar": {
+    area: "Shared",
+    element: "Parts of a message: the sender's callsign beside incoming bubbles",
+  },
+  "message-bubble": { area: "Shared", element: "Parts of a message" },
+  "message-foot": { area: "Shared", element: "Parts of a message: time and delivery state" },
   "message-list": {
     area: "Shared",
     element: 'Scrolling, virtualized list (`role="log"`)',
@@ -622,8 +662,34 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "message-list-canvas": { area: "Shared", element: "Virtualizer canvas and row wrapper" },
   "message-list-empty": { area: "Shared", element: 'Empty state; "start of conversation" marker' },
   "message-meta": { area: "Shared", element: "Parts of a message" },
-  "message-row": { area: "Shared", element: "Virtualizer canvas and row wrapper" },
+  "message-path": { area: "Shared", element: 'Parts of a message: "4.6 km · direct · 7.25 dB"' },
+  "message-reply": {
+    area: "Shared",
+    element: "Parts of a message: the quoted message it replies to",
+  },
+  "message-reply-sender": {
+    area: "Shared",
+    element: "Parts of a message: the quoted message it replies to",
+  },
+  "message-reply-text": {
+    area: "Shared",
+    element: "Parts of a message: the quoted message it replies to",
+  },
+  "message-row": {
+    area: "Shared",
+    element: "Virtualizer row: a message and the markers before it",
+    states: ["continued", "first"],
+    variants: ["in", "out"],
+  },
   "message-sender": { area: "Shared", element: "Parts of a message" },
+  "message-sender-long": {
+    area: "Shared",
+    element: "Parts of a message: sender callsign / long name",
+  },
+  "message-sender-short": {
+    area: "Shared",
+    element: "Parts of a message: sender callsign / long name",
+  },
   "message-status": {
     area: "Shared",
     element: "Outbound status text",
@@ -996,6 +1062,7 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "select-label": { area: "Dashboard and nodes", element: "Nodes page toolbar" },
   "self-badge": { area: "Dashboard and nodes", element: "Parts of a preview" },
   "send-button": { area: "Shared", element: "Textarea and button" },
+  "send-button-label": { area: "Shared", element: "Send button text (visually hidden by default)" },
   "settings-body": { area: "Settings", element: "Settings" },
   "settings-field": { area: "Shared", element: "Settings" },
   "settings-form": { area: "Settings", element: "Settings", variants: ["wide"] },
@@ -1111,6 +1178,7 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     element: "Thread header (Back shows below 768 px; ⓘ opens the node drawer)",
   },
   "thread-empty": { area: "Messages", element: "Thread pane and the open conversation" },
+  "thread-hash": { area: "Messages", element: "`#` before a channel title (hidden by default)" },
   "thread-header": {
     area: "Messages",
     element: "Thread header (Back shows below 768 px; ⓘ opens the node drawer)",
@@ -1120,6 +1188,9 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     area: "Messages",
     element: "Thread header (Back shows below 768 px; ⓘ opens the node drawer)",
   },
+  "thread-heard": { area: "Messages", element: "Channel header: callsigns heard this hour" },
+  "thread-heard-count": { area: "Messages", element: "Channel header: callsigns heard this hour" },
+  "thread-heard-tags": { area: "Messages", element: "Channel header: callsigns heard this hour" },
   "thread-info": {
     area: "Messages",
     element: "Thread header (Back shows below 768 px; ⓘ opens the node drawer)",
@@ -1186,6 +1257,8 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "typed-confirm": { area: "Settings" },
   "typed-confirm-input": { area: "Settings" },
   "unread-badge": { area: "Messages", variants: ["muted"] },
+  "unread-line": { area: "Shared", element: '"New" line before the first unread message' },
+  "unread-line-label": { area: "Shared", element: '"New" line before the first unread message' },
   "usage-bar": {
     area: "Dashboard and nodes",
     element: "0–100 bar (`--mt-usage`)",

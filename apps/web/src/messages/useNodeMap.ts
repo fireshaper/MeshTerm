@@ -7,7 +7,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { queryKeys } from "../data/keys.js";
-import { useNodes } from "../data/queries.js";
+import { useMapNodes, useNodes } from "../data/queries.js";
+import type { LatLon } from "../dashboard/geo.js";
 
 /** Nodes of the connection by number (from the snapshot-fed node list). */
 export function useNodeMap(connectionId: number | null): ReadonlyMap<number, MeshNode> {
@@ -25,4 +26,25 @@ export function useThresholds(connectionId: number | null): DashboardThresholds 
     enabled: false,
   });
   return data?.thresholds ?? DEFAULT_DASHBOARD_THRESHOLDS;
+}
+
+export interface Positions {
+  /** My node's position, the origin for distances. */
+  origin: LatLon | null;
+  byNum: ReadonlyMap<number, LatLon>;
+}
+
+/** Node positions from the map's node list (kept current by WS events). */
+export function usePositions(connectionId: number | null): Positions {
+  const { data } = useMapNodes(connectionId);
+  return useMemo(() => {
+    const byNum = new Map<number, LatLon>();
+    let origin: LatLon | null = null;
+    for (const f of data?.features ?? []) {
+      const [lon, lat] = f.geometry.coordinates;
+      byNum.set(f.properties.num, { lat, lon });
+      if (f.properties.isSelf) origin = { lat, lon };
+    }
+    return { origin, byNum };
+  }, [data]);
 }

@@ -278,16 +278,60 @@
   }
 
   /* ── Messages as log lines: [10:04] <K7AB> Heading out now ────────────────── */
-  [data-mt="message-row"] {
+  [data-mt="message-row"],
+  [data-mt="message-row"][data-mt-state="continued"] {
     flex-direction: column;
+    gap: 0;
     padding-block: 0;
   }
 
   [data-mt="day-separator"] {
     display: block;
+    align-self: stretch;
     margin: var(--mt-space-2) 0 var(--mt-space-1);
+    padding: 0;
+    border: none;
     color: var(--rt-dim);
+    font: inherit;
+    letter-spacing: normal;
     text-align: center;
+    text-transform: none;
+  }
+
+  [data-mt="unread-line"] {
+    font: inherit;
+    letter-spacing: normal;
+    color: var(--rt-bright);
+  }
+
+  /* The bubble's parts join the line; no avatars, paths or long names. */
+  [data-mt="message-bubble"],
+  [data-mt="message-foot"] {
+    display: contents;
+  }
+
+  [data-mt="message-avatar"],
+  [data-mt="message-path"],
+  [data-mt="message-sender-long"],
+  [data-mt="message-reply"] [data-mt="icon"] {
+    display: none;
+  }
+
+  [data-mt="message-sender-short"] {
+    display: inline;
+  }
+
+  [data-mt="message-reply"] {
+    flex-basis: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    color: var(--rt-dim);
+    font-size: inherit;
+  }
+
+  [data-mt="message-reply"]::before {
+    content: "> re:";
   }
 
   [data-mt="day-separator"]::before {
@@ -300,6 +344,7 @@
 
   [data-mt="message"],
   [data-mt="message"][data-mt-variant="out"] {
+    align-self: stretch;
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -315,7 +360,9 @@
     background: var(--rt-panel);
   }
 
-  [data-mt="message-meta"] {
+  [data-mt="message-meta"],
+  [data-mt="message"][data-mt-variant="out"] [data-mt="message-meta"],
+  [data-mt="message-row"][data-mt-state="continued"] [data-mt="message-meta"] {
     display: contents;
     font-size: inherit;
     opacity: 1;
@@ -365,6 +412,8 @@
   [data-mt="message-text"] {
     flex: 1 1 20ch;
     margin: 0;
+    font-size: inherit;
+    line-height: inherit;
   }
 
   /* Delivery state: [..] queued, [->] sent, [ok] acked, [!!] failed. */
@@ -405,10 +454,91 @@
     padding-inline: 0.25ch;
   }
 
-  /* The composer: a prompt with a block cursor. */
+  /* The composer: a prompt with a block cursor, and [Send] in words. */
   [data-mt="composer-input"] {
+    border-radius: 0;
     caret-color: var(--rt-hot);
     caret-shape: block;
+  }
+
+  [data-mt="send-button"] {
+    display: inline-flex;
+    align-items: center;
+    inline-size: auto;
+    block-size: 2.875rem;
+    padding-inline: var(--mt-space-3);
+    border-radius: 0;
+  }
+
+  [data-mt="send-button"] [data-mt="icon"] {
+    display: none;
+  }
+
+  [data-mt="send-button-label"] {
+    position: static;
+    inline-size: auto;
+    block-size: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+
+  [data-mt="byte-meter"],
+  [data-mt="byte-meter-fill"] {
+    border-radius: 0;
+  }
+
+  /* Thread titles keep their # and case. */
+  [data-mt="thread-hash"] {
+    display: inline;
+  }
+
+  [data-mt="thread-title"] {
+    font-family: inherit;
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  [data-mt="encryption-badge"],
+  [data-mt="callsign-tag"],
+  [data-mt="message-avatar"],
+  [data-mt="conversation-filter"],
+  [data-mt="conversation-filter"] [data-mt="segment"],
+  [data-mt="new-dm-button"] {
+    border-radius: 0;
+  }
+
+  /* Rows stay text: #channel and @CALL, no tiles. */
+  [data-mt="conversation-row"],
+  [data-mt="conversation-row"][data-mt-variant="channel"] {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  [data-mt="conversation-tile"] {
+    display: contents;
+  }
+
+  [data-mt="conversation-tile-label"],
+  [data-mt="conversation-tile-value"] {
+    display: none;
+  }
+
+  [data-mt="conversation-tile"] [data-mt="status-dot"] {
+    position: static;
+    box-shadow: none;
+  }
+
+  [data-mt="conversation-row"] [data-mt="conversation-name"] {
+    grid-column: 2;
+  }
+
+  [data-mt="conversation-hash"],
+  [data-mt="conversation-short-name"] {
+    display: inline;
+  }
+
+  [data-mt="conversation-long-name"] {
+    color: var(--rt-dim);
+    font-weight: normal;
   }
 
   /* ── Conversation list: #channel, @peer, (3) ──────────────────────────────── */

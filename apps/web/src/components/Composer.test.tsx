@@ -37,6 +37,27 @@ describe("<Composer />", () => {
     expect(counter()).toHaveTextContent("10/200");
   });
 
+  it("names the destination and fills the byte meter, warning past 170 bytes", async () => {
+    render(
+      <Composer
+        connectionId={1}
+        conversation={{ channel: 0 }}
+        destination={{ label: "CH 0 · LongFast", name: "LongFast" }}
+      />,
+    );
+    expect(byDataMt("composer-destination")).toHaveTextContent("CH 0 · LongFast");
+    expect(input()).toHaveAttribute("placeholder", "Message LongFast");
+    expectDataMt(byDataMt("byte-meter"), "byte-meter", { state: "ok" });
+    await userEvent.click(input());
+    await userEvent.paste("x".repeat(171));
+    expectDataMt(byDataMt("byte-meter"), "byte-meter", { state: "near" });
+    expectDataMt(counter(), "byte-counter", { state: "near" });
+    expect(byDataMt("byte-meter")?.style.getPropertyValue("--mt-byte-fill")).toBe("0.855");
+    await userEvent.paste("x".repeat(30));
+    expectDataMt(byDataMt("byte-meter"), "byte-meter", { state: "over" });
+    expect(byDataMt("byte-meter")?.style.getPropertyValue("--mt-byte-fill")).toBe("1");
+  });
+
   it("disables sending when empty, blank, over the limit, or not connected", async () => {
     render(<Composer connectionId={1} conversation={{ channel: 0 }} />);
     expect(sendButton()).toBeDisabled();

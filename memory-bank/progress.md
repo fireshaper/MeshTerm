@@ -743,6 +743,15 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` 
 - The KPI cards are gone (their numbers are in the headline, gauges, status band and totals).
 - **Tests:** `overview.ts` (hero nodes, headline wording, roster order and cap, framing, label culling, gauge arcs), the page (gauges and states, hero pins and drawer, roster, cards, totals and areas, mesh detail, empty state), e2e (landing page, pin → drawer, open full map, 300-node roster cap, mesh detail charts); visual baselines re-recorded.
 
+### CR-005 Phase K3: Messages (done 2026-11-02)
+
+- **List:** "MESSAGES" title with New, an All / Channels / Direct filter, search; rows with a tile (CH + index, or the callsign in a circle with the heard dot), a lock on private channels, time, unread count, and a preview (channels: "RDG: …", from the new `MessagePreview.fromNum`).
+- **Thread header:** condensed caps title, "Channel 0 · Primary" or "!id · direct · 4.6 km NE · 7.25 dB · seen …", a key pill (Default key, public / Private / Unencrypted; Public-key encrypted / Channel key only); channels show the callsigns heard this hour, DMs an "On map" button.
+- **Bubbles:** incoming on the left with a callsign avatar and a header "Ridge Repeater · 4.6 km · direct · 7.25 dB", mine on the right in the accent tint; reply quotes; clock time and delivery state with an icon in the bubble's foot; consecutive messages from one sender group; day pills and a "New" line before the first unread message.
+- **Composer:** a rounded field that grows to 140 px, a round send button, and under them the destination ("CH 0 · LongFast", "DM · RDG") and a byte meter (warn past 170, error past 200 bytes).
+- Retro keeps its log lines; Cyberpunk's bubble shapes moved to `message-bubble`.
+- **Tests:** `thread.ts` (grouping, hops, path text, byte meter, unread index, heard this hour); list (tiles, private lock, channel preview, filter), headers (key pills, heard, destination), message list (groups, New line, path, reply quote), composer (meter states and fill); e2e send shows destination and bytes and reaches acked in the bubble's foot; visual baselines re-recorded.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

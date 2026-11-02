@@ -48,6 +48,7 @@ const list: ConversationsDTO = {
         text: "Hey, you around?",
         rxTime: NOW - 60_000,
         direction: "in",
+        fromNum: RIDGE,
         emoji: false,
         pkiEncrypted: true,
         status: null,
@@ -64,6 +65,7 @@ const list: ConversationsDTO = {
         text: "Thanks!",
         rxTime: NOW - 3600_000,
         direction: "out",
+        fromNum: 0xa1b2c3d4,
         emoji: false,
         pkiEncrypted: false,
         status: "acked",
@@ -83,6 +85,7 @@ const seed = () => ({
   conversationList: list,
 });
 
+const byDataMtIn = (root: Element, name: string) => root.querySelector(`[data-mt="${name}"]`);
 const rows = (variant: string) => [
   ...document.querySelectorAll<HTMLElement>(
     `[data-mt=conversation-row][data-mt-variant=${variant}]`,
@@ -93,7 +96,16 @@ describe("Messages view", () => {
   it("lists every channel and every DM, with the open one active", async () => {
     await renderApp("/messages/channel/1", seed());
     expectDataMt(byDataMt("messages-view"), "messages-view", { state: "thread" });
-    expect(rows("channel").map((r) => r.textContent)).toEqual(["#LongFast", "#Friends"]);
+    expect(
+      rows("channel").map((r) => r.querySelector('[data-mt="conversation-name"]')?.textContent),
+    ).toEqual(["#LongFast", "#Friends"]);
+    expect(rows("channel").map((r) => byDataMtIn(r, "conversation-tile")?.textContent)).toEqual([
+      "CH0",
+      "CH1",
+    ]);
+    expect(
+      within(rows("channel")[1] as HTMLElement).getByLabelText("Private channel"),
+    ).toBeVisible();
     expectDataMt(rows("channel")[1] ?? null, "conversation-row", {
       variant: "channel",
       state: "active",
@@ -107,8 +119,63 @@ describe("Messages view", () => {
     expect(trail).toHaveTextContent("You: Thanks!");
     expect(ridge).toHaveAttribute("href", "/messages/dm/!0badcafe");
 
-    expect(screen.getByRole("heading", { level: 2, name: "#Friends" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Friends" })).toBeInTheDocument();
     expectDataMt(byDataMt("encryption-badge"), "encryption-badge", { variant: "channel" });
+  });
+
+  it("channel rows preview the last message with its sender's callsign", async () => {
+    const withLast: ConversationsDTO = {
+      ...list,
+      channels: list.channels.map((c) =>
+        c.index === 0
+          ? {
+              ...c,
+              lastMessage: {
+                id: "00000000-0000-4000-8000-000000000009",
+                text: "Heading out",
+                rxTime: NOW - 60_000,
+                direction: "in",
+                fromNum: RIDGE,
+                emoji: false,
+                pkiEncrypted: false,
+                status: null,
+              },
+            }
+          : c,
+      ),
+    };
+    await renderApp("/messages/channel/1", { ...seed(), conversationList: withLast });
+    expect(rows("channel")[0]).toHaveTextContent("RDG: Heading out");
+  });
+
+  it("the filter shows all, channels only or direct messages only", async () => {
+    const user = userEvent.setup();
+    await renderApp("/messages/channel/0", seed());
+    const filter = within(byDataMt("conversation-filter") as HTMLElement);
+    expect(filter.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(filter.getByRole("button", { name: "Direct" }));
+    expect(screen.queryByRole("region", { name: "Channels" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Direct messages" })).toBeInTheDocument();
+    await user.click(filter.getByRole("button", { name: "Channels" }));
+    expect(screen.getByRole("region", { name: "Channels" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Direct messages" })).toBeNull();
+  });
+
+  it("a channel thread names its key and who was heard this hour", async () => {
+    await renderApp("/messages/channel/0", seed());
+    expect(screen.getByRole("heading", { level: 2, name: "LongFast" })).toBeInTheDocument();
+    expect(byDataMt("thread-details")).toHaveTextContent("Channel 0");
+    expectDataMt(byDataMt("encryption-badge"), "encryption-badge", { variant: "default" });
+    expect(byDataMt("encryption-badge")).toHaveTextContent("Default key, public");
+    expect(byDataMt("thread-heard")).toHaveAttribute(
+      "aria-label",
+      expect.stringMatching(/^\d+ nodes heard this hour$/),
+    );
+    expect(byDataMt("composer-destination")).toHaveTextContent("CH 0 · LongFast");
+    expect(screen.getByRole("textbox", { name: "Message" })).toHaveAttribute(
+      "placeholder",
+      "Message LongFast",
+    );
   });
 
   it("search filters both sections by name or node id", async () => {
@@ -132,6 +199,7 @@ describe("Messages view", () => {
     expect(header).toHaveTextContent("Ridge Repeater");
     expect(header).toHaveTextContent("!0badcafe");
     expectDataMt(byDataMt("encryption-badge"), "encryption-badge", { variant: "pki" });
+    expect(byDataMt("encryption-badge")).toHaveTextContent("Public-key encrypted");
     await user.click(screen.getByRole("button", { name: "Node details" }));
     expect(await screen.findByRole("dialog", { name: "Ridge Repeater" })).toBeInTheDocument();
   });
@@ -139,7 +207,8 @@ describe("Messages view", () => {
   it("a DM with a node without a public key warns about channel encryption", async () => {
     await renderApp("/messages/dm/!1a2b3c4d", seed());
     expectDataMt(byDataMt("encryption-badge"), "encryption-badge", { variant: "channel" });
-    expect(byDataMt("encryption-badge")).toHaveTextContent("Channel key");
+    expect(byDataMt("encryption-badge")).toHaveTextContent("Channel key only");
+    expect(byDataMt("composer-destination")).toHaveTextContent("DM · TRL");
   });
 
   it("New opens a node picker; picking a node opens its DM thread", async () => {

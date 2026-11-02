@@ -1,10 +1,11 @@
 import { channelDisplayName, nodeIdFromNum, nodeNumFromId, type MeshNode } from "@meshterm/shared";
 import { Link, Navigate, Outlet, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Info, Lock, LockOpen } from "lucide-react";
+import { ArrowLeft, Info, KeyRound, Lock, LockOpen, MapPin } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { ConversationView } from "../components/ConversationView.js";
 import { useNow } from "../components/useNow.js";
 import { formatAgo } from "../dashboard/format.js";
+import { bearingDegrees, cardinal, formatDistance, haversineMeters } from "../dashboard/geo.js";
 import { STATUS_LABELS } from "../dashboard/insights.js";
 import { nodeStatus } from "../dashboard/view.js";
 import { useChannels, useConversationList } from "../data/queries.js";
@@ -18,7 +19,8 @@ import {
 import { ConversationList } from "./ConversationList.js";
 import { PermissionBanner } from "../notifications/PermissionBanner.js";
 import { ThreadLevelMenu } from "../notifications/LevelMenu.js";
-import { useNodeMap, useThresholds } from "./useNodeMap.js";
+import { heardThisHour, hopsLabel } from "./thread.js";
+import { usePositions, useNodeMap, useThresholds } from "./useNodeMap.js";
 
 const ICON = { "aria-hidden": true, focusable: false } as const;
 
@@ -120,40 +122,86 @@ export function ChannelThread() {
       <header data-mt="thread-header" data-mt-variant="channel">
         <BackLink />
         <div data-mt="thread-heading">
-          <h2 data-mt="thread-title">#{name}</h2>
+          <h2 data-mt="thread-title">
+            <span data-mt="thread-hash" aria-hidden>
+              #
+            </span>
+            {name}
+          </h2>
           <div data-mt="thread-subtitle">
+            <span data-mt="thread-details">Channel {channelIndex}</span>
             {role && (
               <span data-mt="thread-pill" data-mt-variant={role.toLowerCase()}>
                 {ROLE_LABEL[role]}
               </span>
             )}
-            {encryption && (
-              <span
-                data-mt="encryption-badge"
-                data-mt-variant={encryption === "none" ? "none" : "channel"}
-                title={
-                  encryption === "default"
-                    ? "Encrypted with the well-known default key: anyone with the same preset can read it."
-                    : undefined
-                }
-              >
-                {encryption === "none" ? (
-                  <LockOpen data-mt="icon" {...ICON} />
-                ) : (
-                  <Lock data-mt="icon" {...ICON} />
-                )}
-                {encryption === "none"
-                  ? "Unencrypted"
-                  : encryption === "default"
-                    ? "Encrypted (default key)"
-                    : "Encrypted"}
-              </span>
-            )}
+            {encryption && <ChannelKeyPill encryption={encryption} />}
           </div>
         </div>
+        <HeardThisHour connectionId={connectionId} />
         <ThreadLevelMenu connectionId={connectionId} kind="channel" keyNum={channelIndex} />
       </header>
-      <ConversationView conversation={conversation} />
+      <ConversationView
+        conversation={conversation}
+        destination={{ label: `CH ${channelIndex} · ${name}`, name }}
+      />
+    </div>
+  );
+}
+
+const KEY_PILL = {
+  none: {
+    text: "Unencrypted",
+    title: "Sent in the clear: anyone in range can read it.",
+  },
+  default: {
+    text: "Default key, public",
+    title: "Encrypted with the well-known default key: anyone with the same preset can read it.",
+  },
+  custom: { text: "Private", title: "Encrypted with this channel's own key." },
+} as const;
+
+function ChannelKeyPill({ encryption }: { encryption: "none" | "default" | "custom" }) {
+  const pill = KEY_PILL[encryption];
+  return (
+    <span
+      data-mt="encryption-badge"
+      data-mt-variant={encryption === "custom" ? "channel" : encryption}
+      title={pill.title}
+    >
+      {encryption === "custom" ? (
+        <Lock data-mt="icon" {...ICON} />
+      ) : (
+        <LockOpen data-mt="icon" {...ICON} />
+      )}
+      {pill.text}
+    </span>
+  );
+}
+
+/** How many tags the channel header shows before "+N". */
+const HEARD_TAGS = 5;
+
+/** Callsigns my node heard in the last hour (on any channel): who might be listening. */
+function HeardThisHour({ connectionId }: { connectionId: number | null }) {
+  const now = useNow();
+  const nodes = useNodeMap(connectionId);
+  const myNodeNum = useLiveStore((s) => s.myNodeNum);
+  const heard = heardThisHour(nodes.values(), now, myNodeNum);
+  if (heard.length === 0) return null;
+  const shown = heard.slice(0, HEARD_TAGS);
+  return (
+    <div data-mt="thread-heard" aria-label={`${heard.length} nodes heard this hour`}>
+      <span data-mt="thread-heard-tags" aria-hidden>
+        {shown.map((n) => (
+          <span key={n.num} data-mt="callsign-tag" title={n.longName}>
+            {n.shortName || nodeIdFromNum(n.num).slice(-4)}
+          </span>
+        ))}
+      </span>
+      <span data-mt="thread-heard-count" aria-hidden>
+        {heard.length > shown.length ? `+${heard.length - shown.length} ` : ""}heard this hour
+      </span>
     </div>
   );
 }
@@ -170,14 +218,15 @@ export function DmThread() {
   return (
     <div data-mt="thread" data-mt-variant="dm" data-node-num={num}>
       <DmHeader num={num} node={nodes.get(num)} connectionId={connectionId} />
-      <ConversationView conversation={conversation} />
+      <ConversationView
+        conversation={conversation}
+        destination={{
+          label: `DM · ${nodes.get(num)?.shortName || nodeIdFromNum(num)}`,
+          name: nodes.get(num)?.longName || nodeIdFromNum(num),
+        }}
+      />
     </div>
   );
-}
-
-function hopsText(hops: number | null): string | null {
-  if (hops === null) return null;
-  return hops === 0 ? "heard directly" : hops === 1 ? "1 hop" : `${hops} hops`;
 }
 
 function DmHeader({
@@ -194,13 +243,20 @@ function DmHeader({
   const status = nodeStatus(node?.lastHeard ?? null, now, thresholds);
   const id = nodeIdFromNum(num);
   const pki = node?.hasPublicKey ?? false;
+  const { origin, byNum } = usePositions(connectionId);
+  const position = byNum.get(num) ?? null;
+  const where =
+    origin && position
+      ? `${formatDistance(haversineMeters(origin, position))} ${cardinal(bearingDegrees(origin, position))}`
+      : null;
   const details = [
-    node?.shortName,
     id,
+    node?.hopsAway != null ? hopsLabel(node.hopsAway) : null,
+    where,
+    node?.hopsAway === 0 && node.snr !== null ? `${node.snr} dB` : null,
     node?.lastHeard != null
       ? `seen ${formatAgo(node.lastHeard, Math.max(now, node.lastHeard))}`
       : "never heard",
-    hopsText(node?.hopsAway ?? null),
   ].filter(Boolean);
   return (
     <header data-mt="thread-header" data-mt-variant="dm">
@@ -219,11 +275,17 @@ function DmHeader({
                 : "This node hasn't shared a public key, so DMs use the channel key."
             }
           >
-            {pki ? <Lock data-mt="icon" {...ICON} /> : <LockOpen data-mt="icon" {...ICON} />}
-            {pki ? "End-to-end" : "Channel key"}
+            {pki ? <KeyRound data-mt="icon" {...ICON} /> : <LockOpen data-mt="icon" {...ICON} />}
+            {pki ? "Public-key encrypted" : "Channel key only"}
           </span>
         </div>
       </div>
+      {position && (
+        <Link to="/map" search={{ focus: id }} data-mt="button" data-mt-variant="show-on-map">
+          <MapPin data-mt="icon" {...ICON} />
+          On map
+        </Link>
+      )}
       <ThreadLevelMenu connectionId={connectionId} kind="dm" keyNum={num} />
       <button
         type="button"
