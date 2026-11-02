@@ -3,8 +3,8 @@ import { useId, useState, type KeyboardEvent, type PointerEvent } from "react";
 export interface ChartSeries {
   id: string;
   label: string;
-  /** Bars stack on the left axis; lines are drawn on their own axis. */
-  kind: "bar" | "line";
+  /** Bars and areas stack on the left axis; lines are drawn on their own axis. */
+  kind: "bar" | "area" | "line";
   /** One value per entry of `times`; null means no data (a gap, never a zero). */
   values: readonly (number | null)[];
   axis: "left" | "right";
@@ -58,8 +58,10 @@ export function TimeChart(props: TimeChartProps) {
   const center = (t: number) => t + bucketMs / 2;
 
   const bars = series.filter((s) => s.kind === "bar");
+  const areas = series.filter((s) => s.kind === "area");
   const lines = series.filter((s) => s.kind === "line");
-  const stackTotals = times.map((_, i) => bars.reduce((sum, s) => sum + (s.values[i] ?? 0), 0));
+  const stacked = [...bars, ...areas];
+  const stackTotals = times.map((_, i) => stacked.reduce((sum, s) => sum + (s.values[i] ?? 0), 0));
   const leftData = Math.max(
     0,
     ...stackTotals,
@@ -124,6 +126,21 @@ export function TimeChart(props: TimeChartProps) {
     return out;
   };
 
+  /** Areas stack in order: each fills from the running total below it to its own top. */
+  const areaShapes = () => {
+    const below = times.map(() => 0);
+    return areas.map((s) => {
+      const bottom = times.map((t, i) => [x(center(t)), y(below[i] ?? 0, "left")] as const);
+      times.forEach((_, i) => {
+        below[i] = (below[i] ?? 0) + Math.max(0, s.values[i] ?? 0);
+      });
+      const top = times.map((t, i) => [x(center(t)), y(below[i] ?? 0, "left")] as const);
+      const pts = (list: readonly (readonly [number, number])[]) =>
+        list.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join(" ");
+      return { s, fill: pts([...top, ...[...bottom].reverse()]), edge: pts(top) };
+    });
+  };
+
   const hoverTime = hover === null ? null : (times[hover] ?? null);
   const barWidth = bucketMs > 0 ? (bucketMs / span) * W : W / Math.max(1, times.length);
   const gap = Math.min(2, barWidth * 0.15);
@@ -133,7 +150,7 @@ export function TimeChart(props: TimeChartProps) {
       <div data-mt="chart-body">
         <div data-mt="chart-axis" data-mt-variant="left" aria-hidden>
           <span>
-            {bars[0]?.format(leftMax) ?? lines.find((s) => s.axis === "left")?.format(leftMax)}
+            {stacked[0]?.format(leftMax) ?? lines.find((s) => s.axis === "left")?.format(leftMax)}
           </span>
           <span>0</span>
         </div>
@@ -155,6 +172,23 @@ export function TimeChart(props: TimeChartProps) {
           <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden focusable={false}>
             {[0.5, 1].map((f) => (
               <line key={f} data-mt="chart-grid" x1="0" x2={W} y1={H * (1 - f)} y2={H * (1 - f)} />
+            ))}
+            {areaShapes().map(({ s, fill, edge }) => (
+              <g key={s.id}>
+                <polygon
+                  data-mt="chart-area"
+                  data-mt-variant={s.id}
+                  points={fill}
+                  fill={`var(${s.color})`}
+                />
+                <polyline
+                  data-mt="chart-area-edge"
+                  data-mt-variant={s.id}
+                  points={edge}
+                  fill="none"
+                  stroke={`var(${s.color})`}
+                />
+              </g>
             ))}
             {times.map((t, i) => {
               let base = H;

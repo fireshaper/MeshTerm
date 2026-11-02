@@ -1,0 +1,476 @@
+/*
+ * The Overview (CR-005 §6.2). Below 1100 px: one column. From 1100 px: a 12-column grid,
+ * the map (8) beside conditions and "needs a look" (4), then the field log (5) beside
+ * messages (7), then the roster and the mesh detail across.
+ */
+@layer base {
+  [data-mt="overview-grid"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--mt-space-3);
+  }
+
+  [data-mt="overview-side"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mt-space-3);
+    min-inline-size: 0;
+  }
+
+  @media (width >= 1100px) {
+    [data-mt="overview-grid"] {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    [data-mt="overview-hero"] {
+      grid-column: span 8;
+    }
+
+    [data-mt="overview-side"] {
+      grid-column: span 4;
+    }
+
+    [data-mt="overview-grid"] > [data-mt="panel"][data-mt-variant="activity"] {
+      grid-column: span 5;
+    }
+
+    [data-mt="overview-grid"] > [data-mt="panel"][data-mt-variant="messages"] {
+      grid-column: span 7;
+    }
+
+    [data-mt="overview-grid"] > [data-mt="panel"][data-mt-variant="roster"],
+    [data-mt="mesh-detail"] {
+      grid-column: 1 / -1;
+    }
+  }
+
+  [data-mt="skeleton"][data-mt-variant="hero"] {
+    block-size: 30rem;
+  }
+
+  /* ---------- the map ---------- */
+
+  [data-mt="overview-hero"] {
+    position: relative;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    block-size: 34rem;
+    overflow: hidden;
+    border: var(--mt-border-width) solid var(--mt-card-border);
+    border-radius: var(--mt-card-radius);
+    background: var(--mt-map-tiles-bg, var(--mt-surface-sunken));
+  }
+
+  [data-mt="overview-hero-map"] {
+    position: absolute;
+    inset: 0;
+  }
+
+  [data-mt="overview-hero-tiles"] {
+    position: absolute;
+    inset: 0;
+    filter: var(--mt-map-tiles-filter, none);
+  }
+
+  [data-mt="overview-hero-tiles"] img {
+    position: absolute;
+    inset-inline-start: var(--mt-tile-x);
+    inset-block-start: var(--mt-tile-y);
+    inline-size: var(--mt-tile-w);
+    block-size: var(--mt-tile-h);
+    max-inline-size: none;
+  }
+
+  [data-mt="overview-hero-overlay"] {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    pointer-events: none;
+  }
+
+  [data-mt="map-ring"] circle {
+    fill: none;
+    stroke: var(--mt-accent);
+    stroke-opacity: 0.55;
+    stroke-width: 1.5;
+    stroke-dasharray: 1 6;
+    stroke-linecap: round;
+  }
+
+  [data-mt="map-ring"] text {
+    fill: var(--mt-accent);
+    font-family: var(--mt-font-mono);
+    font-size: 0.6875rem;
+    font-weight: var(--mt-font-weight-bold);
+    paint-order: stroke;
+    stroke: var(--mt-map-label-halo);
+    stroke-width: 4px;
+  }
+
+  [data-mt="map-link"] {
+    stroke: var(--mt-text);
+    stroke-opacity: 0.4;
+    stroke-width: 1.25;
+    stroke-dasharray: 5 4;
+  }
+
+  [data-mt="map-link"][data-mt-state="good"] {
+    stroke: var(--mt-status-ok);
+    stroke-opacity: 0.7;
+  }
+
+  [data-mt="map-link"][data-mt-state="poor"] {
+    stroke: var(--mt-status-error);
+    stroke-opacity: 0.6;
+  }
+
+  [data-mt="overview-hero-pins"] {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  [data-mt="map-pin"] {
+    position: absolute;
+    inset-inline-start: var(--mt-pin-x);
+    inset-block-start: var(--mt-pin-y);
+
+    /* The button is the pin itself, its tip on the point. */
+    inline-size: 1.5rem;
+    block-size: 1.875rem;
+    margin-inline-start: -0.75rem;
+    margin-block-start: -1.875rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--mt-map-node-offline);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  [data-mt="map-pin"][data-mt-state="online"] {
+    color: var(--mt-map-node-online);
+  }
+
+  [data-mt="map-pin"][data-mt-state="recent"] {
+    color: var(--mt-map-node-recent);
+  }
+
+  [data-mt="map-pin"][data-mt-variant="self"] {
+    z-index: 1;
+    color: var(--mt-map-marker-self);
+  }
+
+  [data-mt="map-pin-shape"] {
+    position: absolute;
+    inset: 0;
+    inline-size: 1.5rem;
+    max-inline-size: none;
+    block-size: 1.875rem;
+    overflow: visible;
+    filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--mt-surface-bg) 60%, transparent));
+    transition: transform var(--mt-duration-fast) var(--mt-easing);
+    transform-origin: 50% 100%;
+  }
+
+  [data-mt="map-pin-shape"] path {
+    fill: currentcolor;
+    stroke: var(--mt-map-label-halo);
+    stroke-width: 1.5;
+  }
+
+  [data-mt="map-pin-shape"] circle {
+    fill: var(--mt-map-label-halo);
+  }
+
+  [data-mt="map-pin"]:hover [data-mt="map-pin-shape"],
+  [data-mt="map-pin"]:focus-visible [data-mt="map-pin-shape"] {
+    transform: scale(1.2);
+  }
+
+  [data-mt="map-pin"]:focus-visible {
+    outline: none;
+  }
+
+  [data-mt="map-pin"]:focus-visible [data-mt="map-pin-shape"] path {
+    stroke: var(--mt-accent);
+    stroke-width: 3;
+  }
+
+  [data-mt="map-pin-label"] {
+    position: absolute;
+    inset-inline-start: 1.625rem;
+    inset-block-start: 0.125rem;
+    color: var(--mt-map-label);
+    font-family: var(--mt-font-mono);
+    font-size: var(--mt-font-size-xs);
+    font-weight: var(--mt-font-weight-bold);
+    white-space: nowrap;
+    text-shadow:
+      0 0 3px var(--mt-map-label-halo),
+      0 0 3px var(--mt-map-label-halo),
+      0 0 6px var(--mt-map-label-halo);
+  }
+
+  [data-mt="overview-hero-empty"] {
+    position: absolute;
+    inset-block-end: 40%;
+    inset-inline: var(--mt-space-4);
+    color: var(--mt-text-muted);
+    text-align: center;
+  }
+
+  /* The headline sits on a fade at the top so it stays readable over the map. */
+  [data-mt="overview-headline"] {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    padding: var(--mt-space-3) var(--mt-space-4) var(--mt-space-4);
+    background: linear-gradient(var(--mt-map-tiles-bg, var(--mt-surface-sunken)) 25%, transparent);
+    pointer-events: none;
+  }
+
+  [data-mt="overview-headline-title"] {
+    margin: 0;
+    max-inline-size: 30ch;
+    font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+    line-height: 1;
+    text-wrap: balance;
+  }
+
+  [data-mt="overview-headline-detail"] {
+    margin: var(--mt-space-2) 0 0;
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="overview-hero-foot"] {
+    position: absolute;
+    inset-block-end: var(--mt-space-3);
+    inset-inline: var(--mt-space-3);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--mt-space-2);
+    pointer-events: none;
+  }
+
+  [data-mt="overview-hero-foot"] > * {
+    pointer-events: auto;
+  }
+
+  [data-mt="map-legend"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mt-space-1) var(--mt-space-3);
+    padding: var(--mt-space-1) var(--mt-space-3);
+    border: var(--mt-border-width) solid var(--mt-border-color);
+    border-radius: 999px;
+    background: var(--mt-surface-raised);
+    box-shadow: var(--mt-shadow-popover);
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-xs);
+  }
+
+  [data-mt="map-legend-item"] {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mt-space-1);
+  }
+
+  [data-mt="map-legend-line"] {
+    inline-size: 1rem;
+    border-top: calc(var(--mt-border-width) * 1.5) dashed var(--mt-text-muted);
+  }
+
+  [data-mt="overview-hero-foot"] [data-mt="button"][data-mt-variant="open-map"] {
+    margin-inline-start: auto;
+    box-shadow: var(--mt-shadow-popover);
+  }
+
+  /* ---------- conditions ---------- */
+
+  [data-mt="gauges"] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--mt-space-2);
+  }
+
+  [data-mt="gauge"] {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+  }
+
+  [data-mt="gauge"] svg {
+    inline-size: 100%;
+    max-inline-size: 8rem;
+  }
+
+  [data-mt="gauge-track"],
+  [data-mt="gauge-value"] {
+    fill: none;
+    stroke-linecap: round;
+    stroke-width: 9;
+  }
+
+  [data-mt="gauge-track"] {
+    stroke: var(--mt-surface-elevated);
+  }
+
+  [data-mt="gauge-value"] {
+    stroke: var(--mt-accent);
+  }
+
+  [data-mt="gauge"][data-mt-variant="battery"] [data-mt="gauge-value"] {
+    stroke: var(--mt-status-ok);
+  }
+
+  [data-mt="gauge"][data-mt-state="warn"] [data-mt="gauge-value"] {
+    stroke: var(--mt-status-warn);
+  }
+
+  [data-mt="gauge"][data-mt-state="danger"] [data-mt="gauge-value"] {
+    stroke: var(--mt-status-error);
+  }
+
+  [data-mt="gauge-tick"] {
+    stroke: var(--mt-status-warn);
+    stroke-width: 2.5;
+  }
+
+  [data-mt="gauge-number"] {
+    fill: var(--mt-text);
+    font-family: var(--mt-font-display);
+    font-stretch: var(--mt-font-display-stretch);
+    font-size: 1.375rem;
+    font-weight: var(--mt-font-weight-bold);
+  }
+
+  [data-mt="gauge-unit"] {
+    fill: var(--mt-text-faint);
+    font-family: var(--mt-font-mono);
+    font-size: 0.625rem;
+  }
+
+  [data-mt="gauge-label"] {
+    margin-block-start: calc(-1 * var(--mt-space-2));
+    font-family: var(--mt-font-display);
+    font-stretch: var(--mt-font-display-stretch);
+    font-size: var(--mt-font-size-sm);
+    font-weight: var(--mt-font-weight-bold);
+    letter-spacing: 0.04em;
+  }
+
+  [data-mt="gauge-sub"] {
+    color: var(--mt-text-faint);
+    font-size: var(--mt-font-size-xs);
+    line-height: 1.3;
+  }
+
+  /* ---------- needs a look: diamond markers ---------- */
+
+  [data-mt="overview-grid"] [data-mt="attention-item"] > [data-mt="icon"] {
+    inline-size: 0.625rem;
+    block-size: 0.625rem;
+    margin: 0.3rem 0.2rem 0;
+    border-radius: 2px;
+    background: currentcolor;
+    transform: rotate(45deg);
+  }
+
+  [data-mt="overview-grid"] [data-mt="attention-item"] > [data-mt="icon"] > * {
+    display: none;
+  }
+
+  /* ---------- field log ---------- */
+
+  [data-mt="overview-grid"] [data-mt="activity-item"] {
+    border-top-style: dashed;
+  }
+
+  [data-mt="overview-grid"] [data-mt="activity-time"] {
+    color: var(--mt-text-faint);
+    font-family: var(--mt-font-mono);
+  }
+
+  /* ---------- messages totals ---------- */
+
+  [data-mt="traffic-totals"] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: var(--mt-space-3) calc(-1 * var(--mt-space-3)) calc(-1 * var(--mt-space-3));
+    border-top: var(--mt-border-width) solid var(--mt-border-color);
+  }
+
+  [data-mt="traffic-total"] {
+    padding: var(--mt-space-2) var(--mt-space-3);
+    border-inline-end: var(--mt-border-width) solid var(--mt-border-color);
+  }
+
+  [data-mt="traffic-total"]:last-child {
+    border-inline-end: none;
+  }
+
+  [data-mt="traffic-total"] dt {
+    color: var(--mt-text-faint);
+    font-size: var(--mt-font-size-xs);
+  }
+
+  [data-mt="traffic-total"] dd {
+    margin: 0;
+    font-family: var(--mt-font-display);
+    font-stretch: var(--mt-font-display-stretch);
+    font-size: var(--mt-font-size-xl);
+    font-weight: var(--mt-font-weight-bold);
+  }
+
+  [data-mt="chart-area"] {
+    fill-opacity: 0.3;
+  }
+
+  [data-mt="chart-area-edge"] {
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* ---------- mesh detail ---------- */
+
+  [data-mt="mesh-detail"] {
+    border: var(--mt-border-width) solid var(--mt-card-border);
+    border-radius: var(--mt-card-radius);
+    background: var(--mt-card-bg);
+  }
+
+  [data-mt="mesh-detail-summary"] {
+    padding: var(--mt-space-3);
+    color: var(--mt-text-muted);
+    font-weight: var(--mt-font-weight-bold);
+    cursor: pointer;
+  }
+
+  [data-mt="mesh-detail-body"] {
+    display: grid;
+    gap: var(--mt-space-3);
+    padding: 0 var(--mt-space-3) var(--mt-space-3);
+  }
+
+  @media (width >= 1100px) {
+    [data-mt="mesh-detail-body"] {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+      align-items: start;
+    }
+  }
+
+  @media (width < 768px) {
+    [data-mt="overview-hero"] {
+      block-size: 28rem;
+    }
+
+    [data-mt="overview-hero-foot"] [data-mt="button"][data-mt-variant="open-map"] {
+      display: none;
+    }
+  }
+}

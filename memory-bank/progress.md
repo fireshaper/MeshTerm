@@ -735,6 +735,14 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` 
 - **Themes:** Field Kit uppercases the wordmark and tabs; Retro keeps reverse-video tabs and draws the band as a dashed status line; hooks and tokens removed or added are listed in THEMING.md ("Changes that affect themes").
 - **Tests:** `loraSummary`, the band (values, dashes, warn/danger), station pill and mode button, shell hooks and tab order; e2e: tabs and band at both widths (FakeNode's US LongFast → 906.875 MHz), no sideways scroll, tab navigation, the station pill, the unread badge on the Messages tab; CSP walk clean; visual baselines re-recorded (win32 + linux; Retro rewritten in full after a sub-threshold fix).
 
+### CR-005 Phase K2: the Overview (done 2026-11-02)
+
+- **The tab and page are "Overview"** (route still `/dashboard`).
+- **Hero map:** my mesh on the base map (static tiles through the tile proxy, themed like the mini maps), nodes heard in the last 2 h as teardrop pins (a click opens the node), range rings and dashed lines to nodes heard directly; the headline ("3 of 6 nodes on the air", direct / nearest / farthest) on a fade; a legend and "Open full map".
+- **Conditions:** three arc gauges for my node (channel util with the warn tick, air TX, battery with voltage). **Needs a look** with diamond markers. **Field log** (the activity feed). **Messages** as stacked areas with received / sent / busiest totals. **Roster:** my node, favorites, then the most recently heard (12 at most) as cards with callsign, bearing arrow, signal or hops, power, role · hardware and distance. **Mesh detail** (topology and packets by type), folded.
+- The KPI cards are gone (their numbers are in the headline, gauges, status band and totals).
+- **Tests:** `overview.ts` (hero nodes, headline wording, roster order and cap, framing, label culling, gauge arcs), the page (gauges and states, hero pins and drawer, roster, cards, totals and areas, mesh detail, empty state), e2e (landing page, pin → drawer, open full map, 300-node roster cap, mesh detail charts); visual baselines re-recorded.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

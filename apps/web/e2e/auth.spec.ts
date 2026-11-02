@@ -39,7 +39,7 @@ test("first run: create the admin, then the app opens with live data", async ({ 
       .annotations.push({ type: "note", description: `${info.project.name}: already set up` });
     await signIn(page, ADMIN);
   }
-  await expect(page.getByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
   // The WebSocket authenticated with the session cookie: the node shows as connected.
   await expect(page.locator("[data-mt=status-pill]")).toHaveAttribute("data-mt-state", "connected");
 });

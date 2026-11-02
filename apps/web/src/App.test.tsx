@@ -32,7 +32,7 @@ describe("<App /> shell", () => {
   it("redirects / to the dashboard", async () => {
     const router = await renderAt("/");
     expect(router.state.location.pathname).toBe("/dashboard");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Dashboard");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Overview");
     expectDataMt(byDataMt("dashboard"), "dashboard");
   });
 
@@ -59,7 +59,7 @@ describe("<App /> shell", () => {
       within(tabs)
         .getAllByRole("link")
         .map((a) => a.textContent),
-    ).toEqual(["Dashboard", "Messages", "Map", "Nodes", "Settings"]);
+    ).toEqual(["Overview", "Messages", "Map", "Nodes", "Settings"]);
 
     if (!nodesLink) throw new Error("no nodes link");
     await userEvent.click(nodesLink);

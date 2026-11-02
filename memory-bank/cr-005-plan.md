@@ -42,7 +42,7 @@ The CR's open questions (§12) are built with their bold defaults unless the use
 
 ## Phase K2: Overview
 
-- **Hero (`overview-hero`):** a MapLibre instance (reuse the map page's style builder and token bridge, interactions off apart from pin clicks) with nodes heard in the last 2 h, clustering, range rings (5/10 km) and dashed direct links (shared layer builders, also used in K4); the headline and sentence from the dashboard DTO (`overview-headline`); legend pill; "Open full map". Pins open the drawer.
+- **Hero (`overview-hero`):** static tiles through the tile proxy (as built: no MapLibre on the Overview, see DECISIONS) with nodes heard in the last 2 h, label culling instead of clustering, range rings (5/10 km) and dashed direct links (shared layer builders, also used in K4); the headline and sentence from the dashboard DTO (`overview-headline`); legend pill; "Open full map". Pins open the drawer.
 - **`ArcGauge`** (SVG, tokens only; `gauge` with variant `util`/`airtx`/`battery`, state by threshold): ch util with the 25 % tick, air TX, battery with voltage. Replaces the metric cards.
 - **Needs a look:** `AttentionList` restyled (diamond markers).
 - **Field log:** `ActivityFeed` rendered as a log table (`field-log`, rows keep the existing kinds and links).

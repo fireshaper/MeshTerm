@@ -490,7 +490,8 @@
   }
 
   [data-mt="node-drawer"] [data-mt="button"],
-  [data-mt="page-header-meta"] [data-mt="button"] {
+  [data-mt="page-header-meta"] [data-mt="button"],
+  [data-mt="overview-hero-foot"] [data-mt="button"] {
     display: inline-flex;
     align-items: center;
     gap: var(--mt-space-1);

@@ -121,7 +121,6 @@ const VOLATILE = [
   "[data-mt=message-time]",
   "[data-mt=main] time",
   "[data-mt=stale-note]",
-  "[data-mt=metric-card-secondary]",
   "[data-mt=attention-text]",
   "[data-mt=chart-times]",
   // The status band's link (FakeNode's port), last packet and uptime.
@@ -210,9 +209,19 @@ async function seedDashboard(): Promise<void> {
 test("dashboard", async ({ page }) => {
   await seedDashboard();
   await ready(page, `${DASH}/dashboard`);
-  await expect(page.locator("[data-mt=node-preview]")).toHaveCount(5);
+  await expect(page.locator("[data-mt=node-preview]")).toHaveCount(7);
   // Panels with their own queries: wait until none shows a loading skeleton.
-  await expect(page.locator("[data-mt=chart][data-mt-state=ready]")).toHaveCount(1);
+  await expect(page.locator("[data-mt=chart][data-mt-state=ready]").first()).toBeVisible();
+  // The Overview map's tiles (fake tile server) have all loaded.
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        [...document.querySelectorAll<HTMLImageElement>("[data-mt=overview-hero-tiles] img")].every(
+          (img) => img.complete && img.naturalWidth > 0,
+        ),
+      ),
+    )
+    .toBe(true);
   await expect(page.locator("[data-mt=network-link][data-mt-variant=reported]")).not.toHaveCount(0);
   await expect(page.locator("[data-mt=main] [data-mt=skeleton]")).toHaveCount(0);
   await freeze(page);

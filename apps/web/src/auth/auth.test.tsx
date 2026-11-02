@@ -86,7 +86,7 @@ describe("auth gate", () => {
     await waitFor(() => {
       expect(calls.some((c) => c.url === "/api/auth/setup")).toBe(true);
     });
-    expect(await screen.findByRole("heading", { level: 1, name: "Dashboard" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Overview" })).toBeInTheDocument();
   });
 });
 

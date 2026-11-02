@@ -5,14 +5,15 @@ import {
   type NodeCard,
 } from "@meshterm/shared";
 import { Link } from "@tanstack/react-router";
-import { MessageSquare, PanelRightOpen, Star } from "lucide-react";
+import { MessageSquare, Star } from "lucide-react";
 import { openNodeDetails } from "../data/ui-store.js";
 import { memo, type KeyboardEvent, type ReactNode } from "react";
 import { BatteryMeter } from "./BatteryMeter.js";
 import { formatAbsolute, formatAgo, formatDuration } from "./format.js";
-import { bearingDegrees, cardinal, formatDistance, haversineMeters } from "./geo.js";
+import { BearingArrow } from "./BearingArrow.js";
+import { bearingDegrees, formatDistance, haversineMeters } from "./geo.js";
 import { ageLabel, isStale, STATUS_LABELS } from "./insights.js";
-import { roleLabel } from "./labels.js";
+import { hardwareLabel, roleLabel } from "./labels.js";
 import { freshness, useUpdateFlash } from "./NodeCard.js";
 import { SignalBars } from "./SignalBars.js";
 import { nodeStatus } from "./view.js";
@@ -38,8 +39,9 @@ function Stat({ name, label, children }: { name: string; label: string; children
 const hops = (n: number) => `${n} ${n === 1 ? "hop" : "hops"}`;
 
 /**
- * A compact node summary for the dashboard: who, when last heard, power, signal and
- * where. Enter (or Details) opens the details drawer, `f` toggles favorite.
+ * A roster card on the Overview (CR-005 §6.2): callsign, name, bearing from my node,
+ * last heard, signal or hops, power, role · hardware and distance. A click or Enter
+ * opens the details drawer, `f` toggles favorite.
  */
 export const NodePreviewCard = memo(function NodePreviewCard({
   card,
@@ -73,12 +75,18 @@ export const NodePreviewCard = memo(function NodePreviewCard({
     .filter((v) => v !== null)
     .join(" ");
 
+  const bearing =
+    !card.isSelf && origin && card.position ? bearingDegrees(origin, card.position) : null;
   const distance =
     !card.isSelf && origin && card.position
-      ? `${formatDistance(haversineMeters(origin, card.position))} ${cardinal(
-          bearingDegrees(origin, card.position),
-        )}`
+      ? formatDistance(haversineMeters(origin, card.position))
       : null;
+  const hardware = [
+    card.role === null ? null : roleLabel(card.role),
+    card.hwModel === null ? null : hardwareLabel(card.hwModel),
+  ]
+    .filter((v) => v !== null)
+    .join(" · ");
 
   return (
     <article
@@ -88,14 +96,24 @@ export const NodePreviewCard = memo(function NodePreviewCard({
       data-node-num={card.num}
       tabIndex={0}
       aria-label={`${name}${card.isSelf ? " (my node)" : ""}, ${STATUS_LABELS[status]}`}
+      title="Show details (Enter)"
       onKeyDown={onKeyDown}
+      onClick={(e) => {
+        // The whole card opens the details; its own buttons and links do their own thing.
+        if ((e.target as Element).closest("button, a")) return;
+        openNodeDetails(card.num);
+      }}
     >
       <header data-mt="node-preview-header">
-        <span data-mt="status-dot" data-mt-state={status} title={STATUS_LABELS[status]} />
+        <span data-mt="node-short-name">{card.shortName || "?"}</span>
         <span data-mt="node-long-name" title={name}>
           {name}
         </span>
-        <span data-mt="node-short-name">{card.shortName}</span>
+        {card.isSelf ? (
+          <span data-mt="self-badge">You</span>
+        ) : (
+          bearing !== null && <BearingArrow degrees={bearing} />
+        )}
         <button
           type="button"
           data-mt="favorite-toggle"
@@ -110,18 +128,12 @@ export const NodePreviewCard = memo(function NodePreviewCard({
           <Star data-mt="icon" aria-hidden focusable={false} />
         </button>
       </header>
-      <div data-mt="node-preview-meta">
-        {card.isSelf && <span data-mt="self-badge">My node</span>}
-        {card.role !== null && (
-          <span data-mt="role-badge" data-mt-variant={card.role}>
-            {roleLabel(card.role)}
-          </span>
-        )}
-        <span data-mt="node-id">{card.userId}</span>
-      </div>
       <dl data-mt="node-preview-stats">
         <Stat name="last-heard" label="Last heard">
-          {card.lastHeard === null ? (
+          <span data-mt="status-dot" data-mt-state={status} title={STATUS_LABELS[status]} />
+          {card.isSelf ? (
+            "now"
+          ) : card.lastHeard === null ? (
             "Never"
           ) : (
             <time
@@ -130,15 +142,6 @@ export const NodePreviewCard = memo(function NodePreviewCard({
             >
               {formatAgo(card.lastHeard, now)}
             </time>
-          )}
-        </Stat>
-        <Stat name="power" label="Power">
-          <BatteryMeter level={level} />
-          <span>{level === null ? "Unknown" : level > 100 ? "External" : `${level}%`}</span>
-          {device && level !== null && isStale(device.time, now, thresholds) && (
-            <span data-mt="stale-note" title={`Reported ${formatAbsolute(device.time)}`}>
-              {ageLabel(device.time, now)}
-            </span>
           )}
         </Stat>
         {card.isSelf ? (
@@ -152,47 +155,40 @@ export const NodePreviewCard = memo(function NodePreviewCard({
                 <SignalBars snr={card.snr} />
                 <span title="Last packet heard directly">
                   {card.snr === null ? "Unknown" : `${card.snr} dB`}
-                  {card.rssi !== null && ` · ${card.rssi} dBm`}
                 </span>
               </>
             ) : card.hopsAway === null ? (
               "Unknown"
             ) : (
               <span title="Hops of the last packet; the route isn't known">
-                via {hops(card.hopsAway)}
+                {hops(card.hopsAway)}
               </span>
             )}
           </Stat>
         )}
-        <Stat name="distance" label={card.isSelf ? "Altitude" : "Distance"}>
-          {card.isSelf
-            ? card.position?.alt == null
-              ? "Unknown"
-              : `${card.position.alt} m`
-            : (distance ?? "Unknown")}
+        <Stat name="power" label="Power">
+          <BatteryMeter level={level} />
+          <span>{level === null ? "Unknown" : level > 100 ? "External" : `${level}%`}</span>
+          {device && level !== null && isStale(device.time, now, thresholds) && (
+            <span data-mt="stale-note" title={`Reported ${formatAbsolute(device.time)}`}>
+              {ageLabel(device.time, now)}
+            </span>
+          )}
         </Stat>
       </dl>
       <footer data-mt="node-preview-actions">
-        <button
-          type="button"
-          data-mt="button"
-          data-mt-variant="details"
-          onClick={() => {
-            openNodeDetails(card.num);
-          }}
-        >
-          <PanelRightOpen data-mt="icon" aria-hidden focusable={false} />
-          Details
-        </button>
+        <span data-mt="node-preview-meta">{hardware || card.userId}</span>
+        {distance !== null && <span data-mt="node-preview-distance">{distance}</span>}
         {!card.isSelf && (
           <Link
             to="/messages/dm/$nodeId"
             params={{ nodeId: nodeIdFromNum(card.num) }}
-            data-mt="button"
+            data-mt="icon-button"
             data-mt-variant="message"
+            aria-label={`Message ${name}`}
+            title={`Message ${name}`}
           >
             <MessageSquare data-mt="icon" aria-hidden focusable={false} />
-            Message
           </Link>
         )}
       </footer>

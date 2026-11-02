@@ -158,9 +158,11 @@ function ActivityItem({
 export function ActivityFeed({
   connectionId,
   cards,
+  title = "Recent activity",
 }: {
   connectionId: number;
   cards: readonly NodeCard[];
+  title?: string;
 }) {
   const qc = useQueryClient();
   const now = useNow();
@@ -174,7 +176,7 @@ export function ActivityFeed({
   };
 
   return (
-    <Panel variant="activity" title="Recent activity">
+    <Panel variant="activity" title={title}>
       {isPending ? (
         <div data-mt="skeleton" data-mt-variant="feed" aria-hidden />
       ) : isError ? (

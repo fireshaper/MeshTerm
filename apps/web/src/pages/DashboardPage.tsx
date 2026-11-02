@@ -7,11 +7,12 @@ import { EmptyState, Panel } from "../components/Panel.js";
 import { useNow } from "../components/useNow.js";
 import { ActivityFeed } from "../dashboard/ActivityFeed.js";
 import { AttentionList } from "../dashboard/AttentionList.js";
-import { formatAbsolute, formatAgo } from "../dashboard/format.js";
-import { attentionItems, recentlyActive } from "../dashboard/insights.js";
-import { NetworkKpis } from "../dashboard/NetworkKpis.js";
+import { Conditions } from "../dashboard/Conditions.js";
+import { attentionItems } from "../dashboard/insights.js";
 import { NetworkMap } from "../dashboard/NetworkMap.js";
 import { NodePreviewCard } from "../dashboard/NodePreviewCard.js";
+import { rosterCards } from "../dashboard/overview.js";
+import { OverviewHero } from "../dashboard/OverviewHero.js";
 import { TrafficPanel } from "../dashboard/TrafficPanel.js";
 import { useIsAdmin } from "../auth/me.js";
 import { useToggleFavorite } from "../dashboard/useFavorite.js";
@@ -20,21 +21,8 @@ import { useDashboard } from "../data/queries.js";
 import { useLiveStore } from "../data/store.js";
 import { useUiStore } from "../data/ui-store.js";
 
-/** How many recently active nodes the dashboard previews; the Nodes page has the rest. */
-export const RECENT_PREVIEW_LIMIT = 8;
-
-function LastPacket({ at }: { at: number | null }) {
-  const now = useNow(1000);
-  if (at === null) return <span data-mt="dashboard-last-packet">No packets yet</span>;
-  return (
-    <span data-mt="dashboard-last-packet">
-      Last packet{" "}
-      <time dateTime={new Date(at).toISOString()} title={formatAbsolute(at)}>
-        {formatAgo(at, now)}
-      </time>
-    </span>
-  );
-}
+/** How many nodes the Overview's roster shows; the Nodes page has the rest (CR-005 §6.2). */
+export const ROSTER_LIMIT = 12;
 
 /** Drops and re-establishes the link to my node; disabled while one is in progress. Admins only. */
 function ReconnectButton({ connectionId }: { connectionId: number | null }) {
@@ -79,16 +67,9 @@ function ReconnectButton({ connectionId }: { connectionId: number | null }) {
   );
 }
 
-function DashboardHeader({
-  data,
-  connectionId,
-}: {
-  data: DashboardDTO | undefined;
-  connectionId: number | null;
-}) {
+function DashboardHeader({ connectionId }: { connectionId: number | null }) {
   return (
-    <PageHeader title="Dashboard" subtitle="Live overview of your Meshtastic network">
-      {data && <LastPacket at={data.summary.lastPacketAt} />}
+    <PageHeader title="Overview">
       <ReconnectButton connectionId={connectionId} />
     </PageHeader>
   );
@@ -114,23 +95,18 @@ export function DashboardPage() {
 
   return (
     <section data-mt="dashboard" data-mt-state={loading ? "loading" : isError ? "error" : "ready"}>
-      <DashboardHeader data={data} connectionId={connectionId} />
+      <DashboardHeader connectionId={connectionId} />
       {loading ? (
-        <div data-mt="dashboard-waiting" aria-busy="true" aria-label="Loading dashboard">
-          <div data-mt="kpi-row">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} variant="metric" />
-            ))}
-          </div>
+        <div data-mt="dashboard-waiting" aria-busy="true" aria-label="Loading the overview">
+          <Skeleton variant="hero" />
           <Skeleton variant="panel" />
         </div>
       ) : isError ? (
         <p data-mt="dashboard-error" role="alert">
-          The dashboard couldn&apos;t be loaded. Is the MeshTerm server running?
+          The overview couldn&apos;t be loaded. Is the MeshTerm server running?
         </p>
       ) : (
         <>
-          <NetworkKpis data={data} />
           <DashboardBody
             connectionId={connectionId}
             data={data}
@@ -143,6 +119,11 @@ export function DashboardPage() {
   );
 }
 
+/**
+ * The Overview (CR-005 §6.2): the hero map with the headline, my node's conditions, what
+ * needs a look, the field log, messages over 24 h, the roster, and the mesh detail
+ * (topology and packet types) folded away at the bottom.
+ */
 function DashboardBody({
   connectionId,
   data,
@@ -155,14 +136,9 @@ function DashboardBody({
   onFavorite: (num: number, favorite: boolean) => void;
 }) {
   const { nodes, thresholds } = data;
-  const self = nodes.find((n) => n.isSelf) ?? null;
-  const origin = self?.position ?? null;
-  const favorites = nodes
-    .filter((n) => n.isFavorite && !n.isSelf)
-    .sort((a, b) => (b.lastHeard ?? -1) - (a.lastHeard ?? -1) || a.num - b.num);
-  const pinned = self ? [self, ...favorites] : favorites;
-  const recent = recentlyActive(nodes, now, thresholds);
+  const origin = nodes.find((n) => n.isSelf)?.position ?? null;
   const attention = attentionItems(nodes, now, thresholds);
+  const roster = rosterCards(nodes, ROSTER_LIMIT);
 
   const preview = (card: NodeCard) => (
     <li key={card.num} data-mt="preview-cell">
@@ -175,53 +151,13 @@ function DashboardBody({
       />
     </li>
   );
-  const viewAll = (
-    <Link to="/nodes" data-mt="panel-link">
-      View all {nodes.length} nodes
-      <ArrowRight data-mt="icon" aria-hidden focusable={false} />
-    </Link>
-  );
-
-  if (nodes.length === 0) {
-    return (
-      <div data-mt="dashboard-grid">
-        <Panel variant="pinned" title="My node & favorites">
-          <div data-mt="dashboard-empty">
-            <EmptyState title="No nodes yet">
-              The node list fills in once MeshTerm finishes the config handshake with your node, and
-              grows as other nodes are heard on the mesh.
-            </EmptyState>
-          </div>
-        </Panel>
-      </div>
-    );
-  }
 
   return (
-    <div data-mt="dashboard-grid">
-      {/* Two independent columns from 1024 px, so a tall panel on one side
-          doesn't leave gaps on the other. Below that, one column in "order". */}
-      <div data-mt="dashboard-column" data-mt-variant="main">
-        <TrafficPanel connectionId={connectionId} cards={nodes} />
-        <Panel variant="pinned" title="My node & favorites" count={pinned.length}>
-          <ul data-mt="preview-grid">{pinned.map(preview)}</ul>
-          {favorites.length === 0 && <p data-mt="panel-hint">Star nodes to pin them here.</p>}
-        </Panel>
-        <Panel variant="recent" title="Recently active" count={recent.length} actions={viewAll}>
-          {recent.length === 0 ? (
-            <EmptyState title="No other nodes heard recently">
-              Nodes appear here when a packet from them is heard within {thresholds.recentMin / 60}{" "}
-              h.
-            </EmptyState>
-          ) : (
-            <ul data-mt="preview-grid">{recent.slice(0, RECENT_PREVIEW_LIMIT).map(preview)}</ul>
-          )}
-        </Panel>
-      </div>
-      <div data-mt="dashboard-column" data-mt-variant="side">
-        <NetworkMap connectionId={connectionId} cards={nodes} thresholds={thresholds} />
-        <ActivityFeed connectionId={connectionId} cards={nodes} />
-        <Panel variant="attention" title="Attention needed" count={attention.length}>
+    <div data-mt="overview-grid">
+      <OverviewHero cards={nodes} thresholds={thresholds} now={now} />
+      <div data-mt="overview-side">
+        <Conditions data={data} />
+        <Panel variant="attention" title="Needs a look" count={attention.length}>
           {attention.length === 0 ? (
             <EmptyState title="All clear">
               No low batteries, quiet favorites or busy channel right now.
@@ -231,6 +167,48 @@ function DashboardBody({
           )}
         </Panel>
       </div>
+      <ActivityFeed connectionId={connectionId} cards={nodes} title="Field log" />
+      <TrafficPanel
+        connectionId={connectionId}
+        cards={nodes}
+        view="messages"
+        variant="messages"
+        title="Messages"
+        areas
+      />
+      <Panel
+        variant="roster"
+        title="Roster"
+        count={nodes.length}
+        actions={
+          <Link to="/nodes" data-mt="panel-link">
+            All nodes
+            <ArrowRight data-mt="icon" aria-hidden focusable={false} />
+          </Link>
+        }
+      >
+        {nodes.length === 0 ? (
+          <EmptyState title="No nodes yet">
+            The roster fills in once MeshTerm finishes the config handshake with your node, and
+            grows as other nodes are heard on the mesh.
+          </EmptyState>
+        ) : (
+          <ul data-mt="preview-grid">{roster.map(preview)}</ul>
+        )}
+      </Panel>
+      <details data-mt="mesh-detail">
+        <summary data-mt="mesh-detail-summary">Mesh detail: topology and packets</summary>
+        <div data-mt="mesh-detail-body">
+          <NetworkMap connectionId={connectionId} cards={nodes} thresholds={thresholds} />
+          <TrafficPanel
+            connectionId={connectionId}
+            cards={nodes}
+            view="packets"
+            variant="packets"
+            title="Packets by type"
+          />
+        </div>
+      </details>
     </div>
   );
 }

@@ -185,8 +185,7 @@
 
   [data-mt="node-card"],
   [data-mt="node-preview"],
-  [data-mt="panel"],
-  [data-mt="metric-card"] {
+  [data-mt="panel"] {
     box-shadow: none;
   }
 

@@ -25,7 +25,7 @@ interface Item {
 }
 
 const ITEMS: Item[] = [
-  { prefix: "/dashboard", label: "Dashboard", Icon: LayoutGrid, link: { to: "/dashboard" } },
+  { prefix: "/dashboard", label: "Overview", Icon: LayoutGrid, link: { to: "/dashboard" } },
   { prefix: "/messages", label: "Messages", Icon: MessagesSquare, link: { to: "/messages" } },
   { prefix: "/map", label: "Map", Icon: MapIcon, link: { to: "/map" } },
   { prefix: "/nodes", label: "Nodes", Icon: Radio, link: { to: "/nodes" } },

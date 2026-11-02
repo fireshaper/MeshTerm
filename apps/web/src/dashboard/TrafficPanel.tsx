@@ -58,13 +58,13 @@ const utilSeries = (data: TrafficDTO): ChartSeries => ({
   format: formatPercent,
 });
 
-export function trafficSeries(data: TrafficDTO): ChartSeries[] {
+export function trafficSeries(data: TrafficDTO, kind: "bar" | "area" = "bar"): ChartSeries[] {
   const count = (v: number) => `${v} ${v === 1 ? "message" : "messages"}`;
   return [
     {
       id: "messages-in",
       label: "Received",
-      kind: "bar",
+      kind,
       axis: "left",
       color: "--mt-chart-1",
       values: data.buckets.map((b) => b.messagesIn),
@@ -73,7 +73,7 @@ export function trafficSeries(data: TrafficDTO): ChartSeries[] {
     {
       id: "messages-out",
       label: "Sent",
-      kind: "bar",
+      kind,
       axis: "left",
       color: "--mt-chart-2",
       values: data.buckets.map((b) => b.messagesOut),
@@ -208,41 +208,89 @@ function BusiestNodes({ data, cards }: { data: TrafficDTO; cards: readonly NodeC
   );
 }
 
-/** Packets by type or messages per bucket, with my node's channel utilization; stored data only. */
+/** Received, sent and the busiest bucket, under the Overview's messages chart. */
+function MessageTotals({
+  data,
+  formatTime,
+}: {
+  data: TrafficDTO;
+  formatTime: (t: number) => string;
+}) {
+  const received = data.buckets.reduce((n, b) => n + b.messagesIn, 0);
+  const sent = data.buckets.reduce((n, b) => n + b.messagesOut, 0);
+  const busiest = data.buckets.reduce<(typeof data.buckets)[number] | null>(
+    (best, b) =>
+      b.messagesIn + b.messagesOut > (best ? best.messagesIn + best.messagesOut : 0) ? b : best,
+    null,
+  );
+  return (
+    <dl data-mt="traffic-totals">
+      <div data-mt="traffic-total" data-mt-variant="received">
+        <dt>Received</dt>
+        <dd>{received}</dd>
+      </div>
+      <div data-mt="traffic-total" data-mt-variant="sent">
+        <dt>Sent</dt>
+        <dd>{sent}</dd>
+      </div>
+      <div data-mt="traffic-total" data-mt-variant="busiest">
+        <dt>Busiest</dt>
+        <dd>{busiest ? formatTime(busiest.time) : "—"}</dd>
+      </div>
+    </dl>
+  );
+}
+
+/**
+ * Packets by type or messages per bucket, with my node's channel utilization; stored data
+ * only. With `view` it shows only that view (no switch); `areas` draws messages as stacked
+ * areas with totals under them (the Overview, CR-005 §6.2).
+ */
 export function TrafficPanel({
   connectionId,
   cards,
+  view: fixedView,
+  title = "Network activity",
+  variant = "traffic",
+  areas = false,
 }: {
   connectionId: number;
   cards: readonly NodeCard[];
+  view?: TrafficView;
+  title?: string;
+  variant?: string;
+  areas?: boolean;
 }) {
   const [range, setRange] = useState<TrafficWindow>(() =>
     readStored(WINDOW_KEY, TRAFFIC_WINDOWS, "24h"),
   );
-  const [view, setView] = useState<TrafficView>(() =>
+  const [chosenView, setView] = useState<TrafficView>(() =>
     readStored(VIEW_KEY, TRAFFIC_VIEWS, "packets"),
   );
+  const view = fixedView ?? chosenView;
   const { data, isPending, isError } = useTraffic(connectionId, range);
   const formatTime = (t: number) => format(t, range === "7d" ? "EEE HH:mm" : "HH:mm");
   const span = WINDOW_LABELS[range];
 
   return (
     <Panel
-      variant="traffic"
-      title="Network activity"
+      variant={variant}
+      title={title}
       actions={
         <div data-mt="traffic-controls">
-          <Segments
-            hook="traffic-view"
-            label="Show"
-            options={TRAFFIC_VIEWS}
-            labels={VIEW_LABELS}
-            value={view}
-            onChange={(v) => {
-              setView(v);
-              store(VIEW_KEY, v);
-            }}
-          />
+          {fixedView === undefined && (
+            <Segments
+              hook="traffic-view"
+              label="Show"
+              options={TRAFFIC_VIEWS}
+              labels={VIEW_LABELS}
+              value={view}
+              onChange={(v) => {
+                setView(v);
+                store(VIEW_KEY, v);
+              }}
+            />
+          )}
           <Segments
             hook="traffic-window"
             label="Time window"
@@ -279,17 +327,20 @@ export function TrafficPanel({
           <BusiestNodes data={data} cards={cards} />
         </>
       ) : (
-        <TimeChart
-          label={`Messages and channel utilization, last ${span}`}
-          summary={trafficSummary(data)}
-          times={data.buckets.map((b) => b.time)}
-          from={data.from}
-          to={data.to}
-          bucketMs={data.bucketMs}
-          series={trafficSeries(data)}
-          formatTime={formatTime}
-          emptyText={`No messages or utilization reports in the last ${span}. The chart fills in as MeshTerm records them.`}
-        />
+        <>
+          <TimeChart
+            label={`Messages and channel utilization, last ${span}`}
+            summary={trafficSummary(data)}
+            times={data.buckets.map((b) => b.time)}
+            from={data.from}
+            to={data.to}
+            bucketMs={data.bucketMs}
+            series={trafficSeries(data, areas ? "area" : "bar")}
+            formatTime={formatTime}
+            emptyText={`No messages or utilization reports in the last ${span}. The chart fills in as MeshTerm records them.`}
+          />
+          {areas && <MessageTotals data={data} formatTime={formatTime} />}
+        </>
       )}
     </Panel>
   );

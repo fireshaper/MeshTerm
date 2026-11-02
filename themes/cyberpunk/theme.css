@@ -95,7 +95,6 @@
   /* ── Angled panels: cut corners on cards, panels, the drawer, dialogs, toasts ── */
   [data-mt="node-card"],
   [data-mt="node-preview"],
-  [data-mt="metric-card"],
   [data-mt="panel"],
   [data-mt="review-dialog"],
   [data-mt="toast-region"] [data-mt="toast"],
@@ -260,8 +259,7 @@
   }
 
   html[data-mt-fx~="glow"] [data-mt="node-card"],
-  html[data-mt-fx~="glow"] [data-mt="panel"],
-  html[data-mt-fx~="glow"] [data-mt="metric-card"] {
+  html[data-mt-fx~="glow"] [data-mt="panel"] {
     border-color: var(--cp-pink);
   }
 }

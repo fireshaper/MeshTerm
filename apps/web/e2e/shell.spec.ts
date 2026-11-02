@@ -10,7 +10,7 @@ test.describe("app shell", () => {
     await page.goto("/messages/channel/0");
     const nav = page.getByRole("navigation", { name: "Main" });
     await expect(nav.getByRole("link")).toHaveText([
-      "Dashboard",
+      "Overview",
       "Messages",
       "Map",
       "Nodes",

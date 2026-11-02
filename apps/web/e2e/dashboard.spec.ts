@@ -30,22 +30,37 @@ async function openNodes(page: Page, url = `${BASE}/nodes`): Promise<void> {
   await expect(page.locator("[data-mt=node-card]").first()).toBeVisible();
 }
 
-test("is the landing page: KPIs, my node first, favorites pinned, recent nodes", async ({
+test("is the landing page: the map and headline, gauges, the roster with my node first", async ({
   page,
 }) => {
   await openDashboard(page);
   await expect(page).toHaveURL(`${BASE}/dashboard`);
-  await expect(page.locator("[data-mt=metric-card]")).toHaveCount(6);
-  await expect(
-    page.locator(
-      "[data-mt=metric-card][data-mt-variant=network-nodes] [data-mt=metric-card-value]",
-    ),
-  ).toHaveText(/^\d+ \/ 7$/);
-  expect(await previewNames(page, "pinned")).toEqual(["MTB", "RDG", "HIL"]);
-  expect(await previewNames(page, "recent")).toContain("GAR");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Overview");
+  await expect(page.locator("[data-mt=overview-headline-title]")).toHaveText(
+    /^\d+ of 6 nodes on the air$/,
+  );
+  await expect(page.locator("[data-mt=map-pin]").first()).toBeVisible();
+  await expect(page.locator("[data-mt=map-pin][data-mt-variant=self]")).toHaveCount(1);
+  await expect(page.locator("[data-mt=gauge]")).toHaveCount(3);
+  expect((await previewNames(page, "roster")).slice(0, 3)).toEqual(["MTB", "RDG", "HIL"]);
+  expect(await previewNames(page, "roster")).toContain("GAR");
   await expect(page.locator("[data-mt=attention-item]").first()).toContainText("Hilltop Solar");
-  await page.getByRole("link", { name: /View all 7 nodes/ }).click();
+  await page
+    .locator("[data-mt=panel][data-mt-variant=roster]")
+    .getByRole("link", { name: /All nodes/ })
+    .click();
   await expect(page).toHaveURL(`${BASE}/nodes`);
+});
+
+test("a map pin opens the node's details; Open full map goes to the map", async ({ page }) => {
+  await openDashboard(page);
+  await page.locator("[data-mt=map-pin]").filter({ hasText: "RDG" }).click();
+  await expect(page.getByRole("dialog", { name: "Ridge Repeater" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  if ((page.viewportSize()?.width ?? 0) >= 768) {
+    await page.getByRole("link", { name: "Open full map" }).click();
+    await expect(page).toHaveURL(`${BASE}/map`);
+  }
 });
 
 test("injected telemetry updates a card live, with the update flash and no refetch", async ({
@@ -179,10 +194,17 @@ test("300 nodes: the Nodes page is compact by default and virtualized", async ({
   expect(await page.locator("[data-mt=node-card]").count()).toBeLessThan(100);
 });
 
-test("300 nodes: the dashboard previews a few and links to the rest", async ({ page }) => {
+test("300 nodes: the roster shows twelve and links to the rest", async ({ page }) => {
   await openDashboard(page, `${LARGE}/dashboard`);
-  expect(await page.locator("[data-mt=node-preview]").count()).toBeLessThan(60);
-  await expect(page.getByRole("link", { name: /View all 300 nodes/ })).toBeVisible();
+  await expect(page.locator("[data-mt=node-preview]")).toHaveCount(12);
+  await expect(
+    page.locator("[data-mt=panel][data-mt-variant=roster] [data-mt=panel-count]"),
+  ).toHaveText("300");
+  await expect(
+    page
+      .locator("[data-mt=panel][data-mt-variant=roster]")
+      .getByRole("link", { name: /All nodes/ }),
+  ).toBeVisible();
 });
 
 test("the activity feed shows a received message live", async ({ page }, info) => {
@@ -196,11 +218,10 @@ test("the activity feed shows a received message live", async ({ page }, info) =
   await expect(item).toContainText("Garage Station");
 });
 
-test("node details open from a preview and close with Escape", async ({ page }) => {
+test("node details open from a roster card and close with Escape", async ({ page }) => {
   await openDashboard(page);
   await page
-    .locator(`[data-mt=node-preview][data-node-num='${GARAGE}']`)
-    .getByRole("button", { name: "Details" })
+    .locator(`[data-mt=node-preview][data-node-num='${GARAGE}'] [data-mt=node-preview-stats]`)
     .click();
   const drawer = page.getByRole("dialog");
   await expect(drawer).toBeVisible();
@@ -237,9 +258,9 @@ test("Reconnect redoes the handshake and transmits nothing on the mesh", async (
   ).toBeVisible({ timeout: 10_000 });
 });
 
-test("the traffic chart switches windows", async ({ page }) => {
+test("the messages chart switches windows", async ({ page }) => {
   await openDashboard(page);
-  const traffic = page.locator("[data-mt=panel][data-mt-variant=traffic]");
+  const traffic = page.locator("[data-mt=panel][data-mt-variant=messages]");
   await expect(traffic.locator("[data-mt=chart]")).toBeVisible();
   const request = page.waitForRequest((r) => r.url().endsWith("/traffic?window=1h"));
   await traffic.getByRole("button", { name: "1 h" }).click();
@@ -255,6 +276,7 @@ test("the network overview draws reported links and packets show up by type", as
   const TRAIL = 439041101;
   await node.injectNeighbors(RIDGE, [{ nodeId: TRAIL, snr: -2.25 }]);
   await openDashboard(page);
+  await page.locator("[data-mt=mesh-detail-summary]").click();
   const map = page.locator("[data-mt=network-map]");
   await expect(map.locator("[data-mt=network-link][data-mt-variant=reported]")).not.toHaveCount(0);
   // Every link is either a direct observation or a reported one.
@@ -268,8 +290,7 @@ test("the network overview draws reported links and packets show up by type", as
   ).toBeVisible();
   await page.keyboard.press("Escape");
 
-  const traffic = page.locator("[data-mt=panel][data-mt-variant=traffic]");
-  await traffic.getByRole("button", { name: "Packets" }).click();
+  const traffic = page.locator("[data-mt=panel][data-mt-variant=packets]");
   await expect(traffic.getByRole("img", { name: /Neighbor info/ })).toBeVisible();
   await expect(traffic.locator("[data-mt=busiest-node]").first()).toBeVisible();
 });
