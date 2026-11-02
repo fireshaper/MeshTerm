@@ -10,13 +10,14 @@ This guide covers:
 4. [How styling works: layers, tokens and hooks](#how-styling-works)
 5. [Light and dark](#light-and-dark)
 6. [Accents](#accents)
-7. [Canvas surfaces: the map and charts](#canvas-surfaces-the-map-and-charts)
-8. [Effects](#effects)
-9. [Fonts and sounds](#fonts-and-sounds)
-10. [Changes that affect themes](#changes-that-affect-themes)
-11. [Accessibility checklist](#accessibility-checklist)
-12. [Token reference](#token-reference)
-13. [Hook reference](#hook-reference)
+7. [Field Kit, the reference theme](#field-kit-the-reference-theme)
+8. [Canvas surfaces: the map and charts](#canvas-surfaces-the-map-and-charts)
+9. [Effects](#effects)
+10. [Fonts and sounds](#fonts-and-sounds)
+11. [Changes that affect themes](#changes-that-affect-themes)
+12. [Accessibility checklist](#accessibility-checklist)
+13. [Token reference](#token-reference)
+14. [Hook reference](#hook-reference)
 
 ## What a theme is
 
@@ -206,6 +207,18 @@ The chosen one is on `<html data-mt-accent="<id>">`, set before the first paint.
 - Each browser remembers its accent per theme; `?accent=<id>` forces one for a page load, like `?theme=`.
 - Check text on the accent and accent-colored links against every surface, in every mode, for every accent.
 
+## Field Kit, the reference theme
+
+Field Kit (id `default`, in `themes/default/`) sets every token, so it's the theme to copy and the one to compare against. What it shows:
+
+- **Two palettes in one file.** Warm basalt by night, survey paper by day: dark values on plain `:root`, light ones under `[data-mt-mode="light"]`, both with WCAG AA text on every surface.
+- **Accents.** Signal orange (the default), amber and moss, each with a dark and a light value; see [Accents](#accents).
+- **Type.** Archivo with a width axis for condensed headings (`--mt-font-display` with `--mt-font-display-stretch: 72%`) and JetBrains Mono for ids and numbers, both bundled as Latin-subset woff2 files with their licenses.
+- **Maps.** `mapStyleModes`: a darkened, desaturated raster at night and a paper-toned one by day.
+- **Shape.** Rounded cards (`--mt-card-radius`) and pill-shaped chips, pills and the apply bar (`--mt-radius-pill`). Square themes set both to 0; Retro Terminal and Cyberpunk do.
+
+The other built-ins show other directions: **Classic** is MeshTerm's original blue look with the same layout, **Retro Terminal** (and **Amber**) restyle many hooks for a phosphor terminal, and **Cyberpunk** adds angled panels, a neon map and effects.
+
 ## Canvas surfaces: the map and charts
 
 The map page and the telemetry charts draw on a canvas, which CSS can't style. MeshTerm reads their colors from tokens instead, and reads them again whenever the theme or mode changes:
@@ -318,6 +331,8 @@ Hooks and tokens are a public API. When MeshTerm has to remove or rename one, it
 - Removed hooks: `kpi-row`, `metric-card` and its parts (`metric-card-top`, `-label`, `-icon`, `-value`, `-unit`, `-bottom`, `-secondary`), `connection-duration`; the old `dashboard-grid` / `dashboard-column` layout.
 - New hooks: `overview-grid`, `overview-side`, `overview-hero` and its parts, `overview-headline` (`-title`, `-detail`), `map-pin` (state = how recently heard, variant `self` / `node`), `map-pin-shape`, `map-pin-label`, `map-ring`, `map-link`, `map-legend` and its parts, `gauges`, `gauge` (variant = metric, state `ok` / `warn` / `danger` / `unknown`) and its parts, `traffic-totals`, `traffic-total`, `chart-area`, `chart-area-edge`, `mesh-detail` and its parts, `bearing`, `bearing-arrow`, `bearing-point`, `node-preview-distance`.
 - Roster cards (`node-preview`) no longer show `role-badge` or `node-id`; role and hardware are text in `node-preview-meta`, now in the footer.
+
+**CR-005 (themes).** New token `--mt-radius-pill` (default `999px`): the rounding of chips, pills, the station pill, the map legend, switches and the apply bar, which used a fixed 999px before. Square themes set it to 0.
 
 **CR-005 (Settings).** The device section list became tiles under a header card for your node, and the pending tray became the apply bar.
 
@@ -542,12 +557,13 @@ Staged, conflicting and dangerous changes; QR codes.
 
 ### Shape
 
-| Token               | Default (dark) | Default (light) | Without a theme | Used for |
-| ------------------- | -------------- | --------------- | --------------- | -------- |
-| `--mt-radius-sm`    | `0.25rem`      | `0.25rem`       | `0.25rem`       |          |
-| `--mt-radius-md`    | `0.5rem`       | `0.5rem`        | `0.5rem`        |          |
-| `--mt-radius-lg`    | `0.75rem`      | `0.75rem`       | `1rem`          |          |
-| `--mt-border-width` | —              | —               | `1px`           |          |
+| Token               | Default (dark) | Default (light) | Without a theme | Used for                                         |
+| ------------------- | -------------- | --------------- | --------------- | ------------------------------------------------ |
+| `--mt-radius-sm`    | `0.25rem`      | `0.25rem`       | `0.25rem`       |                                                  |
+| `--mt-radius-md`    | `0.5rem`       | `0.5rem`        | `0.5rem`        |                                                  |
+| `--mt-radius-lg`    | `0.75rem`      | `0.75rem`       | `1rem`          |                                                  |
+| `--mt-radius-pill`  | —              | —               | `999px`         | chips, pills, the apply bar; 0 for square themes |
+| `--mt-border-width` | —              | —               | `1px`           |                                                  |
 
 ### Spacing
 

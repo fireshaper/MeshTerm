@@ -664,7 +664,7 @@
   [data-mt="self-badge"] {
     align-self: start;
     padding: 0.125rem var(--mt-space-2);
-    border-radius: 999px;
+    border-radius: var(--mt-radius-pill);
     background: color-mix(in srgb, var(--mt-status-ok) 18%, transparent);
 
     /* Pulled toward the text color so it keeps AA contrast on its own tint. */

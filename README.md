@@ -9,6 +9,18 @@ MeshTerm runs in one Docker container. It keeps a connection to your node over T
 
 What works today: channel and direct messages with delivery status, a live node list, automatic reconnect when the node reboots, and history that survives restarts.
 
+## Screenshots
+
+The Field Kit theme, with a FakeNode mesh. More (light mode, each screen) in [docs/screenshots](docs/screenshots).
+
+| Overview                                            | Messages                                                       |
+| --------------------------------------------------- | -------------------------------------------------------------- |
+| ![Overview](docs/screenshots/desktop-dashboard.png) | ![A channel](docs/screenshots/desktop-channel-view.png)        |
+| **Map**                                             | **Node details**                                               |
+| ![Map](docs/screenshots/desktop-map.png)            | ![Node drawer](docs/screenshots/desktop-node-drawer.png)       |
+| **Settings: LoRa**                                  | **Light mode**                                                 |
+| ![LoRa](docs/screenshots/desktop-device-lora.png)   | ![Light](docs/screenshots/default-light-desktop-dashboard.png) |
+
 ## Run it
 
 You need a Meshtastic node with Wi-Fi or Ethernet (or `meshtasticd`) reachable from the Docker host.

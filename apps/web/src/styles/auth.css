@@ -213,6 +213,10 @@
     max-inline-size: 60rem;
   }
 
+  [data-mt="settings-section"] input[type="range"] {
+    accent-color: var(--mt-accent);
+  }
+
   [data-mt="settings-title"] {
     margin: 0;
     font-family: var(--mt-font-display);

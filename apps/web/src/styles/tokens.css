@@ -147,6 +147,7 @@
     --mt-radius-sm: 0.25rem;
     --mt-radius-md: 0.5rem;
     --mt-radius-lg: 1rem;
+    --mt-radius-pill: 999px; /* chips, pills, the apply bar; 0 for square themes */
     --mt-border-width: 1px;
 
     /* @group Spacing */

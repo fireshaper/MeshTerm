@@ -781,6 +781,13 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` 
 - **Notifications and Appearance:** cards and switches; Appearance keeps the accent picker.
 - **Tests:** preset cards → edit, frequency per region and preset, TX limit and stepper, apply bar count and Discard, review warning, tile summaries; e2e preset change → review warning → apply → verified against FakeNode; a new `device-lora` visual shot; baselines re-recorded.
 
+### CR-005 Phase K7: themes, baselines, docs (done 2026-11-02)
+
+- **Themes:** walked Retro Terminal, Amber and Cyberpunk over every screen. New token `--mt-radius-pill`: chips, pills, the station pill, the map legend, switches and the apply bar are square in Retro and Cyberpunk. Phones: the apply bar's buttons wrap when they don't fit, the preset scale wraps. Slider accent color in settings. Contrast (axe) passes for every theme, mode and accent.
+- **Baselines:** the full set (Field Kit dark and light, Classic, Retro, Amber, Cyberpunk at 1280 and 390 px, effects on, accent runs now including the LoRa settings) re-recorded on win32 and Linux.
+- **Docs:** THEMING "Field Kit, the reference theme" and the new token; README screenshots (`docs/screenshots/`, made with `README_SHOTS=1`); architecture, DECISIONS.
+- **CR-005 is complete.** Left over: the Traceroute action (no client flow yet), the Retro map's black tile in headless baselines.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

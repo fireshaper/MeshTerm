@@ -131,6 +131,7 @@
     --mt-radius-sm: 0;
     --mt-radius-md: 0;
     --mt-radius-lg: 0;
+    --mt-radius-pill: 0;
 
     /* No motion, apart from the composer's cursor. */
     --mt-duration-fast: 0ms;

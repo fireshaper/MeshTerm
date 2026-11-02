@@ -137,7 +137,7 @@
     gap: var(--mt-space-2);
     padding: var(--mt-space-1) var(--mt-space-3) var(--mt-space-1) var(--mt-space-1);
     border: var(--mt-border-width) solid var(--mt-border-color);
-    border-radius: 999px;
+    border-radius: var(--mt-radius-pill);
     background: var(--mt-surface-raised);
     color: var(--mt-text);
     font: inherit;
@@ -151,7 +151,7 @@
 
   [data-mt="station-pill-short"] {
     padding: 0.125rem var(--mt-space-2);
-    border-radius: 999px;
+    border-radius: var(--mt-radius-pill);
     background: var(--mt-accent);
     color: var(--mt-accent-text);
     font-family: var(--mt-font-mono);

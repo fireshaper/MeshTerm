@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-**Base app complete** (Phases 0–11 of the implementation plan; M1 scope). Since then: CR-001 (node drawer), CR-002 (device config editor, sign-in), CR-003 (notifications) and CR-004 (themes: loader, picker, Retro Terminal, Cyberpunk, effects, map styles) are done. CR-005 (Field Kit redesign, [plan](memory-bank/cr-005-plan.md)) is in progress: K0 (accents, Field Kit as the Default theme, Classic) K1 (header tabs, status band), K2 (the Overview), K3 (Messages), K4 (Map), K5 (Nodes and the node drawer) and K6 (Settings) are done. History and agreed changes: [memory-bank/progress.md](memory-bank/progress.md). Next work (map, telemetry, themes, auth, …) is listed under "Out of scope" in the implementation plan and will be planned separately. Planning docs:
+**Base app complete** (Phases 0–11 of the implementation plan; M1 scope). Since then: CR-001 (node drawer), CR-002 (device config editor, sign-in), CR-003 (notifications) and CR-004 (themes: loader, picker, Retro Terminal, Cyberpunk, effects, map styles) are done. CR-005 (Field Kit redesign, [plan](memory-bank/cr-005-plan.md)) is done: accents, Field Kit as the Default theme and Classic, header tabs and the status band, the Overview, Messages, Map, Nodes and the node drawer, and Settings. History and agreed changes: [memory-bank/progress.md](memory-bank/progress.md). Next work (map, telemetry, themes, auth, …) is listed under "Out of scope" in the implementation plan and will be planned separately. Planning docs:
 
 - [memory-bank/app-design-document.md](memory-bank/app-design-document.md) covers product scope, architecture, data model, theming rules and milestones (M1–M5).
 - [memory-bank/tech-stack.md](memory-bank/tech-stack.md) covers library choices and tooling. It is newer than the design doc. Where they conflict, follow tech-stack.md. Exception: `engines.node` is **>=24** (local dev runs Node 24). The Docker image still uses `node:26-alpine`.
@@ -57,6 +57,7 @@ pnpm test:visual:linux               # rewrite the Linux (CI) baselines in the P
 UPDATE=all pnpm test:visual:linux    # same, rewriting every baseline (changes under the 1% threshold too)
 UPDATE=all GREP=<test> pnpm test:visual:linux   # same, only the visual tests whose name matches
 pnpm docs:tokens                     # regenerate THEMING.md's token and hook reference (CI runs --check)
+README_SHOTS=1 pnpm --filter @meshterm/web exec playwright test -c e2e/playwright.config.ts --project visual-desktop --project visual-default-light-desktop -g "dashboard|channel view|map|node drawer|device lora"   # README screenshots → docs/screenshots (build the server and SPA first)
 
 # Run locally
 pnpm dev                             # server + web dev servers (copy .env.example to .env first)

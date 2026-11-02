@@ -41,7 +41,7 @@ const FULL =
   // `pnpm test:visual` and `test:visual:update` always cover everything.
   (process.env.npm_lifecycle_event ?? "").startsWith("test:visual");
 const SMOKE = /dashboard|channel view/;
-const ACCENT_SET = /dashboard|appearance/;
+const ACCENT_SET = /dashboard|appearance|device lora/;
 
 function visualProject(
   name: string,

@@ -6,6 +6,7 @@
 // so other specs can't change what is drawn. Relative times are masked.
 // Baselines are per platform; the Linux ones are made in the Playwright Docker image,
 // which CI also runs in. Update them with `pnpm test:visual:update` (see CLAUDE.md).
+import { fileURLToPath } from "node:url";
 import {
   expect,
   test,
@@ -99,11 +100,22 @@ test.beforeEach(async ({ page }) => {
  * The screenshot assertion, plus (with VISUAL_ARTIFACTS=1, as in CI) a copy of what was
  * drawn in test-results/, so the screens can be looked at without a failure.
  */
+/** `README_SHOTS=1`: write README screenshots to docs/screenshots instead of comparing. */
+const README_SHOTS = process.env.README_SHOTS === "1";
+
 async function shot(
   target: Page | Locator,
   name: string,
   options: PageAssertionsToHaveScreenshotOptions = {},
 ): Promise<void> {
+  if (README_SHOTS) {
+    // Screenshots for the README: real text, no masks, nothing compared.
+    const project = test.info().project.name.replace(/^visual-/, "");
+    await target.screenshot({
+      path: fileURLToPath(new URL(`../../../docs/screenshots/${project}-${name}`, import.meta.url)),
+    });
+    return;
+  }
   if ("goto" in target) await expect(target).toHaveScreenshot(name, options);
   else await expect(target).toHaveScreenshot(name, options);
   if (process.env.VISUAL_ARTIFACTS) {
@@ -162,6 +174,7 @@ async function ready(page: Page, path: string): Promise<void> {
 async function freeze(page: Page): Promise<void> {
   const now = await page.evaluate(() => Date.now());
   await page.clock.pauseAt(now + 1_000);
+  if (README_SHOTS) return;
   await page.evaluate((selectors) => {
     for (const el of document.querySelectorAll(selectors.join(","))) el.textContent = "········";
   }, VOLATILE);

@@ -90,6 +90,7 @@
     --mt-radius-sm: 0;
     --mt-radius-md: 0;
     --mt-radius-lg: 0;
+    --mt-radius-pill: 0;
   }
 
   /* ── Angled panels: cut corners on cards, panels, the drawer, dialogs, toasts ── */
