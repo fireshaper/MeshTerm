@@ -9,6 +9,7 @@ import { MessageSquare, PanelRightOpen, Star } from "lucide-react";
 import { openNodeDetails } from "../data/ui-store.js";
 import { memo, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { BatteryMeter, Sparkline } from "./BatteryMeter.js";
+import { BearingArrow } from "./BearingArrow.js";
 import {
   formatAbsolute,
   formatAgo,
@@ -178,6 +179,9 @@ export const NodeCard = memo(function NodeCard({
         <span data-mt="node-long-name" title={name}>
           {name}
         </span>
+        {showDistance && card.position && (
+          <BearingArrow degrees={bearingDegrees(origin, card.position)} />
+        )}
         <button
           type="button"
           data-mt="favorite-toggle"

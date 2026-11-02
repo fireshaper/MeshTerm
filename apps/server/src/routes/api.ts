@@ -18,6 +18,7 @@ import {
   listChannels,
   listConnections,
   listDmMessages,
+  listMessagesFrom,
   listNodes,
   MAX_PAGE_SIZE,
   nextCursor,
@@ -44,11 +45,13 @@ const MessagesQuery = z
   .object({
     channel: z.coerce.number().pipe(ChannelIndex).optional(),
     peer: z.coerce.number().pipe(Uint32).optional(),
+    /** CR-005: messages a node sent, on any channel or as a DM (the node drawer). */
+    from: z.coerce.number().pipe(Uint32).optional(),
     before: Cursor.optional(),
     limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(50),
   })
-  .refine((q) => (q.channel === undefined) !== (q.peer === undefined), {
-    message: "give exactly one of channel or peer",
+  .refine((q) => [q.channel, q.peer, q.from].filter((v) => v !== undefined).length === 1, {
+    message: "give exactly one of channel, peer or from",
   });
 
 const ConnectionView = Connection.extend({
@@ -120,18 +123,20 @@ export const apiRoutes: FastifyPluginAsyncZod = (app) => {
     (req) => {
       const { id } = req.params;
       requireConnection(id);
-      const { channel, peer, before, limit } = req.query;
+      const { channel, peer, from, before, limit } = req.query;
       const page = { limit, ...(before ? { before } : {}) };
       const messages =
         channel !== undefined
           ? listChannelMessages(db, id, channel, page)
-          : listDmMessages(
-              db,
-              id,
-              peer ?? 0,
-              page,
-              getState(db, id, "dm", peer ?? 0).deletedBefore,
-            );
+          : from !== undefined
+            ? listMessagesFrom(db, id, from, page)
+            : listDmMessages(
+                db,
+                id,
+                peer ?? 0,
+                page,
+                getState(db, id, "dm", peer ?? 0).deletedBefore,
+              );
       const next = nextCursor(messages, limit);
       return { messages, nextCursor: next ? encodeCursor(next) : null };
     },

@@ -147,6 +147,7 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     element: "Header reconnect, card Details",
     variants: [
       "center",
+      "clear-filters",
       "danger",
       "danger-primary",
       "details",
@@ -202,6 +203,15 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     variants: ["virtual"],
   },
   "cell-battery": { area: "Shared", element: "Table cells" },
+  "cell-distance": {
+    area: "Dashboard and nodes",
+    element: "Table cell: distance with the bearing arrow",
+  },
+  "cell-signal": {
+    area: "Dashboard and nodes",
+    element: "Table cell: signal bars and SNR, or relayed",
+    variants: ["relayed"],
+  },
   "channel-actions": { area: "Settings" },
   "channel-link": { area: "Settings" },
   "channel-list": { area: "Settings" },
@@ -419,11 +429,6 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     area: "Dashboard and nodes",
     element: "Loading, error, no nodes yet, nothing matches",
   },
-  "dashboard-filter": {
-    area: "Dashboard and nodes",
-    element: "Toolbar controls",
-    variants: ["segmented"],
-  },
   "dashboard-grid": { area: "Dashboard and nodes", element: "Dashboard grid and its panels" },
   "dashboard-last-packet": {
     area: "Dashboard and nodes",
@@ -482,8 +487,20 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     openVariants: true,
   },
   "detail-message-text": { area: "Node drawer", element: "Drawer contents" },
+  "detail-message-where": {
+    area: "Node drawer",
+    element: 'Recent message: "CH 0 · LongFast" or "DM"',
+  },
   "detail-messages": { area: "Node drawer", element: "Drawer contents" },
-  "detail-note": { area: "Shared", element: "Drawer contents" },
+  "detail-note": {
+    area: "Shared",
+    element: "Drawer contents: a plain-language note",
+    variants: ["battery-forecast", "mains", "multi-hop", "scale", "silent-router"],
+  },
+  "detail-notes": {
+    area: "Node drawer",
+    element: "Overview notes (battery forecast, silent router)",
+  },
   "detail-section": {
     area: "Node drawer",
     element: "Drawer contents",
@@ -501,6 +518,23 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     openVariants: true,
   },
   "detail-section-title": { area: "Node drawer", element: "Drawer contents" },
+  "detail-stat": {
+    area: "Node drawer",
+    element: "Overview stat (3 × 3 grid)",
+    variants: [
+      "battery",
+      "bearing",
+      "channel-util",
+      "distance",
+      "hops",
+      "last-heard",
+      "rssi",
+      "snr",
+      "uptime",
+    ],
+  },
+  "detail-stats": { area: "Node drawer", element: "Overview stat grid" },
+  "detail-where": { area: "Node drawer", element: '"8.2 km NW of you"' },
   "diff-arrow": { area: "Settings" },
   "diff-from": { area: "Settings" },
   "diff-note": { area: "Settings" },
@@ -527,6 +561,20 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   favicon: { area: "Theme", element: '`<link rel="icon">` (badged with the unread count)' },
   "favorite-toggle": { area: "Shared", element: "★ button", states: ["off", "on"] },
   "field-was": { area: "Settings" },
+  "filter-chip": {
+    area: "Dashboard and nodes",
+    element: "Nodes filter chip with its count",
+    states: ["active", "inactive"],
+    variants: ["all", "direct", "favorites", "heard", "low-battery", "routers", "silent"],
+  },
+  "filter-chip-count": { area: "Dashboard and nodes", element: "Nodes filter chip with its count" },
+  "filter-chips": { area: "Dashboard and nodes", element: "Nodes filter chips" },
+  "filters-popover": { area: "Dashboard and nodes", element: '"More filters" (`<details>`)' },
+  "filters-popover-button": {
+    area: "Dashboard and nodes",
+    element: '"More filters" (`<details>`)',
+  },
+  "filters-popover-menu": { area: "Dashboard and nodes", element: '"More filters" (`<details>`)' },
   "fx-layer": {
     area: "Theme",
     element:
@@ -843,6 +891,7 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   },
   "new-dm-button": { area: "Messages", element: "Conversation list and its toolbar" },
   "node-battery": { area: "Dashboard and nodes", element: "Node table cell: battery" },
+  "node-callsign": { area: "Dashboard and nodes", element: "Table: the callsign column" },
   "node-card": {
     area: "Dashboard and nodes",
     element: "One node card (`article`, focusable)",
@@ -883,11 +932,21 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     variants: ["overview", "raw", "signal", "telemetry"],
     openVariants: true,
   },
+  "node-drawer-pill": {
+    area: "Node drawer",
+    element: "Header pill",
+    variants: ["firmware", "hops", "mqtt", "new", "role", "self"],
+  },
+  "node-drawer-pills": { area: "Node drawer", element: "Header pills" },
   "node-drawer-resize": {
     area: "Node drawer",
     element: "Drag handle on the drawer's inner edge (from 768 px)",
   },
-  "node-drawer-seen": { area: "Node drawer", element: "Node details drawer (CR-001)" },
+  "node-drawer-seen": {
+    area: "Node drawer",
+    element: "Header pill: when the node was last heard (state: how recently)",
+    states: ["offline", "online", "recent", "stale"],
+  },
   "node-drawer-short": { area: "Node drawer", element: "Node details drawer (CR-001)" },
   "node-drawer-subtitle": { area: "Node drawer", element: "Node details drawer (CR-001)" },
   "node-drawer-tab": {
@@ -966,6 +1025,7 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "node-self-badge": { area: "Shared", element: "Name cell and names/ids in cards" },
   "node-short": { area: "Dashboard and nodes", element: "Node table cell: short" },
   "node-short-name": { area: "Shared", element: "Name cell and names/ids in cards" },
+  "node-signal": { area: "Dashboard and nodes", element: "Node table cell: signal" },
   "node-snr": { area: "Dashboard and nodes", element: "Node table cell: snr" },
   "node-table": { area: "Shared", element: "Node list table, scroll wrapper, caption" },
   "node-table-head": { area: "Dashboard and nodes", element: "Node table: the header row" },
@@ -1030,6 +1090,7 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "pending-tray": { area: "Settings" },
   "permission-banner": { area: "Notifications" },
   "permission-banner-text": { area: "Notifications" },
+  "position-filter": { area: "Dashboard and nodes", element: "More filters: Has position" },
   "power-filter": {
     area: "Dashboard and nodes",
     element: "Toolbar controls",
@@ -1070,6 +1131,12 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   },
   "raw-json-body": { area: "Node drawer", element: "Raw tab block (`<details>`)" },
   "raw-json-title": { area: "Node drawer", element: "Raw tab block (`<details>`)" },
+  "raw-key": { area: "Node drawer", element: "Raw JSON: a key" },
+  "raw-value": {
+    area: "Node drawer",
+    element: "Raw JSON: a value",
+    variants: ["boolean", "null", "number", "string"],
+  },
   "reboot-tag": { area: "Settings" },
   "recovery-panel": { area: "Settings" },
   "review-actions": { area: "Shared" },
@@ -1271,7 +1338,11 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "toast-time": { area: "Notifications" },
   "toast-title": { area: "Notifications" },
   toaster: { area: "Shell", element: "Toasts" },
-  "toolbar-row": { area: "Dashboard and nodes", element: "Nodes page toolbar" },
+  "toolbar-row": {
+    area: "Dashboard and nodes",
+    element: "Nodes page toolbar",
+    variants: ["chips"],
+  },
   "traffic-controls": {
     area: "Dashboard and nodes",
     element: "Traffic panel controls (view: `packets` / `messages`)",

@@ -25,6 +25,9 @@ import { ChartSyncContext, type ChartSpec, type ChartSync } from "./UPlotChart.j
 
 const CSV_MAX_MS = 31 * 24 * 3600_000;
 
+/** The SNR LongFast (SF11) can still decode, in dB (CR-005 §6.6). */
+export const LONGFAST_FLOOR_DB = -17.5;
+
 /** Chart colors from the theme, re-read when it changes (no remount, CR-001 §7.2). */
 function useChartTokens(): ChartTokens {
   const [tokens, setTokens] = useState(readChartTokens);
@@ -94,8 +97,8 @@ function specsFor(
           ],
           ranges: { y: [0, 100] },
           thresholds: [
-            { value: 20, level: "warn", label: "20%" },
-            { value: 10, level: "danger", label: "10%" },
+            { value: 20, level: "warn", label: "Low 20%" },
+            { value: 10, level: "danger", label: "Critical 10%" },
           ],
           powered: true,
         },
@@ -118,8 +121,20 @@ function specsFor(
           title: "Radio load",
           lines: load.map((n, i) => ({ ...metricLine(n, i === 0 ? 0 : 3), format: pct })),
           thresholds: [
-            { value: thresholds.channelUtilWarn, level: "warn", label: "Channel util warn" },
-            { value: thresholds.channelUtilDanger, level: "danger", label: "Channel util danger" },
+            {
+              value: thresholds.channelUtilWarn,
+              level: "warn",
+              // Firmware holds back its own traffic above 25 % (the default warn line).
+              label:
+                thresholds.channelUtilWarn === 25
+                  ? "Throttle 25%"
+                  : `Busy ${thresholds.channelUtilWarn}%`,
+            },
+            {
+              value: thresholds.channelUtilDanger,
+              level: "danger",
+              label: `Very busy ${thresholds.channelUtilDanger}%`,
+            },
           ],
         },
       });
@@ -333,6 +348,12 @@ export function TelemetryTab({ connectionId, node, range, onRange }: ChartTabPro
         )
       }
     >
+      {(node.device?.batteryLevel ?? 0) > 100 && (
+        <p data-mt="detail-note" data-mt-variant="mains">
+          This node runs on external power: the battery chart shows the shaded “Powered” band rather
+          than a charge level while it is plugged in.
+        </p>
+      )}
       <ChartSyncContext.Provider value={sync}>
         {node.telemetryKinds.map((kind) => (
           <KindCharts
@@ -369,6 +390,11 @@ export function SignalTab({ connectionId, node, range, onRange }: ChartTabProps)
         id: "snr",
         title: "SNR (heard directly)",
         lines: [{ name: "snr", label: "SNR", color: 0, format: (v) => `${v.toFixed(1)} dB` }],
+        // LongFast decodes down to about −17.5 dB; at 0 dB signal and noise are equal.
+        thresholds: [
+          { value: 0, level: "warn", label: "0 dB" },
+          { value: LONGFAST_FLOOR_DB, level: "danger", label: "LongFast floor −17.5 dB" },
+        ],
       },
       {
         id: "rssi",
@@ -431,8 +457,20 @@ export function SignalTab({ connectionId, node, range, onRange }: ChartTabProps)
         series: { packets: { avg: data.rate.packets } },
       }
     : null;
+  const relayed = node.hopsAway !== null && node.hopsAway > 0;
   return (
     <TabFrame name="signal" range={range} onRange={onRange} footer={note}>
+      {relayed && (
+        <p data-mt="detail-note" data-mt-variant="multi-hop">
+          My node hears this one through {node.hopsAway === 1 ? "a relay" : `${node.hopsAway} hops`}
+          , so there is no signal history from it: SNR and RSSI would describe the last relay. A
+          traceroute shows the path.
+        </p>
+      )}
+      <p data-mt="detail-note" data-mt-variant="scale">
+        SNR above 0 dB is comfortable; LongFast still decodes down to about −17.5 dB. RSSI is
+        received power: −120 dBm is faint, −60 dBm is strong.
+      </p>
       {isPending ? (
         <div data-mt="skeleton" data-mt-variant="chart" aria-hidden />
       ) : isError ? (

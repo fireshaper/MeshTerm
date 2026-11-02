@@ -149,6 +149,17 @@ export function useChannels(connectionId: number | null) {
   });
 }
 
+/** The newest messages a node sent, on any channel or as a DM (the drawer's Overview). */
+export function useMessagesFrom(connectionId: number | null, num: number, limit = 5) {
+  return useQuery({
+    queryKey: queryKeys.messagesFrom(connectionId ?? 0, num),
+    queryFn: async () => (await api.messagesFrom(connectionId ?? 0, num, limit)).messages,
+    enabled: connectionId !== null,
+    // Not patched by WS events: refetched when the drawer opens again.
+    staleTime: 30_000,
+  });
+}
+
 /** The newest page of a conversation, kept current by WS events. */
 export function useConversation(connectionId: number | null, conversation: Conversation) {
   return useQuery({

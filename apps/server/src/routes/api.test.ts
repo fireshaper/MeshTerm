@@ -97,9 +97,24 @@ describe("REST read API", () => {
     expect(res.json<{ messages: Message[] }>().messages.map((m) => m.peer)).toEqual([RIDGE]);
   });
 
+  it("GET messages ?from= lists what one node sent, channels and DMs, newest first", async () => {
+    const res = await get(`/api/connections/1/messages?from=${RIDGE}&limit=5`);
+    expect(res.statusCode).toBe(200);
+    const { messages } = res.json<{ messages: Message[] }>();
+    expect(messages).toHaveLength(5);
+    expect(new Set(messages.map((m) => m.fromNum))).toEqual(new Set([RIDGE]));
+    expect(messages.every((m) => m.direction === "in")).toBe(true);
+    expect(messages[0]?.rxTime).toBe(59_000); // REST pages are newest first
+    const none = await get(`/api/connections/1/messages?from=${ME}`);
+    expect(none.json<{ messages: Message[] }>().messages).toEqual([]);
+    const dm = await get(`/api/connections/1/messages?from=${RIDGE}&limit=100`);
+    expect(dm.json<{ messages: Message[] }>().messages.some((m) => m.peer === RIDGE)).toBe(true);
+  });
+
   it("rejects both channel and peer, neither, a bad cursor and limit=500 with 400", async () => {
     for (const query of [
       `channel=0&peer=${RIDGE}`,
+      `from=${RIDGE}&peer=${RIDGE}`,
       "",
       "channel=0&limit=500",
       "channel=0&before=yesterday",

@@ -23,6 +23,8 @@ export interface NodePrefs {
   /** A role enum name; null for all roles. */
   role: string | null;
   power: PowerFilter;
+  /** CR-005 "More filters": only nodes with a position. */
+  hasPosition: boolean;
   /** Visible table columns; null for the defaults. */
   columns: string[] | null;
 }
@@ -35,6 +37,7 @@ export const DEFAULT_PREFS: NodePrefs = {
   view: "cards",
   role: null,
   power: "any",
+  hasPosition: false,
   columns: null,
 };
 
@@ -48,12 +51,14 @@ export function readPrefs(): NodePrefs {
     if (typeof raw !== "object" || raw === null) return DEFAULT_PREFS;
     const r = raw as Record<string, unknown>;
     return {
-      filter: oneOf(FILTERS, r.filter) ?? DEFAULT_PREFS.filter,
+      // Before CR-005: "online" was "Heard recently", "position" a filter of its own.
+      filter: oneOf(FILTERS, r.filter) ?? (r.filter === "online" ? "heard" : DEFAULT_PREFS.filter),
       sort: oneOf(SORTS, r.sort) ?? DEFAULT_PREFS.sort,
       density: oneOf(DENSITIES, r.density),
       view: oneOf(VIEWS, r.view) ?? DEFAULT_PREFS.view,
       role: typeof r.role === "string" ? r.role : null,
       power: oneOf(POWER_FILTERS, r.power) ?? DEFAULT_PREFS.power,
+      hasPosition: r.hasPosition === true || r.filter === "position",
       columns:
         Array.isArray(r.columns) && r.columns.every((c) => typeof c === "string")
           ? r.columns

@@ -10,9 +10,9 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "../data/keys.js";
 import { openNodeDetails, useUiStore } from "../data/ui-store.js";
-import { expectDataMt } from "../test/data-mt.js";
+import { byDataMt, expectDataMt } from "../test/data-mt.js";
 import { renderApp } from "../test/render-app.js";
-import { scenarioDashboard, scenarioNodeDetail } from "../test/scenario.js";
+import { scenarioChannels, scenarioDashboard, scenarioNodeDetail } from "../test/scenario.js";
 import { DRAWER_WIDTH_KEY } from "./width.js";
 
 const NOW = Date.now();
@@ -83,6 +83,7 @@ async function render(
 ) {
   return renderApp(path, {
     dashboard: scenarioDashboard("dashboard", NOW),
+    channels: scenarioChannels(),
     queries: [
       [queryKeys.nodeDetail(1, num), change(scenarioNodeDetail(num, "dashboard", NOW))],
       [queryKeys.history(1, num, "24h"), history()],
@@ -90,19 +91,25 @@ async function render(
       [queryKeys.signal(1, num, "24h"), signalSeries()],
       [queryKeys.signal(1, num, "30d"), signalSeries()],
       [
-        queryKeys.messages(1, { peer: num }),
-        {
-          messages: [
-            {
-              ...fixtures.inboundMessage,
-              fromNum: num,
-              peer: num,
-              text: "see you at the ridge",
-              rxTime: NOW - 120_000,
-            },
-          ],
-          cursor: null,
-        },
+        queryKeys.messagesFrom(1, num),
+        [
+          {
+            ...fixtures.inboundMessage,
+            fromNum: num,
+            peer: num,
+            text: "see you at the ridge",
+            rxTime: NOW - 120_000,
+          },
+          {
+            ...fixtures.inboundMessage,
+            id: "00000000-0000-4000-8000-0000000000aa",
+            fromNum: num,
+            peer: null,
+            channelIndex: 1,
+            text: "anyone up the ridge?",
+            rxTime: NOW - 600_000,
+          },
+        ],
       ],
     ],
   });
@@ -131,8 +138,13 @@ describe("<NodeDrawer />", () => {
     expect(router.state.location.pathname).toBe("/nodes");
     expect(router.state.location.search).toEqual({ node: "!0badcafe" });
     expect(within(dialog).getByRole("heading", { name: /Ridge Repeater/ })).toBeInTheDocument();
-    expect(dialog).toHaveTextContent("Router · RAK WisBlock 4631");
-    expect(dialog).toHaveTextContent("heard directly");
+    expect(byDataMt("node-drawer-short")).toHaveTextContent("RDG");
+    expect(byDataMt("node-drawer-subtitle")).toHaveTextContent("!0badcafe · RAK WisBlock 4631");
+    const pills = [...document.querySelectorAll('[data-mt="node-drawer-pill"]')].map(
+      (p) => p.textContent,
+    );
+    expect(pills).toEqual(["Router", "Heard directly"]);
+    expectDataMt(byDataMt("node-drawer-seen"), "node-drawer-seen", { state: "online" });
     expect(document.querySelector("[data-mt=node-list]")).toBeInTheDocument();
   });
 
@@ -152,7 +164,20 @@ describe("<NodeDrawer />", () => {
       "href",
       "/map?focus=%210badcafe",
     );
+    // Recent messages from this node: DMs and channels (CR-005, `?from=`).
     expect(screen.getByText("see you at the ridge")).toBeInTheDocument();
+    const where = [...document.querySelectorAll('[data-mt="detail-message-where"]')].map(
+      (e) => e.textContent,
+    );
+    expect(where).toEqual(["DM", "CH 1 · Friends"]);
+    // The stat grid and "… of you".
+    const stat = (v: string) =>
+      document.querySelector(`[data-mt="detail-stat"][data-mt-variant="${v}"] dd`);
+    expect(stat("hops")).toHaveTextContent("Direct");
+    expect(stat("snr")).toHaveTextContent("7.25 dB");
+    expect(stat("battery")).toHaveTextContent("Powered");
+    expect(stat("bearing")).toHaveTextContent("NE");
+    expect(byDataMt("detail-where")?.textContent).toMatch(/^\d+(\.\d)? km NE of you$/);
     expect(screen.getByRole("link", { name: "Message" })).toHaveAttribute(
       "href",
       "/messages/dm/!0badcafe",
@@ -215,6 +240,10 @@ describe("<NodeDrawer />", () => {
         name: "Voltage, 24 h: Voltage min 5.08 V max 5.12 V latest 5.10 V",
       }),
     ).toBeInTheDocument();
+    // External power: a note says so (the tab is loaded by now).
+    expect(
+      dialog.querySelector('[data-mt="detail-note"][data-mt-variant="mains"]'),
+    ).toHaveTextContent("external power");
     expectDataMt(
       dialog.querySelector('[data-mt="chart-group"][data-mt-variant="battery"]'),
       "chart-group",
@@ -241,6 +270,11 @@ describe("<NodeDrawer />", () => {
         name: /^SNR \(heard directly\), 24 h: SNR min 6\.0 dB/,
       }),
     ).toBeInTheDocument();
+    // Heard directly: the scale is explained, no multi-hop note.
+    expect(
+      dialog.querySelector('[data-mt="detail-note"][data-mt-variant="scale"]'),
+    ).toHaveTextContent("−17.5 dB");
+    expect(dialog.querySelector('[data-mt="detail-note"][data-mt-variant="multi-hop"]')).toBeNull();
     // The range is shared and remembered.
     await user.click(within(dialog).getByRole("button", { name: "30 d" }));
     expect(
@@ -250,6 +284,17 @@ describe("<NodeDrawer />", () => {
     await user.click(within(dialog).getByRole("tab", { name: "Raw" }));
     const raw = document.querySelector('[data-mt="raw-json"][data-mt-variant="node"]');
     expect(raw?.textContent).toContain('"publicKey"');
+    expect(raw?.querySelector('[data-mt="raw-key"]')).not.toBeNull();
+  });
+
+  it("Signal for a node heard through relays says why there's no signal history", async () => {
+    const user = userEvent.setup();
+    const { dialog } = await open(RIDGE, (d) => ({ ...d, hopsAway: 2 }));
+    await user.click(within(dialog).getByRole("tab", { name: "Signal" }));
+    expect(await screen.findByText(/My node hears this one through 2 hops/)).toHaveAttribute(
+      "data-mt-variant",
+      "multi-hop",
+    );
   });
 
   it("Escape and ✕ close it and drop ?node= from the URL", async () => {

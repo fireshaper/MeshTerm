@@ -762,6 +762,16 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` 
 - README: how to use topographic tiles, and that MeshTerm only shows the OpenStreetMap credit today.
 - **Tests:** layer builders (direct links only, ring radius and closure, antimeridian, nearest order), toggles remembered and junk ignored, style order and visibility, pin size; e2e (pin → sheet → Details, nearest list → sheet → Close, toggles remembered across reload, light / dark keeps the camera); visual baselines re-recorded.
 
+### CR-005 Phase K5: Nodes page and node drawer (done 2026-11-02)
+
+- **Nodes toolbar:** search, sort (last heard, distance, signal, battery, name, hops) and cards / table; filter chips with live counts (All, Heard 1 h, Direct, Routers, Favorites, Low battery < 35 %, Silent 2 h+); "More filters" for role, power, has position, density and columns. An empty state with Clear filters.
+- **Cards** get the roster head (big callsign, name, bearing arrow, star). **Table:** Callsign, Heard, Signal (bars and dB, or "relayed" for multi-hop), distance with the bearing arrow, the CR's column order.
+- **Drawer header:** the big callsign, long name, `!id · hardware` with copy, pills (heard, role, hops, MQTT, new today, firmware).
+- **Overview:** a 3 × 3 stat grid (last heard, hops, SNR, RSSI, distance, bearing, battery, ch util, uptime), notes (battery forecast, silent router), "6.2 km NE of you" over the mini map, recent messages from the node on any channel or DM (new `?from=` on the messages API), then the detail sections ("Identity" is now "Device").
+- **Telemetry / Signal:** threshold lines are labeled (Low 20 %, Critical 10 %, Throttle 25 %, 0 dB, LongFast floor −17.5 dB); notes for mains power, the SNR / RSSI scale, and nodes heard through relays.
+- **Raw:** highlighted JSON (keys, strings, numbers, booleans, null).
+- **Tests:** chips (each filter, counts, migration of old prefs), table cells, `batteryForecast`, `detailNotes`, `highlightJson`, the `?from=` route, drawer header / stats / notes / messages, e2e keyboard (Enter opens, arrows and End move between tabs, Escape returns focus); visual baselines re-recorded.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

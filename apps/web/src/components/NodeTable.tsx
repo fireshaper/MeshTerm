@@ -10,7 +10,9 @@ import { Columns3, Star } from "lucide-react";
 import { memo, type ReactNode } from "react";
 import { BatteryMeter } from "../dashboard/BatteryMeter.js";
 import { formatAbsolute, formatAgo, formatPercent } from "../dashboard/format.js";
-import { bearingDegrees, cardinal, formatDistance, haversineMeters } from "../dashboard/geo.js";
+import { BearingArrow } from "../dashboard/BearingArrow.js";
+import { bearingDegrees, formatDistance, haversineMeters } from "../dashboard/geo.js";
+import { SignalBars } from "../dashboard/SignalBars.js";
 import { ageLabel, isStale, STATUS_LABELS } from "../dashboard/insights.js";
 import { hardwareLabel, roleLabel } from "../dashboard/labels.js";
 import { nodeStatus } from "../dashboard/view.js";
@@ -30,19 +32,18 @@ interface Column {
 
 const dash = "—";
 
-/** Every optional column; Name is always shown. */
+/** Every optional column, in display order (CR-005 §6.5); Name is always shown. */
 export const COLUMNS: Column[] = [
-  { id: "short", label: "Short", cell: (c) => c.shortName || dash },
+  {
+    id: "short",
+    label: "Callsign",
+    cell: (c) => <span data-mt="node-callsign">{c.shortName || dash}</span>,
+  },
   { id: "id", label: "ID", cell: (c) => c.userId },
   { id: "role", label: "Role", cell: (c) => (c.role === null ? dash : roleLabel(c.role)) },
   {
-    id: "hardware",
-    label: "Hardware",
-    cell: (c) => (c.hwModel === null ? dash : hardwareLabel(c.hwModel)),
-  },
-  {
     id: "lastHeard",
-    label: "Last heard",
+    label: "Heard",
     cell: (c, { now }) =>
       c.lastHeard === null ? (
         "Never"
@@ -51,6 +52,39 @@ export const COLUMNS: Column[] = [
           {formatAgo(c.lastHeard, now)}
         </time>
       ),
+  },
+  {
+    id: "signal",
+    label: "Signal",
+    // Bars and SNR for nodes heard directly; relayed packets carry the last relay's signal.
+    cell: (c) =>
+      c.isSelf ? (
+        dash
+      ) : c.hopsAway !== null && c.hopsAway > 0 ? (
+        <span data-mt="cell-signal" data-mt-variant="relayed">
+          relayed
+        </span>
+      ) : c.snr === null ? (
+        dash
+      ) : (
+        <span data-mt="cell-signal">
+          <SignalBars snr={c.snr} />
+          {c.snr} dB
+        </span>
+      ),
+  },
+  // The local node reports SNR 0 for itself; signal to yourself means nothing.
+  { id: "snr", label: "SNR", cell: (c) => (c.isSelf || c.snr === null ? dash : `${c.snr} dB`) },
+  {
+    id: "rssi",
+    label: "RSSI",
+    cell: (c) => (c.isSelf || c.rssi === null ? dash : `${c.rssi} dBm`),
+  },
+  {
+    id: "hops",
+    label: "Hops",
+    cell: (c) =>
+      c.isSelf || c.hopsAway === null ? dash : c.hopsAway === 0 ? "Direct" : c.hopsAway,
   },
   {
     id: "battery",
@@ -74,28 +108,23 @@ export const COLUMNS: Column[] = [
     label: "Voltage",
     cell: (c) => (c.device?.voltage == null ? dash : `${c.device.voltage.toFixed(2)} V`),
   },
-  // The local node reports SNR 0 for itself; signal to yourself means nothing.
-  { id: "snr", label: "SNR", cell: (c) => (c.isSelf || c.snr === null ? dash : `${c.snr} dB`) },
-  {
-    id: "rssi",
-    label: "RSSI",
-    cell: (c) => (c.isSelf || c.rssi === null ? dash : `${c.rssi} dBm`),
-  },
-  {
-    id: "hops",
-    label: "Hops",
-    cell: (c) =>
-      c.isSelf || c.hopsAway === null ? dash : c.hopsAway === 0 ? "Direct" : c.hopsAway,
-  },
   {
     id: "distance",
     label: "Distance",
     cell: (c, { origin }) =>
-      !c.isSelf && origin && c.position
-        ? `${formatDistance(haversineMeters(origin, c.position))} ${cardinal(
-            bearingDegrees(origin, c.position),
-          )}`
-        : dash,
+      !c.isSelf && origin && c.position ? (
+        <span data-mt="cell-distance">
+          {formatDistance(haversineMeters(origin, c.position))}
+          <BearingArrow degrees={bearingDegrees(origin, c.position)} />
+        </span>
+      ) : (
+        dash
+      ),
+  },
+  {
+    id: "hardware",
+    label: "Hardware",
+    cell: (c) => (c.hwModel === null ? dash : hardwareLabel(c.hwModel)),
   },
   {
     id: "channelUtil",
@@ -107,12 +136,12 @@ export const COLUMNS: Column[] = [
 export const DEFAULT_COLUMNS = [
   "short",
   "role",
-  "hardware",
   "lastHeard",
-  "battery",
-  "snr",
+  "signal",
   "hops",
+  "battery",
   "distance",
+  "hardware",
 ];
 
 interface NodeTableProps extends Ctx {

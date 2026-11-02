@@ -1,4 +1,4 @@
-import type { NodeCard as NodeCardData } from "@meshterm/shared";
+import { DEFAULT_DASHBOARD_THRESHOLDS, type NodeCard as NodeCardData } from "@meshterm/shared";
 import { useCallback, useMemo, useState } from "react";
 import { ColumnPicker, DEFAULT_COLUMNS, NodeTable } from "../components/NodeTable.js";
 import { PageHeader } from "../components/PageHeader.js";
@@ -9,7 +9,7 @@ import { NodeCard } from "../dashboard/NodeCard.js";
 import { NodesToolbar } from "../dashboard/NodesToolbar.js";
 import { useNodePrefs } from "../dashboard/prefs.js";
 import { useToggleFavorite } from "../dashboard/useFavorite.js";
-import { arrangeCards, nodeStatus, type Density } from "../dashboard/view.js";
+import { arrangeCards, filterCounts, nodeStatus, type Density } from "../dashboard/view.js";
 import { useDashboard } from "../data/queries.js";
 import { useLiveStore } from "../data/store.js";
 
@@ -48,11 +48,34 @@ export function NodesPage() {
             sort: prefs.sort,
             role: prefs.role,
             power: prefs.power,
+            hasPosition: prefs.hasPosition,
             now,
             thresholds,
           })
         : null,
-    [cards, thresholds, query, prefs.filter, prefs.sort, prefs.role, prefs.power, now],
+    [
+      cards,
+      thresholds,
+      query,
+      prefs.filter,
+      prefs.sort,
+      prefs.role,
+      prefs.power,
+      prefs.hasPosition,
+      now,
+    ],
+  );
+  const counts = useMemo(
+    () =>
+      filterCounts(cards ?? [], {
+        query,
+        role: prefs.role,
+        power: prefs.power,
+        hasPosition: prefs.hasPosition,
+        now,
+        thresholds: thresholds ?? DEFAULT_DASHBOARD_THRESHOLDS,
+      }),
+    [cards, query, prefs.role, prefs.power, prefs.hasPosition, now, thresholds],
   );
   const origin = cards?.find((c) => c.isSelf)?.position ?? null;
 
@@ -104,6 +127,11 @@ export function NodesPage() {
             onFilter={(filter) => {
               setPrefs({ filter });
             }}
+            counts={counts}
+            hasPosition={prefs.hasPosition}
+            onHasPosition={(hasPosition) => {
+              setPrefs({ hasPosition });
+            }}
             roles={roles}
             role={prefs.role}
             onRole={(role) => {
@@ -142,7 +170,22 @@ export function NodesPage() {
               </EmptyState>
             </div>
           ) : ordered.length === 0 || !sections || !thresholds ? (
-            <p data-mt="dashboard-no-match">No nodes match the search and filters.</p>
+            <div data-mt="dashboard-no-match">
+              <EmptyState title="No nodes match">
+                Nothing fits the search and filters.{" "}
+                <button
+                  type="button"
+                  data-mt="button"
+                  data-mt-variant="clear-filters"
+                  onClick={() => {
+                    setQuery("");
+                    setPrefs({ filter: "all", role: null, power: "any", hasPosition: false });
+                  }}
+                >
+                  Clear filters
+                </button>
+              </EmptyState>
+            </div>
           ) : prefs.view === "table" ? (
             <NodeTable
               cards={ordered}

@@ -39,24 +39,49 @@ export function batteryState(level: number | null): BatteryState {
   return "ok";
 }
 
-export const FILTERS = ["all", "online", "favorites", "position"] as const;
+/** The Nodes page's filter chips (CR-005 §6.5); each shows a live count. */
+export const FILTERS = [
+  "all",
+  "heard",
+  "direct",
+  "routers",
+  "favorites",
+  "low-battery",
+  "silent",
+] as const;
 export type Filter = (typeof FILTERS)[number];
 export const FILTER_LABELS: Record<Filter, string> = {
   all: "All",
-  online: "Heard recently",
+  heard: "Heard 1 h",
+  direct: "Direct",
+  routers: "Routers",
   favorites: "Favorites",
-  position: "Has position",
+  "low-battery": "Low battery",
+  silent: "Silent 2 h+",
 };
+
+/** Chip thresholds: heard within an hour, battery under 35 %, silent for two hours. */
+export const HEARD_MS = 3600_000;
+export const LOW_BATTERY = 35;
+export const SILENT_MS = 2 * 3600_000;
+
+/** Roles that relay for others (the Routers chip). */
+export const RELAY_ROLES: ReadonlySet<string> = new Set([
+  "ROUTER",
+  "ROUTER_LATE",
+  "ROUTER_CLIENT",
+  "REPEATER",
+]);
 
 export const SORTS = ["lastSeen", "name", "distance", "battery", "hops", "snr"] as const;
 export type Sort = (typeof SORTS)[number];
 export const SORT_LABELS: Record<Sort, string> = {
-  lastSeen: "Last seen",
+  lastSeen: "Last heard",
   name: "Name",
   distance: "Distance",
   battery: "Battery",
   hops: "Hops",
-  snr: "SNR",
+  snr: "Signal",
 };
 
 export const POWER_FILTERS = ["any", "battery", "external", "low", "unknown"] as const;
@@ -102,21 +127,23 @@ export function matchesSearch(card: NodeCard, query: string): boolean {
   return haystack.some((s) => s.toLowerCase().includes(q));
 }
 
-export function matchesFilter(
-  card: NodeCard,
-  filter: Filter,
-  now: number,
-  thresholds: DashboardThresholds,
-): boolean {
+export function matchesFilter(card: NodeCard, filter: Filter, now: number): boolean {
+  const level = card.device?.batteryLevel ?? null;
   switch (filter) {
     case "all":
       return true;
-    case "online":
-      return nodeStatus(card.lastHeard, now, thresholds) === "online";
+    case "heard":
+      return card.lastHeard !== null && now - card.lastHeard <= HEARD_MS;
+    case "direct":
+      return !card.isSelf && card.hopsAway === 0;
+    case "routers":
+      return card.role !== null && RELAY_ROLES.has(card.role);
     case "favorites":
       return card.isFavorite;
-    case "position":
-      return card.position !== null;
+    case "low-battery":
+      return level !== null && level <= 100 && level < LOW_BATTERY;
+    case "silent":
+      return card.lastHeard === null || now - card.lastHeard > SILENT_MS;
   }
 }
 
@@ -173,9 +200,34 @@ export interface ViewOptions {
   /** A role enum name, or null for all roles. */
   role?: string | null;
   power?: PowerFilter;
+  /** "More filters": only nodes with a position. */
+  hasPosition?: boolean;
   sort: Sort;
   now: number;
   thresholds: DashboardThresholds;
+}
+
+/** Search and the "More filters" (role, power, position): what the chips then narrow. */
+function matchesRest(c: NodeCard, options: Omit<ViewOptions, "filter" | "sort">): boolean {
+  return (
+    matchesSearch(c, options.query) &&
+    (options.role == null || c.role === options.role) &&
+    matchesPower(c, options.power ?? "any") &&
+    (!options.hasPosition || c.position !== null)
+  );
+}
+
+/** How many nodes each chip would show with the current search and other filters. */
+export function filterCounts(
+  cards: readonly NodeCard[],
+  options: Omit<ViewOptions, "filter" | "sort">,
+): Record<Filter, number> {
+  const counts = Object.fromEntries(FILTERS.map((f) => [f, 0])) as Record<Filter, number>;
+  for (const c of cards) {
+    if (!matchesRest(c, options)) continue;
+    for (const f of FILTERS) if (matchesFilter(c, f, options.now)) counts[f] += 1;
+  }
+  return counts;
 }
 
 /** Search, filter and sort; then my node first and favorites pinned above everyone else. */
@@ -183,13 +235,7 @@ export function arrangeCards(cards: readonly NodeCard[], options: ViewOptions): 
   const self = cards.find((c) => c.isSelf) ?? null;
   const origin = self?.position ?? null;
   const visible = cards
-    .filter(
-      (c) =>
-        matchesSearch(c, options.query) &&
-        matchesFilter(c, options.filter, options.now, options.thresholds) &&
-        (options.role == null || c.role === options.role) &&
-        matchesPower(c, options.power ?? "any"),
-    )
+    .filter((c) => matchesRest(c, options) && matchesFilter(c, options.filter, options.now))
     .sort(compareCards(options.sort, origin));
   return {
     self: visible.find((c) => c.isSelf) ?? null,

@@ -132,3 +132,51 @@ export function recentlyActive(
     )
     .sort((a, b) => (b.lastHeard ?? 0) - (a.lastHeard ?? 0) || a.num - b.num);
 }
+
+/** The battery level a forecast counts down to (the critical line). */
+export const FORECAST_TARGET = 10;
+
+export interface BatteryForecast {
+  /** Hours until the level reaches `FORECAST_TARGET`, from the last reading. */
+  hours: number;
+  /** Fitted change per hour (negative). */
+  perHour: number;
+}
+
+/**
+ * When a draining battery hits the critical line (CR-005 §6.6), from a straight-line
+ * fit of the readings. Only when it is falling, already under 50 %, the readings span
+ * at least two hours and the fit explains most of them (R² ≥ 0.6); otherwise null.
+ * Readings above 100 (external power) are left out.
+ */
+export function batteryForecast(
+  points: readonly (readonly [number, number])[],
+): BatteryForecast | null {
+  const pts = points.filter(([, v]) => v >= 0 && v <= 100);
+  if (pts.length < 4) return null;
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  if (!first || !last || last[0] - first[0] < 2 * 3600_000 || last[1] >= 50) return null;
+  const xs = pts.map(([t]) => (t - first[0]) / 3600_000);
+  const ys = pts.map(([, v]) => v);
+  const n = pts.length;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let sxy = 0;
+  let sxx = 0;
+  let syy = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = (xs[i] ?? 0) - mx;
+    const dy = (ys[i] ?? 0) - my;
+    sxy += dx * dy;
+    sxx += dx * dx;
+    syy += dy * dy;
+  }
+  if (sxx === 0 || syy === 0) return null;
+  const slope = sxy / sxx;
+  const r2 = (sxy * sxy) / (sxx * syy);
+  if (slope >= 0 || r2 < 0.6) return null;
+  const fittedNow = my + slope * ((xs[n - 1] ?? 0) - mx);
+  const hours = Math.max(0, (fittedNow - FORECAST_TARGET) / -slope);
+  return { hours, perHour: slope };
+}

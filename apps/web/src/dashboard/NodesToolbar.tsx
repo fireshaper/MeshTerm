@@ -1,4 +1,4 @@
-import { LayoutGrid, Rows3, Search } from "lucide-react";
+import { LayoutGrid, Rows3, Search, SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { roleLabel } from "./labels.js";
 import type { NodesView } from "./prefs.js";
@@ -21,6 +21,10 @@ interface NodesToolbarProps {
   onQuery: (query: string) => void;
   filter: Filter;
   onFilter: (filter: Filter) => void;
+  /** Live count per chip (CR-005). */
+  counts: Record<Filter, number>;
+  hasPosition: boolean;
+  onHasPosition: (on: boolean) => void;
   /** Roles present in the node DB, for the role filter. */
   roles: readonly string[];
   role: string | null;
@@ -53,8 +57,14 @@ const VIEW_LABELS: Record<NodesView, ReactNode> = {
   ),
 };
 
-/** Search, filters, sort and view for the node inventory. */
+/**
+ * Search, sort and view, then filter chips with live counts (CR-005 §6.5); role, power,
+ * position, density and columns live under "More filters".
+ */
 export function NodesToolbar(props: NodesToolbarProps) {
+  const more = [props.role !== null, props.power !== "any", props.hasPosition].filter(
+    Boolean,
+  ).length;
   return (
     <div data-mt="nodes-toolbar" role="toolbar" aria-label="Node view">
       <div data-mt="toolbar-row">
@@ -70,45 +80,6 @@ export function NodesToolbar(props: NodesToolbarProps) {
             }}
           />
         </label>
-        <Segmented
-          hook="nodes-view"
-          label="View"
-          options={["cards", "table"] as const}
-          labels={VIEW_LABELS}
-          value={props.view}
-          onChange={props.onView}
-        />
-      </div>
-      <div data-mt="toolbar-row">
-        <Segmented
-          hook="dashboard-filter"
-          label="Filter"
-          options={FILTERS}
-          labels={FILTER_LABELS}
-          value={props.filter}
-          onChange={props.onFilter}
-        />
-        <Select
-          hook="role-filter"
-          label="Role"
-          value={props.role ?? ""}
-          onChange={(v) => {
-            props.onRole(v === "" ? null : v);
-          }}
-          options={[
-            ["", "All roles"],
-            ...props.roles.map((r): [string, string] => [r, roleLabel(r)]),
-          ]}
-        />
-        <Select
-          hook="power-filter"
-          label="Power"
-          value={props.power}
-          onChange={(v) => {
-            props.onPower(v as PowerFilter);
-          }}
-          options={POWER_FILTERS.map((p): [string, string] => [p, POWER_LABELS[p]])}
-        />
         <Select
           hook="dashboard-sort"
           label="Sort"
@@ -118,17 +89,85 @@ export function NodesToolbar(props: NodesToolbarProps) {
           }}
           options={SORTS.map((s): [string, string] => [s, SORT_LABELS[s]])}
         />
-        {props.view === "cards" ? (
-          <Segmented
-            hook="dashboard-density"
-            label="Density"
-            options={DENSITIES}
-            labels={DENSITY_LABELS}
-            value={props.density}
-            onChange={props.onDensity}
-          />
-        ) : null}
-        {props.children}
+        <Segmented
+          hook="nodes-view"
+          label="View"
+          options={["cards", "table"] as const}
+          labels={VIEW_LABELS}
+          value={props.view}
+          onChange={props.onView}
+        />
+      </div>
+      <div data-mt="toolbar-row" data-mt-variant="chips">
+        <div data-mt="filter-chips" role="group" aria-label="Filter">
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              data-mt="filter-chip"
+              data-mt-variant={f}
+              data-mt-state={f === props.filter ? "active" : "inactive"}
+              aria-pressed={f === props.filter}
+              onClick={() => {
+                props.onFilter(f);
+              }}
+            >
+              {FILTER_LABELS[f]}
+              <span data-mt="filter-chip-count">{props.counts[f]}</span>
+            </button>
+          ))}
+        </div>
+        <details data-mt="filters-popover">
+          <summary data-mt="filters-popover-button">
+            <SlidersHorizontal data-mt="icon" aria-hidden focusable={false} />
+            More filters
+            {more > 0 && <span data-mt="filter-chip-count">{more}</span>}
+          </summary>
+          <div data-mt="filters-popover-menu">
+            <Select
+              hook="role-filter"
+              label="Role"
+              value={props.role ?? ""}
+              onChange={(v) => {
+                props.onRole(v === "" ? null : v);
+              }}
+              options={[
+                ["", "All roles"],
+                ...props.roles.map((r): [string, string] => [r, roleLabel(r)]),
+              ]}
+            />
+            <Select
+              hook="power-filter"
+              label="Power"
+              value={props.power}
+              onChange={(v) => {
+                props.onPower(v as PowerFilter);
+              }}
+              options={POWER_FILTERS.map((p): [string, string] => [p, POWER_LABELS[p]])}
+            />
+            <label data-mt="position-filter">
+              <input
+                type="checkbox"
+                checked={props.hasPosition}
+                onChange={(e) => {
+                  props.onHasPosition(e.target.checked);
+                }}
+              />
+              Has position
+            </label>
+            {props.view === "cards" ? (
+              <Segmented
+                hook="dashboard-density"
+                label="Density"
+                options={DENSITIES}
+                labels={DENSITY_LABELS}
+                value={props.density}
+                onChange={props.onDensity}
+              />
+            ) : null}
+            {props.children}
+          </div>
+        </details>
       </div>
     </div>
   );

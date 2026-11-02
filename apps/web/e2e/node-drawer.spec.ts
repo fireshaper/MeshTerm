@@ -42,6 +42,34 @@ test("a ?node= deep link opens it over another view; Escape closes and stays the
   await expect(page).toHaveURL(/\/messages\/channel\/0$/);
 });
 
+test("keyboard: Enter on a card opens it, arrows move between tabs, Escape returns focus", async ({
+  page,
+}) => {
+  await page.goto(`${DASH}/nodes`);
+  const card = page.locator("[data-mt=node-card][data-node-num='195939070']");
+  await card.focus();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Ridge Repeater" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator("[data-mt=node-drawer-short]")).toHaveText("RDG");
+  await expect(dialog.locator("[data-mt=detail-stat]")).toHaveCount(9);
+  const overview = dialog.getByRole("tab", { name: "Overview" });
+  await overview.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(dialog.getByRole("tab", { name: "Telemetry" })).toBeFocused();
+  await expect(dialog.getByRole("tab", { name: "Telemetry" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await page.keyboard.press("End");
+  await expect(dialog.getByRole("tab", { name: "Raw" })).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(overview).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(drawer(page)).toHaveCount(0);
+  await expect(card).toBeFocused();
+});
+
 test("tabs: Telemetry draws a chart, Raw shows JSON", async ({ page }) => {
   await page.goto(`${DASH}/dashboard?node=!0badcafe`);
   const dialog = page.getByRole("dialog", { name: "Ridge Repeater" });

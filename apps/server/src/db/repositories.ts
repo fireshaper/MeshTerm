@@ -280,6 +280,24 @@ export function listDmMessages(
   );
 }
 
+/** CR-005: what one node sent, on any channel or as a DM to us (incoming only). */
+export function listMessagesFrom(
+  db: Db,
+  connectionId: number,
+  fromNum: number,
+  page: PageOptions = {},
+): Message[] {
+  return listMessages(
+    db,
+    and(
+      eq(messages.connectionId, connectionId),
+      eq(messages.fromNum, fromNum),
+      eq(messages.direction, "in"),
+    ),
+    page,
+  );
+}
+
 /** Node numbers the user chose to ignore. */
 export function ignoredNodes(db: Db, connectionId: number): Set<number> {
   return new Set(

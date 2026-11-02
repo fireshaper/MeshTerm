@@ -111,9 +111,14 @@
       0 0 0 calc(var(--mt-border-width) * 2) var(--mt-accent);
   }
 
+  /* CR-005: the roster card's head: big callsign, name under it, bearing and star right. */
   [data-mt="node-card-header"] {
     display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template:
+      "dot short bearing star" auto
+      "long long bearing star" auto
+      "meta meta meta meta" auto
+      / auto minmax(0, 1fr) auto auto;
     align-items: center;
     gap: var(--mt-space-1) var(--mt-space-2);
   }
@@ -169,7 +174,7 @@
   }
 
   [data-mt="node-card-meta"] {
-    grid-column: 1 / -1;
+    grid-area: meta;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -959,5 +964,34 @@
 
   [data-mt="mini-map-link"]:focus-visible {
     outline-offset: calc(var(--mt-space-1) * -1);
+  }
+}
+
+/* CR-005: where the node card head places its parts (after the parts' own rules). */
+@layer base {
+  [data-mt="node-card-header"] > [data-mt="status-dot"] {
+    grid-area: dot;
+  }
+
+  [data-mt="node-card-header"] > [data-mt="node-short-name"] {
+    grid-area: short;
+    font-family: var(--mt-font-display);
+    font-size: var(--mt-font-size-xl);
+    font-stretch: var(--mt-font-display-stretch);
+    line-height: 1;
+  }
+
+  [data-mt="node-card-header"] > [data-mt="node-long-name"] {
+    grid-area: long;
+    color: var(--mt-text-muted);
+    font-size: var(--mt-font-size-sm);
+  }
+
+  [data-mt="node-card-header"] > [data-mt="bearing"] {
+    grid-area: bearing;
+  }
+
+  [data-mt="node-card-header"] > [data-mt="favorite-toggle"] {
+    grid-area: star;
   }
 }

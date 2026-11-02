@@ -307,6 +307,12 @@ export const api = {
     );
   },
 
+  /** CR-005: the newest messages one node sent, on any channel or as a DM. */
+  messagesFrom: (connectionId: number, num: number, limit: number) =>
+    request<{ messages: Message[]; nextCursor: string | null }>(
+      `/api/connections/${connectionId}/messages?from=${String(num)}&limit=${String(limit)}`,
+    ),
+
   send: (connectionId: number, text: string, conversation: Conversation) =>
     request<{ message: Message }>(`/api/connections/${connectionId}/messages`, {
       method: "POST",

@@ -89,15 +89,14 @@ test("injected telemetry updates a card live, with the update flash and no refet
 
 test("Nodes page: filter, sort and view survive a reload", async ({ page }) => {
   await openNodes(page);
-  await page.getByRole("button", { name: "Has position" }).click();
+  await page.getByText("More filters").click();
+  await page.getByRole("checkbox", { name: "Has position" }).check();
   await page.getByRole("combobox", { name: "Sort" }).selectOption("name");
   expect(await sectionNames(page, "all")).toEqual(["GAR", "TRL"]);
   await page.reload();
   await expect(page.locator("[data-mt=node-card]").first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "Has position" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await page.getByText("More filters").click();
+  await expect(page.getByRole("checkbox", { name: "Has position" })).toBeChecked();
   await expect(page.getByRole("combobox", { name: "Sort" })).toHaveValue("name");
   expect(await sectionNames(page, "all")).toEqual(["GAR", "TRL"]);
 

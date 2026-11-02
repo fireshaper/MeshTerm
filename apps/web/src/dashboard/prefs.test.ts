@@ -14,7 +14,7 @@ describe("node page prefs", () => {
   it("persist across remounts", () => {
     const first = renderHook(() => useNodePrefs());
     act(() => {
-      first.result.current[1]({ filter: "online", sort: "battery" });
+      first.result.current[1]({ filter: "heard", sort: "battery" });
     });
     act(() => {
       first.result.current[1]({
@@ -28,14 +28,22 @@ describe("node page prefs", () => {
     first.unmount();
     const second = renderHook(() => useNodePrefs());
     expect(second.result.current[0]).toEqual({
-      filter: "online",
+      filter: "heard",
       sort: "battery",
       density: "compact",
       view: "table",
       role: "ROUTER",
       power: "low",
+      hasPosition: false,
       columns: ["id"],
     });
+  });
+
+  it("carry over the filters from before the chips (CR-005)", () => {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ filter: "online" }));
+    expect(readPrefs()).toMatchObject({ filter: "heard", hasPosition: false });
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ filter: "position" }));
+    expect(readPrefs()).toMatchObject({ filter: "all", hasPosition: true });
   });
 
   it("fall back to defaults for missing or invalid values", () => {

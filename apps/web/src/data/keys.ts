@@ -49,6 +49,8 @@ export const queryKeys = {
   allMessages: (connectionId: number) => ["messages", connectionId] as const,
   messages: (connectionId: number, conversation: Conversation) =>
     ["messages", connectionId, conversation] as const,
+  /** CR-005: what one node sent (the drawer); not a conversation, so not under `messages`. */
+  messagesFrom: (connectionId: number, num: number) => ["messagesFrom", connectionId, num] as const,
 };
 
 /** The conversation a message belongs to (`peer` is null for broadcasts). */

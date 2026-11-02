@@ -4,6 +4,8 @@ import { scenarioDashboard } from "../test/scenario.js";
 import {
   arrangeCards,
   batteryState,
+  filterCounts,
+  FILTERS,
   levelOf,
   matchesSearch,
   nodeStatus,
@@ -97,11 +99,38 @@ describe("arrangeCards", () => {
   });
 
   it.each<[Filter, ReturnType<typeof order>]>([
-    ["online", { self: "MTB", favorites: ["RDG"], others: ["GAR"] }],
+    ["heard", { self: "MTB", favorites: ["RDG"], others: ["GAR", "TRL"] }],
+    ["direct", { self: null, favorites: ["RDG", "HIL"], others: [] }],
+    ["routers", { self: null, favorites: ["RDG", "HIL"], others: [] }],
     ["favorites", { self: null, favorites: ["RDG", "HIL"], others: [] }],
-    ["position", { self: "MTB", favorites: ["RDG", "HIL"], others: ["GAR", "TRL"] }],
-  ])("filter %s", (filter, expected) => {
+    ["low-battery", { self: null, favorites: ["HIL"], others: ["KYK"] }],
+    ["silent", { self: null, favorites: ["HIL"], others: ["KYK", "BIK"] }],
+  ])("chip %s", (filter, expected) => {
     expect(order({ filter })).toEqual(expected);
+  });
+
+  it("'has position' (More filters) combines with the chips", () => {
+    expect(order({ hasPosition: true })).toEqual({
+      self: "MTB",
+      favorites: ["RDG", "HIL"],
+      others: ["GAR", "TRL"],
+    });
+    expect(order({ hasPosition: true, filter: "silent" })).toEqual({
+      self: null,
+      favorites: ["HIL"],
+      others: [],
+    });
+  });
+
+  it("chip counts match what each chip shows, under the search and other filters", () => {
+    const base = { query: "", now: NOW, thresholds: DEFAULT_DASHBOARD_THRESHOLDS };
+    const counts = filterCounts(cards, base);
+    for (const filter of FILTERS) {
+      const s = order({ filter });
+      expect(counts[filter], filter).toBe((s.self ? 1 : 0) + s.favorites.length + s.others.length);
+    }
+    expect(counts.all).toBe(cards.length);
+    expect(filterCounts(cards, { ...base, query: "hill" }).all).toBe(1);
   });
 
   it.each<[Sort, string[]]>([

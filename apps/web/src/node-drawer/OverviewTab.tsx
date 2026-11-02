@@ -1,6 +1,7 @@
 import { nodeIdFromNum, type LatestTelemetry, type NodeDetailDTO } from "@meshterm/shared";
 import { Link } from "@tanstack/react-router";
 import { MapPin } from "lucide-react";
+import type { ReactNode } from "react";
 import { InfoTip } from "../components/InfoTip.js";
 import { useNow } from "../components/useNow.js";
 import { BatteryMeter } from "../dashboard/BatteryMeter.js";
@@ -16,9 +17,13 @@ import { isStale } from "../dashboard/insights.js";
 import { hardwareLabel, roleLabel } from "../dashboard/labels.js";
 import { MiniMap } from "../dashboard/MiniMap.js";
 import { SignalBars } from "../dashboard/SignalBars.js";
-import { useConversation } from "../data/queries.js";
+import { useChannels, useMessagesFrom } from "../data/queries.js";
 import { useThresholds } from "../messages/useNodeMap.js";
 import { formatMetric, metricInfo, orderedMetrics } from "./metrics.js";
+import { detailNotes } from "./notes.js";
+import { BearingArrow } from "../dashboard/BearingArrow.js";
+import { channelDisplayName } from "@meshterm/shared";
+import type { DashboardThresholds } from "@meshterm/shared";
 import { CopyButton, Field, ICON, NA, Reported, Section } from "./parts.js";
 
 function hopsText(hops: number | null): string {
@@ -40,23 +45,34 @@ function MetricFields({ report }: { report: LatestTelemetry }) {
   );
 }
 
+/** What this node said lately, on any channel or to us (CR-005 §6.6). */
 function RecentMessages({ connectionId, num }: { connectionId: number; num: number }) {
   const now = useNow();
-  const { data, isPending } = useConversation(connectionId, { peer: num });
-  const recent = (data?.messages ?? []).slice(-5).reverse();
+  const { data, isPending } = useMessagesFrom(connectionId, num);
+  const { data: channels } = useChannels(connectionId);
+  const where = (channel: number, peer: number | null) => {
+    if (peer !== null) return "DM";
+    const c = Array.isArray(channels) ? channels.find((x) => x.index === channel) : undefined;
+    return `CH ${channel}${c ? ` · ${channelDisplayName(c, null)}` : ""}`;
+  };
+  const recent = Array.isArray(data) ? data : [];
   return (
-    <Section name="messages" title="Recent direct messages">
+    <Section name="messages" title="Recent messages from this node">
       {isPending ? (
         <p data-mt="detail-note">Loading…</p>
       ) : recent.length === 0 ? (
-        <p data-mt="detail-note">No direct messages with this node yet.</p>
+        <p data-mt="detail-note">No messages from this node yet.</p>
       ) : (
         <ul data-mt="detail-messages">
           {recent.map((m) => (
-            <li key={m.id} data-mt="detail-message" data-mt-variant={m.direction}>
+            <li
+              key={m.id}
+              data-mt="detail-message"
+              data-mt-variant={m.peer === null ? "channel" : "dm"}
+            >
+              <span data-mt="detail-message-where">{where(m.channelIndex, m.peer)}</span>
               <span data-mt="detail-message-text">{m.text}</span>
               <time dateTime={new Date(m.rxTime).toISOString()} title={formatAbsolute(m.rxTime)}>
-                {m.direction === "out" ? "sent " : ""}
                 {formatAgo(m.rxTime, Math.max(now, m.rxTime))}
               </time>
             </li>
@@ -64,6 +80,84 @@ function RecentMessages({ connectionId, num }: { connectionId: number; num: numb
         </ul>
       )}
     </Section>
+  );
+}
+
+/** The nine numbers at the top of the Overview (CR-005 §6.6). */
+function StatGrid({ node, now }: { node: NodeDetailDTO; now: number }) {
+  const device = node.device;
+  const level = device?.batteryLevel ?? null;
+  const at = node.origin && node.position && !node.isSelf ? node.position : null;
+  const bearing = at && node.origin ? bearingDegrees(node.origin, at) : null;
+  const direct = !node.isSelf && node.hopsAway === 0;
+  const stats: [string, string, ReactNode][] = [
+    [
+      "last-heard",
+      "Last heard",
+      node.lastHeard === null ? "Never" : formatAgo(node.lastHeard, Math.max(now, node.lastHeard)),
+    ],
+    [
+      "hops",
+      "Hops",
+      node.isSelf
+        ? "—"
+        : node.hopsAway === null
+          ? "?"
+          : node.hopsAway === 0
+            ? "Direct"
+            : node.hopsAway,
+    ],
+    ["snr", "SNR", direct && node.snr !== null ? `${node.snr} dB` : "—"],
+    ["rssi", "RSSI", direct && node.rssi !== null ? `${node.rssi} dBm` : "—"],
+    [
+      "distance",
+      "Distance",
+      at && node.origin ? formatDistance(haversineMeters(node.origin, at)) : "—",
+    ],
+    ["bearing", "Bearing", bearing === null ? "—" : <BearingArrow degrees={bearing} />],
+    ["battery", "Battery", level === null ? "—" : level > 100 ? "Powered" : `${level}%`],
+    [
+      "channel-util",
+      "Ch util",
+      device?.channelUtil == null ? "—" : formatPercent(device.channelUtil),
+    ],
+    [
+      "uptime",
+      "Uptime",
+      device?.uptimeSeconds == null ? "—" : formatDuration(device.uptimeSeconds),
+    ],
+  ];
+  return (
+    <dl data-mt="detail-stats">
+      {stats.map(([variant, label, value]) => (
+        <div key={variant} data-mt="detail-stat" data-mt-variant={variant}>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function Notes({
+  node,
+  now,
+  thresholds,
+}: {
+  node: NodeDetailDTO;
+  now: number;
+  thresholds: DashboardThresholds;
+}) {
+  const notes = detailNotes(node, now, thresholds);
+  if (notes.length === 0) return null;
+  return (
+    <div data-mt="detail-notes">
+      {notes.map((n) => (
+        <p key={n.kind} data-mt="detail-note" data-mt-variant={n.kind} role="note">
+          {n.text}
+        </p>
+      ))}
+    </div>
   );
 }
 
@@ -82,7 +176,9 @@ export function OverviewTab({ connectionId, node }: { connectionId: number; node
 
   return (
     <div data-mt="node-drawer-panel" data-mt-variant="overview">
-      <Section name="identity" title="Identity">
+      <StatGrid node={node} now={now} />
+      <Notes node={node} now={now} thresholds={thresholds} />
+      <Section name="identity" title="Device">
         <dl data-mt="detail-fields">
           <Field name="long-name" label="Long name">
             {node.longName || NA}
@@ -268,6 +364,12 @@ export function OverviewTab({ connectionId, node }: { connectionId: number; node
       )}
 
       <Section name="location" title="Position">
+        {position && node.origin && !node.isSelf && (
+          <p data-mt="detail-where">
+            {formatDistance(haversineMeters(node.origin, position))}{" "}
+            {cardinal(bearingDegrees(node.origin, position))} of you
+          </p>
+        )}
         <MiniMap position={position} isSelf={node.isSelf} num={node.num} />
         {position && (
           <dl data-mt="detail-fields">

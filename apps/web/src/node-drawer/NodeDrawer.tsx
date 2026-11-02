@@ -47,10 +47,12 @@ const TABS = [
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
-function hopsText(hops: number | null): string | null {
-  if (hops === null) return null;
+function hopsText(hops: number): string {
   return hops === 0 ? "heard directly" : hops === 1 ? "1 hop" : `${hops} hops`;
 }
+
+/** A node MeshTerm first stored within this long gets a "New today" pill. */
+const NEW_TODAY_MS = 24 * 3600_000;
 
 /** The URL with `?node=` set to this node, for "Copy link". */
 function linkTo(num: number): string {
@@ -77,35 +79,46 @@ function Header({
   const status = nodeStatus(node.lastHeard, now, thresholds);
   const id = nodeIdFromNum(node.num);
   const name = node.longName || node.shortName || id;
-  const kind = [
-    node.role === null ? null : roleLabel(node.role),
-    node.hwModel === null ? null : hardwareLabel(node.hwModel),
-  ].filter(Boolean);
-  const seen = [
-    node.lastHeard === null
-      ? "Never heard"
-      : `Seen ${formatAgo(node.lastHeard, Math.max(now, node.lastHeard))}`,
-    node.isSelf ? "My node" : hopsText(node.hopsAway),
-    node.firmware ? `fw ${node.firmware}` : null,
-  ].filter(Boolean);
+  const pills = [
+    node.role === null ? null : (["role", roleLabel(node.role)] as const),
+    node.isSelf
+      ? (["self", "My node"] as const)
+      : node.hopsAway === null
+        ? null
+        : (["hops", node.hopsAway === 0 ? "Heard directly" : hopsText(node.hopsAway)] as const),
+    node.viaMqtt ? (["mqtt", "Via MQTT"] as const) : null,
+    node.firstSeen !== null && now - node.firstSeen < NEW_TODAY_MS
+      ? (["new", "New today"] as const)
+      : null,
+    node.firmware ? (["firmware", `fw ${node.firmware}`] as const) : null,
+  ].filter((p) => p !== null);
 
   return (
     <header data-mt="node-drawer-header">
-      <span data-mt="status-dot" data-mt-state={status} title={STATUS_LABELS[status]} />
       <div data-mt="node-drawer-names">
         <div data-mt="node-drawer-title-row">
+          <span data-mt="status-dot" data-mt-state={status} title={STATUS_LABELS[status]} />
           {node.shortName && <span data-mt="node-drawer-short">{node.shortName}</span>}
-          <Dialog.Title data-mt="node-drawer-title">{name}</Dialog.Title>
         </div>
+        <Dialog.Title data-mt="node-drawer-title">{name}</Dialog.Title>
         <Dialog.Description data-mt="node-drawer-subtitle">
-          {kind.length > 0 && <span>{kind.join(" · ")} · </span>}
           <CopyButton value={id} label="Copy node ID">
             {id}
           </CopyButton>
+          {node.hwModel !== null && <span> · {hardwareLabel(node.hwModel)}</span>}
         </Dialog.Description>
-        <p data-mt="node-drawer-seen">
-          {STATUS_LABELS[status]} · {seen.join(" · ")}
-        </p>
+        <div data-mt="node-drawer-pills">
+          <span data-mt="node-drawer-seen" data-mt-state={status} title={STATUS_LABELS[status]}>
+            {node.lastHeard === null
+              ? "Never heard"
+              : `Heard ${formatAgo(node.lastHeard, Math.max(now, node.lastHeard))}`}
+          </span>
+          {pills.map(([variant, text]) => (
+            <span key={variant} data-mt="node-drawer-pill" data-mt-variant={variant}>
+              {text}
+            </span>
+          ))}
+        </div>
       </div>
       <button
         type="button"

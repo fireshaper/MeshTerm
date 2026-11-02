@@ -172,6 +172,16 @@ function buildOptions(
       ctx.moveTo(left, y);
       ctx.lineTo(left + width, y);
       ctx.stroke();
+      // CR-005: the line says what it is ("Low 20%", "LongFast floor").
+      if (t.label) {
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.textAlign = "right";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(t.label, left + width - 4 * ratio, y - 2 * ratio);
+        ctx.restore();
+      }
     }
     if (spec.reboots) {
       ctx.setLineDash([]);
