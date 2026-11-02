@@ -10,13 +10,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-interface MainNavProps {
-  /** `sidebar` from 768 px, `drawer` (the mobile menu) below; also the element's data-mt. */
-  variant: "sidebar" | "drawer";
-  /** Called after a link is chosen, e.g. to close the drawer. */
-  onNavigate?: () => void;
-}
-
 const ICON = { "aria-hidden": true, focusable: false } as const;
 
 interface Item {
@@ -33,18 +26,22 @@ interface Item {
 
 const ITEMS: Item[] = [
   { prefix: "/dashboard", label: "Dashboard", Icon: LayoutGrid, link: { to: "/dashboard" } },
-  { prefix: "/map", label: "Map", Icon: MapIcon, link: { to: "/map" } },
   { prefix: "/messages", label: "Messages", Icon: MessagesSquare, link: { to: "/messages" } },
+  { prefix: "/map", label: "Map", Icon: MapIcon, link: { to: "/map" } },
   { prefix: "/nodes", label: "Nodes", Icon: Radio, link: { to: "/nodes" } },
   { prefix: "/settings", label: "Settings", Icon: Settings, link: { to: "/settings" } },
 ];
 
-export function MainNav({ variant, onNavigate }: MainNavProps) {
+/**
+ * The main navigation as header tabs (CR-005 §6.1). Below 768 px CSS moves the row under
+ * the header and lets it scroll sideways.
+ */
+export function MainNav() {
   const { pathname } = useLocation();
   const unread = useUnreadTotals();
 
   return (
-    <nav data-mt={variant === "sidebar" ? "sidebar-nav" : "drawer-nav"} aria-label="Main">
+    <nav data-mt="tab-nav" aria-label="Main">
       {ITEMS.map(({ prefix, label, Icon, link }) => {
         const active = pathname.startsWith(prefix);
         return (
@@ -52,10 +49,9 @@ export function MainNav({ variant, onNavigate }: MainNavProps) {
             key={prefix}
             {...link}
             data-mt="nav-item"
+            data-mt-variant="tab"
             data-mt-state={active ? "active" : "inactive"}
             aria-current={active ? "page" : undefined}
-            title={label}
-            onClick={onNavigate}
           >
             <Icon data-mt="icon" {...ICON} />
             <span data-mt="nav-label">{label}</span>

@@ -6,7 +6,7 @@ import {
 } from "@meshterm/shared";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import { compareMessages, cursorFor, insertMessage } from "./apply.js";
-import { api } from "./api.js";
+import { ApiError, api } from "./api.js";
 import { queryKeys, type Conversation, type ConversationData } from "./keys.js";
 
 export const PAGE_SIZE = 50;
@@ -29,6 +29,16 @@ export function useNodes(connectionId: number | null) {
     queryKey: queryKeys.nodes(connectionId ?? 0),
     queryFn: () => api.nodes(connectionId ?? 0),
     enabled: connectionId !== null,
+  });
+}
+
+/** The node's settings (masked for viewers); invalidated by `config.updated`. 404 until the handshake. */
+export function useDeviceConfig(connectionId: number | null) {
+  return useQuery({
+    queryKey: queryKeys.deviceConfig(connectionId ?? 0),
+    queryFn: () => api.deviceConfig(connectionId ?? 0),
+    enabled: connectionId !== null,
+    retry: (count, err) => !(err instanceof ApiError && err.status === 404) && count < 2,
   });
 }
 

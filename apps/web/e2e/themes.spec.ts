@@ -139,9 +139,9 @@ test("Default follows System live, and Light / Dark override it", async ({ page 
   await page.emulateMedia({ colorScheme: "light" });
   await expect.poll(() => bodyBg(page)).toBe(DEFAULT_LIGHT_BG);
   expect(await page.evaluate(() => document.documentElement.dataset.mtMode)).toBe("light");
-  await page.getByRole("button", { name: "Dark" }).click();
+  await page.getByRole("button", { name: "Dark", exact: true }).click();
   await expect.poll(() => bodyBg(page)).toBe(DEFAULT_DARK_BG);
-  await page.getByRole("button", { name: "System" }).click();
+  await page.getByRole("button", { name: "System", exact: true }).click();
   await expect.poll(() => bodyBg(page)).toBe(DEFAULT_LIGHT_BG);
   await page.emulateMedia({ colorScheme: "dark" });
   await expect.poll(() => bodyBg(page)).toBe(DEFAULT_DARK_BG);

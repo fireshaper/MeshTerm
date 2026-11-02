@@ -91,13 +91,10 @@ test("an unread DM badges its row, the nav and the title; reading it in another 
 
   // The title counts it, whatever else is unread on the shared node.
   await expect(page).toHaveTitle(/^\(\d+\+?\) MeshTerm$/);
-  if (narrow(page)) {
-    await expect(page.locator("[data-mt=menu-button] [data-mt=nav-badge]")).toBeVisible();
-  } else {
-    await expect(
-      page.locator("[data-mt=sidebar] [data-mt=nav-badge][data-mt-state=priority]"),
-    ).toBeVisible();
-  }
+  // The Messages tab carries the count at every width (a DM: priority).
+  await expect(
+    page.locator("[data-mt=tab-nav] [data-mt=nav-badge][data-mt-state=priority]"),
+  ).toBeVisible();
 
   // The row shows its own count without opening it.
   const other = await (await browser.newContext()).newPage();

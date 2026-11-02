@@ -344,7 +344,10 @@ describe("Request telemetry (CR-001 C4)", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn((url: string, init?: RequestInit) => {
-        calls.push({ url, body: init?.body ? JSON.parse(init.body as string) : null });
+        // The shell's own reads (themes, config) aren't what this test is about.
+        if (init?.method === "POST") {
+          calls.push({ url, body: init.body ? JSON.parse(init.body as string) : null });
+        }
         return Promise.resolve(
           new Response(JSON.stringify({ sentAt: NOW, timeoutMs: 60_000 }), { status: 202 }),
         );

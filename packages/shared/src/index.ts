@@ -10,6 +10,7 @@ export * from "./node-detail.js";
 export * from "./mentions.js";
 export * from "./notifications.js";
 export * from "./fixtures.js";
+export * from "./lora.js";
 export * from "./themes.js";
 export * from "./theme-hooks.js";
 export * from "./ws.js";

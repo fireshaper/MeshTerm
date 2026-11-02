@@ -49,8 +49,6 @@ async function clickNode(page: Page, num: number): Promise<void> {
 
 test("opens from the navigation and shows every node with a position", async ({ page }) => {
   await page.goto(`${BASE}/dashboard`);
-  const narrow = (page.viewportSize()?.width ?? 0) < 768;
-  if (narrow) await page.getByRole("button", { name: "Open navigation" }).click();
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Map" }).click();
   await expect(page).toHaveURL(/\/map$/);
   await expect(page.locator("[data-mt=map-view]")).toHaveAttribute("data-mt-state", "ready", {

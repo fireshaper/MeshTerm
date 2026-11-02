@@ -124,7 +124,10 @@ const VOLATILE = [
   "[data-mt=metric-card-secondary]",
   "[data-mt=attention-text]",
   "[data-mt=chart-times]",
-  "[data-mt=connection-link]",
+  // The status band's link (FakeNode's port), last packet and uptime.
+  "[data-mt=status-cell][data-mt-variant=link] [data-mt=status-cell-detail]",
+  "[data-mt=status-cell][data-mt-variant=last-packet] [data-mt=status-cell-value]",
+  "[data-mt=status-cell][data-mt-variant=uptime] [data-mt=status-cell-value]",
   "[data-mt=thread-details]",
   // Node drawer (outside [data-mt=main]: it's a portal).
   "[data-mt=node-drawer-seen]",

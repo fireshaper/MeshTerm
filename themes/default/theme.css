@@ -245,6 +245,16 @@
     line-height: 1;
   }
 
+  /* Header: condensed caps for the wordmark and tabs (CR-005 §6.1). */
+  :where([data-mt="brand-name"], [data-mt="nav-item"][data-mt-variant="tab"]) {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  :where([data-mt="brand-name"]) {
+    font-weight: 800;
+  }
+
   :where(code, kbd, samp, pre) {
     font-family: var(--mt-font-mono);
   }

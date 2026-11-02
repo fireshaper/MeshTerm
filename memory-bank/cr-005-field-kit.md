@@ -113,7 +113,7 @@ The mockup is the reference for every screen. This section lists what each scree
 
 - **Header (58 px):** logo and wordmark; tabs Overview, Messages (unread count), Map, Nodes, Settings with a 3 px accent underline on the current one; on the right the theme toggle, the bell, and a station pill (my node's callsign, long name and `!id`) that opens the node switcher (multi-node).
 - **Faceplate band (`status-band`):** a single row of label/value cells in mono with uppercase labels: Link (state + host), Freq, Preset (with SF/BW), Region, Ch util, Air TX, Battery (with voltage), Last packet, Uptime. It scrolls sideways when it doesn't fit and never wraps. The Link cell turns warn/error with the connection state and shows the reconnect countdown while reconnecting.
-- **Phones (< 760 px):** the tabs move to their own scrollable row under the header; the faceplate scrolls sideways. This replaces the O1 nav drawer (see §12, question 1).
+- **Phones (< 768 px):** the tabs move to their own scrollable row under the header; the faceplate scrolls sideways. This replaces the O1 nav drawer (see §12, question 1).
 - The sidebar and its collapse setting (`meshterm.sidebar`) go away. Retro and Cyberpunk get the same structure (§8).
 
 ### 6.2 Overview (the dashboard)

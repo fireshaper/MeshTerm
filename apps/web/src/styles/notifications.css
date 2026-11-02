@@ -9,7 +9,10 @@
 
   [data-mt="toast-region"] {
     position: fixed;
-    inset-block-start: calc(var(--mt-header-height) + var(--mt-space-2));
+    inset-block-start: calc(
+      var(--mt-header-height) + var(--mt-tab-bar-height) + var(--mt-status-band-height) +
+        var(--mt-space-2)
+    );
     inset-inline: var(--mt-space-2);
     z-index: 20;
     display: flex;
@@ -24,13 +27,16 @@
 
   @media (width >= 768px) {
     [data-mt="toast-region"] {
+      inset-block-start: calc(
+        var(--mt-header-height) + var(--mt-status-band-height) + var(--mt-space-2)
+      );
       inset-inline: auto var(--mt-space-3);
       inline-size: var(--mt-toast-width);
     }
 
     [data-mt="toast-region"][data-mt-variant="top-left"],
     [data-mt="toast-region"][data-mt-variant="bottom-left"] {
-      inset-inline: calc(var(--mt-sidebar-width) + var(--mt-space-3)) auto;
+      inset-inline: var(--mt-space-3) auto;
     }
 
     [data-mt="toast-region"][data-mt-variant^="bottom"] {
@@ -304,7 +310,7 @@
   }
 }
 
-/* Phones: room for the bell next to the connection pill. */
+/* Phones: room for the bell next to my node's pill. */
 @layer base {
   [data-mt="notification-bell"] {
     flex: none;

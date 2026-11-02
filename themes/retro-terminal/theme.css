@@ -453,6 +453,19 @@
     color: inherit;
   }
 
+  /* The active tab is already in reverse video; the status band reads as a status line. */
+  [data-mt="nav-item"][data-mt-state="active"]::after {
+    display: none;
+  }
+
+  [data-mt="status-band"] {
+    border-block: var(--mt-border-width) dashed var(--rt-dim);
+  }
+
+  [data-mt="status-cell"]:not(:last-child) {
+    border-inline-end-style: dashed;
+  }
+
   /* ── Dense node table ─────────────────────────────────────────────────────── */
   [data-mt="node-table"] th,
   [data-mt="node-table"] td {

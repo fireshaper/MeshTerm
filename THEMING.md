@@ -13,9 +13,10 @@ This guide covers:
 7. [Canvas surfaces: the map and charts](#canvas-surfaces-the-map-and-charts)
 8. [Effects](#effects)
 9. [Fonts and sounds](#fonts-and-sounds)
-10. [Accessibility checklist](#accessibility-checklist)
-11. [Token reference](#token-reference)
-12. [Hook reference](#hook-reference)
+10. [Changes that affect themes](#changes-that-affect-themes)
+11. [Accessibility checklist](#accessibility-checklist)
+12. [Token reference](#token-reference)
+13. [Hook reference](#hook-reference)
 
 ## What a theme is
 
@@ -302,6 +303,16 @@ Keep them cheap and readable:
 
 **Sounds.** List replacement notification sounds under `sounds`: `message` (DMs), `mention` (mentions and replies) and `channel` (channel messages). Keep them short (under a second) and quiet. A theme without sounds uses MeshTerm's own.
 
+## Changes that affect themes
+
+Hooks and tokens are a public API. When MeshTerm has to remove or rename one, it's listed here.
+
+**CR-005 (Field Kit layout).** The sidebar and the phone navigation drawer were replaced by tabs in the header and the radio status band under it.
+
+- Removed hooks: `sidebar`, `sidebar-nav`, `sidebar-footer`, `sidebar-toggle`, `menu-button`, `nav-drawer`, `nav-drawer-header`, `drawer-nav`, `nav-footer`, `nav-footer-device`, `nav-footer-link`, `connection-indicator`, `connection-device`, `connection-device-name`, `connection-link`; `app-shell` no longer has a state.
+- New hooks: `tab-nav` (the tabs; each link is still a `nav-item`, now with the variant `tab`), `header-actions`, `mode-button`, `station-pill` and its parts, `status-band`, `status-cell` (variant = the field: `link`, `freq`, `preset`, `region`, `channel-util`, `air-util-tx`, `battery`, `last-packet`, `uptime`; state `ok`, `warn`, `danger`) with `status-cell-label`, `status-cell-value` and `status-cell-detail`. The status pill now sits in the band's `link` cell.
+- Removed tokens: `--mt-sidebar-width`, `--mt-sidebar-collapsed-width`, `--mt-drawer-width`. `--mt-sidebar-bg` now colors the header; `--mt-tab-bar-height` is the height of the tab row on phones. New: `--mt-status-band-bg`, `--mt-status-band-height`.
+
 ## Accessibility checklist
 
 - [ ] Text has a contrast of at least **4.5:1** against its background (3:1 for large text and icons). Check muted text, text on the accent, bubbles, badges and toasts, in every mode the theme has.
@@ -321,16 +332,17 @@ Every token, with Default's values in dark and light, the value without any them
 
 Page and panel backgrounds, borders.
 
-| Token                   | Default (dark)                             | Default (light)                            | Without a theme            | Used for                             |
-| ----------------------- | ------------------------------------------ | ------------------------------------------ | -------------------------- | ------------------------------------ |
-| `--mt-surface-bg`       | `#14120f`                                  | `#ebe9e1`                                  | `Canvas`                   | the page background                  |
-| `--mt-surface-raised`   | `#1b1915`                                  | `#f7f6f1`                                  | `Canvas`                   | panels, cards, inputs                |
-| `--mt-surface-sunken`   | `#0e0d0a`                                  | `#e1ded4`                                  | `Canvas`                   | wells: code, raw JSON, table stripes |
-| `--mt-surface-elevated` | `#25221c`                                  | `#fff`                                     | `var(--mt-surface-raised)` | popovers, menus, dialogs             |
-| `--mt-sidebar-bg`       | `#0e0d0a`                                  | `#e1ded4`                                  | `var(--mt-surface-raised)` | the navigation sidebar               |
-| `--mt-border-color`     | `#2f2b24`                                  | `#d3cec1`                                  | `GrayText`                 | borders and dividers everywhere      |
-| `--mt-border-strong`    | `#443e34`                                  | `#bab3a3`                                  | `var(--mt-border-color)`   | control outlines and hovered cards   |
-| `--mt-shadow-popover`   | `0 18px 40px #00000080, 0 0 0 1px #443e34` | `0 16px 36px #3c280a29, 0 0 0 1px #d3cec1` | `none`                     | menus, popovers, dialogs             |
+| Token                   | Default (dark)                             | Default (light)                            | Without a theme            | Used for                               |
+| ----------------------- | ------------------------------------------ | ------------------------------------------ | -------------------------- | -------------------------------------- |
+| `--mt-surface-bg`       | `#14120f`                                  | `#ebe9e1`                                  | `Canvas`                   | the page background                    |
+| `--mt-surface-raised`   | `#1b1915`                                  | `#f7f6f1`                                  | `Canvas`                   | panels, cards, inputs                  |
+| `--mt-surface-sunken`   | `#0e0d0a`                                  | `#e1ded4`                                  | `Canvas`                   | wells: code, raw JSON, table stripes   |
+| `--mt-surface-elevated` | `#25221c`                                  | `#fff`                                     | `var(--mt-surface-raised)` | popovers, menus, dialogs               |
+| `--mt-sidebar-bg`       | `#0e0d0a`                                  | `#e1ded4`                                  | `var(--mt-surface-raised)` | the header and its tabs                |
+| `--mt-status-band-bg`   | —                                          | —                                          | `var(--mt-surface-bg)`     | the radio status band under the header |
+| `--mt-border-color`     | `#2f2b24`                                  | `#d3cec1`                                  | `GrayText`                 | borders and dividers everywhere        |
+| `--mt-border-strong`    | `#443e34`                                  | `#bab3a3`                                  | `var(--mt-border-color)`   | control outlines and hovered cards     |
+| `--mt-shadow-popover`   | `0 18px 40px #00000080, 0 0 0 1px #443e34` | `0 16px 36px #3c280a29, 0 0 0 1px #d3cec1` | `none`                     | menus, popovers, dialogs               |
 
 ### Text
 
@@ -515,15 +527,13 @@ Staged, conflicting and dangerous changes; QR codes.
 
 ### Layout
 
-| Token                          | Default (dark) | Default (light) | Without a theme    | Used for                                                              |
-| ------------------------------ | -------------- | --------------- | ------------------ | --------------------------------------------------------------------- |
-| `--mt-header-height`           | —              | —               | `3rem`             |                                                                       |
-| `--mt-tab-bar-height`          | —              | —               | `3.5rem`           |                                                                       |
-| `--mt-sidebar-width`           | —              | —               | `14rem`            |                                                                       |
-| `--mt-sidebar-collapsed-width` | —              | —               | `4rem`             |                                                                       |
-| `--mt-conversation-list-width` | —              | —               | `20rem`            |                                                                       |
-| `--mt-drawer-width`            | —              | —               | `min(18rem, 85vw)` | the mobile navigation drawer                                          |
-| `--mt-z-fx`                    | —              | —               | `100`              | the effects overlay (fx-layer): above everything, ignores the pointer |
+| Token                          | Default (dark) | Default (light) | Without a theme | Used for                                                              |
+| ------------------------------ | -------------- | --------------- | --------------- | --------------------------------------------------------------------- |
+| `--mt-header-height`           | —              | —               | `3.5rem`        |                                                                       |
+| `--mt-tab-bar-height`          | —              | —               | `2.75rem`       | the tab row under the header on phones                                |
+| `--mt-status-band-height`      | —              | —               | `2.75rem`       | the radio status band                                                 |
+| `--mt-conversation-list-width` | —              | —               | `20rem`         |                                                                       |
+| `--mt-z-fx`                    | —              | —               | `100`           | the effects overlay (fx-layer): above everything, ignores the pointer |
 
 ### Node drawer
 
@@ -983,7 +993,7 @@ Every `data-mt` hook, grouped by where it appears. "From data" means the value c
 | `conversation-menu`    |                                                                      |                                                                |                                                                                                                                                       |
 | `conversation-waiting` | Shown before a connection is known                                   |                                                                |                                                                                                                                                       |
 | `detail-note`          | Drawer contents                                                      |                                                                |                                                                                                                                                       |
-| `drawer-overlay`       | Mobile navigation drawer (Radix Dialog) and its parts                |                                                                |                                                                                                                                                       |
+| `drawer-overlay`       | The dimmed backdrop behind a dialog                                  |                                                                |                                                                                                                                                       |
 | `empty-state`          | Empty and loading placeholders                                       |                                                                |                                                                                                                                                       |
 | `empty-state-text`     | Empty and loading placeholders                                       |                                                                |                                                                                                                                                       |
 | `empty-state-title`    | Empty and loading placeholders                                       |                                                                |                                                                                                                                                       |
@@ -1048,36 +1058,34 @@ Every `data-mt` hook, grouped by where it appears. "From data" means the value c
 
 ### Shell
 
-| `data-mt`                | Element                                                          | `data-mt-state`                                                                                    | `data-mt-variant` |
-| ------------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------- |
-| `app-shell`              | Root grid                                                        | `auto`, `collapsed`, `expanded`, … (from data)                                                     |                   |
-| `brand`                  | App name in the header                                           |                                                                                                    |                   |
-| `brand-name`             | Parts of the brand                                               |                                                                                                    |                   |
-| `connection-device`      | Header connection status (device and link hidden < 640 px)       |                                                                                                    |                   |
-| `connection-device-name` | Header connection status (device and link hidden < 640 px)       |                                                                                                    |                   |
-| `connection-indicator`   | Header connection status (device and link hidden < 640 px)       |                                                                                                    |                   |
-| `connection-link`        | Header connection status (device and link hidden < 640 px)       |                                                                                                    |                   |
-| `drawer-nav`             | Mobile navigation drawer (Radix Dialog) and its parts            |                                                                                                    |                   |
-| `header`                 | Top bar                                                          |                                                                                                    |                   |
-| `main`                   | Content area                                                     |                                                                                                    |                   |
-| `menu-button`            | Mobile navigation drawer (Radix Dialog) and its parts            |                                                                                                    |                   |
-| `nav-drawer`             | Mobile navigation drawer (Radix Dialog) and its parts            |                                                                                                    |                   |
-| `nav-drawer-header`      | Mobile navigation drawer (Radix Dialog) and its parts            |                                                                                                    |                   |
-| `nav-footer`             | Device name and link in the drawer                               |                                                                                                    |                   |
-| `nav-footer-device`      | Device name and link in the drawer                               |                                                                                                    |                   |
-| `nav-footer-link`        | Device name and link in the drawer                               |                                                                                                    |                   |
-| `nav-item`               | Link in either navigation                                        | `active`, `inactive`                                                                               |                   |
-| `nav-label`              | Text of a nav item                                               |                                                                                                    |                   |
-| `sidebar`                | Sidebar (`aside`, ≥ 768 px), its nav, footer and collapse button |                                                                                                    |                   |
-| `sidebar-footer`         | Sidebar (`aside`, ≥ 768 px), its nav, footer and collapse button |                                                                                                    |                   |
-| `sidebar-nav`            | Sidebar (`aside`, ≥ 768 px), its nav, footer and collapse button |                                                                                                    |                   |
-| `sidebar-toggle`         | Sidebar (`aside`, ≥ 768 px), its nav, footer and collapse button |                                                                                                    |                   |
-| `socket-indicator`       | Shown while the browser's WS is down                             | `closed`, `connecting`, … (from data)                                                              |                   |
-| `status-area`            | Wraps the pill and socket indicator                              |                                                                                                    |                   |
-| `status-label`           | Parts of the status pill                                         |                                                                                                    |                   |
-| `status-pill`            | Node connection status                                           | `configuring`, `connected`, `connecting`, `disconnected`, `reconnecting`, `unknown`, … (from data) |                   |
-| `toast-text`             | Toasts                                                           |                                                                                                    |                   |
-| `toaster`                | Toasts                                                           |                                                                                                    |                   |
+| `data-mt`            | Element                                                          | `data-mt-state`                                                                                    | `data-mt-variant`                                                                                     |
+| -------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `app-shell`          | Root grid: header, status band, main                             |                                                                                                    |                                                                                                       |
+| `brand`              | App name in the header                                           |                                                                                                    |                                                                                                       |
+| `brand-name`         | Parts of the brand                                               |                                                                                                    |                                                                                                       |
+| `header`             | Top bar                                                          |                                                                                                    |                                                                                                       |
+| `header-actions`     | Mode, bell, my node and user menu at the end of the header       |                                                                                                    |                                                                                                       |
+| `main`               | Content area                                                     |                                                                                                    |                                                                                                       |
+| `mode-button`        | Light / dark switch in the header; the state is the mode showing | `dark`, `light`                                                                                    |                                                                                                       |
+| `nav-item`           | A main navigation link (a header tab, CR-005)                    | `active`, `inactive`                                                                               | `tab`                                                                                                 |
+| `nav-label`          | Text of a nav item                                               |                                                                                                    |                                                                                                       |
+| `socket-indicator`   | Shown while the browser's WS is down                             | `closed`, `connecting`, … (from data)                                                              |                                                                                                       |
+| `station-pill`       | My node in the header (opens its details)                        |                                                                                                    |                                                                                                       |
+| `station-pill-id`    | Parts of the station pill                                        |                                                                                                    |                                                                                                       |
+| `station-pill-name`  | Parts of the station pill                                        |                                                                                                    |                                                                                                       |
+| `station-pill-short` | Parts of the station pill: the callsign                          |                                                                                                    |                                                                                                       |
+| `station-pill-text`  | Parts of the station pill                                        |                                                                                                    |                                                                                                       |
+| `status-area`        | Wraps the pill and socket indicator                              |                                                                                                    |                                                                                                       |
+| `status-band`        | Radio status band under the header (`dl`)                        |                                                                                                    |                                                                                                       |
+| `status-cell`        | One reading in the status band; the variant is the field         | `danger`, `ok`, `unknown`, `warn`                                                                  | `air-util-tx`, `battery`, `channel-util`, `freq`, `last-packet`, `link`, `preset`, `region`, `uptime` |
+| `status-cell-detail` | Secondary text in a status cell                                  |                                                                                                    |                                                                                                       |
+| `status-cell-label`  | A status cell's label (`dt`)                                     |                                                                                                    |                                                                                                       |
+| `status-cell-value`  | A status cell's value (`dd`)                                     |                                                                                                    |                                                                                                       |
+| `status-label`       | Parts of the status pill                                         |                                                                                                    |                                                                                                       |
+| `status-pill`        | Node connection status                                           | `configuring`, `connected`, `connecting`, `disconnected`, `reconnecting`, `unknown`, … (from data) |                                                                                                       |
+| `tab-nav`            | Main navigation tabs in the header                               |                                                                                                    |                                                                                                       |
+| `toast-text`         | Toasts                                                           |                                                                                                    |                                                                                                       |
+| `toaster`            | Toasts                                                           |                                                                                                    |                                                                                                       |
 
 ### Sign-in and account
 

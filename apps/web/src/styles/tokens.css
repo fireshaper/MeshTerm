@@ -15,7 +15,8 @@
     --mt-surface-raised: Canvas; /* panels, cards, inputs */
     --mt-surface-sunken: Canvas; /* wells: code, raw JSON, table stripes */
     --mt-surface-elevated: var(--mt-surface-raised); /* popovers, menus, dialogs */
-    --mt-sidebar-bg: var(--mt-surface-raised); /* the navigation sidebar */
+    --mt-sidebar-bg: var(--mt-surface-raised); /* the header and its tabs */
+    --mt-status-band-bg: var(--mt-surface-bg); /* the radio status band under the header */
     --mt-border-color: GrayText; /* borders and dividers everywhere */
     --mt-border-strong: var(--mt-border-color); /* control outlines and hovered cards */
     --mt-shadow-popover: none; /* menus, popovers, dialogs */
@@ -155,12 +156,10 @@
     --mt-space-4: 1.5rem;
 
     /* @group Layout */
-    --mt-header-height: 3rem;
-    --mt-tab-bar-height: 3.5rem;
-    --mt-sidebar-width: 14rem;
-    --mt-sidebar-collapsed-width: 4rem;
+    --mt-header-height: 3.5rem;
+    --mt-tab-bar-height: 2.75rem; /* the tab row under the header on phones */
+    --mt-status-band-height: 2.75rem; /* the radio status band */
     --mt-conversation-list-width: 20rem;
-    --mt-drawer-width: min(18rem, 85vw); /* the mobile navigation drawer */
     --mt-z-fx: 100; /* the effects overlay (fx-layer): above everything, ignores the pointer */
 
     /* @group Node drawer: node details (CR-001) */

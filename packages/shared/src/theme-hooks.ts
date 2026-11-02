@@ -47,12 +47,7 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "activity-source": { area: "Dashboard and nodes", element: "Activity feed" },
   "activity-text": { area: "Dashboard and nodes", element: "Activity feed" },
   "activity-time": { area: "Dashboard and nodes", element: "Activity feed" },
-  "app-shell": {
-    area: "Shell",
-    element: "Root grid",
-    states: ["auto", "collapsed", "expanded"],
-    openStates: true,
-  },
+  "app-shell": { area: "Shell", element: "Root grid: header, status band, main" },
   "appearance-settings": { area: "Settings", element: "Settings → Appearance (CR-004)" },
   "apply-progress": { area: "Settings", openStates: true },
   "apply-step": { area: "Settings", states: ["active", "done", "pending"] },
@@ -311,23 +306,7 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "config-value-text": { area: "Settings" },
   "config-view": { area: "Settings", states: ["editable", "read-only"] },
   "config-warning": { area: "Settings", variants: ["desktop"] },
-  "connection-device": {
-    area: "Shell",
-    element: "Header connection status (device and link hidden < 640 px)",
-  },
-  "connection-device-name": {
-    area: "Shell",
-    element: "Header connection status (device and link hidden < 640 px)",
-  },
   "connection-duration": { area: "Dashboard and nodes", element: "Parts of a KPI" },
-  "connection-indicator": {
-    area: "Shell",
-    element: "Header connection status (device and link hidden < 640 px)",
-  },
-  "connection-link": {
-    area: "Shell",
-    element: "Header connection status (device and link hidden < 640 px)",
-  },
   conversation: {
     area: "Shared",
     element: "List + composer of one conversation",
@@ -474,10 +453,9 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "diff-to": { area: "Settings" },
   "dnd-indicator": { area: "Notifications" },
   "dnd-status": { area: "Settings" },
-  "drawer-nav": { area: "Shell", element: "Mobile navigation drawer (Radix Dialog) and its parts" },
   "drawer-overlay": {
     area: "Shared",
-    element: "Mobile navigation drawer (Radix Dialog) and its parts",
+    element: "The dimmed backdrop behind a dialog",
   },
   "effects-toggle": {
     area: "Settings",
@@ -505,6 +483,10 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     area: "Shared",
     element: "Inline SVG icon (`currentColor`)",
     variants: ["favorite", "muted", "pki"],
+  },
+  "header-actions": {
+    area: "Shell",
+    element: "Mode, bell, my node and user menu at the end of the header",
   },
   "icon-button": {
     area: "Shared",
@@ -547,10 +529,6 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   },
   mention: { area: "Shared" },
   "mention-marker": { area: "Messages" },
-  "menu-button": {
-    area: "Shell",
-    element: "Mobile navigation drawer (Radix Dialog) and its parts",
-  },
   "menu-check": { area: "Shared" },
   "menu-item": {
     area: "Shared",
@@ -657,24 +635,22 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     element: 'Tile mosaic, pin, precision circle, "No position shared"',
   },
   "mismatch-table": { area: "Settings" },
+  "mode-button": {
+    area: "Shell",
+    element: "Light / dark switch in the header; the state is the mode showing",
+    states: ["dark", "light"],
+  },
   "mode-options": { area: "Settings", element: "The mode buttons", variants: ["segmented"] },
   "mode-toggle": {
     area: "Settings",
     element: "Mode: System / Light / Dark (disabled for fixed-scheme themes)",
   },
   "nav-badge": { area: "Shared", states: ["priority"], variants: ["dot"] },
-  "nav-drawer": { area: "Shell", element: "Mobile navigation drawer (Radix Dialog) and its parts" },
-  "nav-drawer-header": {
-    area: "Shell",
-    element: "Mobile navigation drawer (Radix Dialog) and its parts",
-  },
-  "nav-footer": { area: "Shell", element: "Device name and link in the drawer" },
-  "nav-footer-device": { area: "Shell", element: "Device name and link in the drawer" },
-  "nav-footer-link": { area: "Shell", element: "Device name and link in the drawer" },
   "nav-item": {
     area: "Shell",
-    element: "Link in either navigation",
+    element: "A main navigation link (a header tab, CR-005)",
     states: ["active", "inactive"],
+    variants: ["tab"],
   },
   "nav-label": { area: "Shell", element: "Text of a nav item" },
   "network-caption": { area: "Dashboard and nodes", element: "Network overview" },
@@ -966,22 +942,6 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
   "settings-title": { area: "Settings", element: "Settings" },
   "settings-view": { area: "Settings", element: "Settings" },
   "show-ignored": { area: "Messages" },
-  sidebar: {
-    area: "Shell",
-    element: "Sidebar (`aside`, ≥ 768 px), its nav, footer and collapse button",
-  },
-  "sidebar-footer": {
-    area: "Shell",
-    element: "Sidebar (`aside`, ≥ 768 px), its nav, footer and collapse button",
-  },
-  "sidebar-nav": {
-    area: "Shell",
-    element: "Sidebar (`aside`, ≥ 768 px), its nav, footer and collapse button",
-  },
-  "sidebar-toggle": {
-    area: "Shell",
-    element: "Sidebar (`aside`, ≥ 768 px), its nav, footer and collapse button",
-  },
   "signal-bars": {
     area: "Dashboard and nodes",
     element: "SNR bars (`rect` children `on`/`off`)",
@@ -1011,6 +971,31 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     states: ["offline", "online", "recent", "stale"],
     openStates: true,
   },
+  "station-pill": { area: "Shell", element: "My node in the header (opens its details)" },
+  "station-pill-id": { area: "Shell", element: "Parts of the station pill" },
+  "station-pill-name": { area: "Shell", element: "Parts of the station pill" },
+  "station-pill-short": { area: "Shell", element: "Parts of the station pill: the callsign" },
+  "station-pill-text": { area: "Shell", element: "Parts of the station pill" },
+  "status-band": { area: "Shell", element: "Radio status band under the header (`dl`)" },
+  "status-cell": {
+    area: "Shell",
+    element: "One reading in the status band; the variant is the field",
+    states: ["danger", "ok", "unknown", "warn"],
+    variants: [
+      "air-util-tx",
+      "battery",
+      "channel-util",
+      "freq",
+      "last-packet",
+      "link",
+      "preset",
+      "region",
+      "uptime",
+    ],
+  },
+  "status-cell-detail": { area: "Shell", element: "Secondary text in a status cell" },
+  "status-cell-label": { area: "Shell", element: "A status cell's label (`dt`)" },
+  "status-cell-value": { area: "Shell", element: "A status cell's value (`dd`)" },
   "status-label": { area: "Shell", element: "Parts of the status pill" },
   "status-pill": {
     area: "Shell",
@@ -1018,6 +1003,7 @@ export const THEME_HOOKS: Readonly<Record<string, ThemeHook>> = {
     states: ["configuring", "connected", "connecting", "disconnected", "reconnecting", "unknown"],
     openStates: true,
   },
+  "tab-nav": { area: "Shell", element: "Main navigation tabs in the header" },
   "theme-card": {
     area: "Settings",
     element: "One theme in the picker",

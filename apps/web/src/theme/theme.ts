@@ -176,6 +176,9 @@ export function pickTheme(
   themes: readonly ThemeDTO[],
   candidates: readonly (string | null | undefined)[],
 ): ThemeDTO | null {
+  // An odd answer (no list) picks nothing rather than breaking the header.
+  const list: unknown = themes;
+  if (!Array.isArray(list)) return null;
   for (const id of [...candidates, DEFAULT_THEME_ID]) {
     const theme = id ? themes.find((t) => t.id === id && t.valid && t.manifest) : undefined;
     if (theme) return theme;

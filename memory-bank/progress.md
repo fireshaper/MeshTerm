@@ -726,6 +726,15 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` 
 - THEMING.md: Accents section, `mapStyleModes`, the width token, Field Kit and Classic in the built-in list; references regenerated.
 - **Tests:** manifest (accents, `mapStyleModes`), registry (per-mode map styles, every built-in theme loads cleanly), `resolveAccent` / `applyAccent` / `applyTheme` with an accent, saved accents, the Appearance picker, e2e (accent live, per theme, before the app's JS, `?accent=`; Field Kit's map style follows the mode; Classic for the no-filter map), contrast for Field Kit × 3 accents × 2 modes and Classic; visual baselines re-recorded (Default is now Field Kit; Classic and two accent runs added to the full set).
 
+### CR-005 Phase K1: header tabs and the radio status band (done 2026-11-02)
+
+- **Shell:** the sidebar and the phone nav drawer are gone. The header has the brand, the main navigation as tabs (Dashboard, Messages, Map, Nodes, Settings; unread count on Messages), a light/dark button for `auto` themes, the bell, a **station pill** for my node (opens its details) and the user menu. Below 768 px the tabs get their own scrolling row.
+- **Status band** under the header: Link (state + TCP host:port), Freq, Preset (SF/BW), Region, Ch util, Air TX, Battery + voltage, Last packet (ticks every second), Uptime; warn/danger states from the dashboard thresholds; dashes until data arrives.
+- **`loraSummary`** (shared): preset parameters, region band table and the firmware's frequency slot (djb2 of the primary channel name, `channel_num`, override, offset), checked against the official apps (US LongFast 906.875, MediumFast 913.125, MediumSlow 914.875, ShortFast 918.875, LongSlow 905.3125; EU_868 869.525).
+- **Build:** zod and `zod-config.ts` now share a chunk. The new shell pulled zod into a shared chunk that ran before the entry chunk's `zod-config`, so zod's JIT probe tripped the CSP.
+- **Themes:** Field Kit uppercases the wordmark and tabs; Retro keeps reverse-video tabs and draws the band as a dashed status line; hooks and tokens removed or added are listed in THEMING.md ("Changes that affect themes").
+- **Tests:** `loraSummary`, the band (values, dashes, warn/danger), station pill and mode button, shell hooks and tab order; e2e: tabs and band at both widths (FakeNode's US LongFast → 906.875 MHz), no sideways scroll, tab navigation, the station pill, the unread badge on the Messages tab; CSP walk clean; visual baselines re-recorded (win32 + linux; Retro rewritten in full after a sub-threshold fix).
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

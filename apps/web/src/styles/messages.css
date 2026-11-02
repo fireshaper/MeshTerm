@@ -433,10 +433,6 @@
     padding: 0;
   }
 
-  [data-mt="menu-button"] {
-    position: relative;
-  }
-
   [data-mt="conversation-menu-button"] {
     position: absolute;
     inset-block-start: var(--mt-space-1);
@@ -471,28 +467,5 @@
     padding: 0 var(--mt-space-2) var(--mt-space-1);
     color: var(--mt-text-muted);
     font-size: var(--mt-font-size-xs);
-  }
-}
-
-/* Icon-only sidebar (collapsed, or auto at tablet widths): the badge sits on the icon. */
-@layer base {
-  @media (width >= 768px) {
-    [data-mt="app-shell"][data-mt-state="collapsed"] [data-mt="sidebar"] [data-mt="nav-badge"] {
-      position: absolute;
-      inset-block-start: 0;
-      inset-inline-end: 0;
-      min-inline-size: 1.2em;
-      font-size: var(--mt-font-size-xs);
-    }
-  }
-
-  @media (width >= 768px) and (width < 1024px) {
-    [data-mt="app-shell"][data-mt-state="auto"] [data-mt="sidebar"] [data-mt="nav-badge"] {
-      position: absolute;
-      inset-block-start: 0;
-      inset-inline-end: 0;
-      min-inline-size: 1.2em;
-      font-size: var(--mt-font-size-xs);
-    }
   }
 }

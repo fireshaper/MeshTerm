@@ -18,53 +18,15 @@ describe("<App /> shell", () => {
     await renderAt("/messages/channel/0");
     expectDataMt(byDataMt("app-shell"), "app-shell");
     expectDataMt(byDataMt("header"), "header");
+    expectDataMt(byDataMt("tab-nav"), "tab-nav");
+    expectDataMt(byDataMt("header-actions"), "header-actions");
+    expectDataMt(byDataMt("status-band"), "status-band");
     expectDataMt(byDataMt("status-pill"), "status-pill", { state: "unknown" });
     expectDataMt(byDataMt("main"), "main");
-    // The sidebar (≥ 768 px) and the drawer's menu button (< 768 px); CSS shows one.
-    expectDataMt(byDataMt("sidebar"), "sidebar");
-    expectDataMt(byDataMt("menu-button"), "menu-button");
-    expectDataMt(byDataMt("app-shell"), "app-shell", { state: "auto" });
-  });
-
-  it("opens the navigation drawer, which closes after choosing a page", async () => {
-    const user = userEvent.setup();
-    const router = await renderAt("/messages/channel/0");
-    await user.click(screen.getByRole("button", { name: "Open navigation" }));
-    const drawer = await screen.findByRole("dialog");
-    expectDataMt(drawer, "nav-drawer");
-    await user.click(within(drawer).getByRole("link", { name: "Nodes" }));
-    await act(() => router.load());
-    expect(router.state.location.pathname).toBe("/nodes");
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
-
-  it("the drawer closes with Escape", async () => {
-    const user = userEvent.setup();
-    await renderAt("/messages/channel/0");
-    await user.click(screen.getByRole("button", { name: "Open navigation" }));
-    await screen.findByRole("dialog");
-    await user.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
-
-  it("collapses and expands the sidebar, and remembers the choice", async () => {
-    localStorage.clear();
-    const user = userEvent.setup();
-    const first = render(
-      <App router={createTestRouter("/messages/channel/0")} live={false} me={TEST_ADMIN} />,
-    );
-    await screen.findByRole("heading", { level: 1 });
-    // jsdom matches no media query: auto reads as collapsed, so the toggle expands.
-    await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
-    expectDataMt(byDataMt("app-shell"), "app-shell", { state: "expanded" });
-    await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
-    expectDataMt(byDataMt("app-shell"), "app-shell", { state: "collapsed" });
-    first.unmount();
-    render(<App router={createTestRouter("/messages/channel/0")} live={false} me={TEST_ADMIN} />);
-    await screen.findByRole("heading", { level: 1 });
-    expectDataMt(byDataMt("app-shell"), "app-shell", { state: "collapsed" });
-    expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
-    localStorage.clear();
+    // The sidebar and the phone drawer are gone (CR-005): one navigation, as tabs.
+    expect(byDataMt("sidebar")).toBeNull();
+    expect(byDataMt("menu-button")).toBeNull();
+    expect(screen.getAllByRole("navigation", { name: "Main" })).toHaveLength(1);
   });
 
   it("redirects / to the dashboard", async () => {
@@ -87,12 +49,17 @@ describe("<App /> shell", () => {
 
   it("navigates with the nav links and marks the active one", async () => {
     const router = await renderAt("/messages/channel/0");
-    const sidebar = byDataMt("sidebar");
-    if (!sidebar) throw new Error("no sidebar");
-    const nodesLink = sidebar.querySelector<HTMLElement>('a[href="/nodes"]');
-    const messagesLink = sidebar.querySelector<HTMLElement>('a[href="/messages"]');
-    expectDataMt(messagesLink, "nav-item", { state: "active" });
-    expectDataMt(nodesLink, "nav-item", { state: "inactive" });
+    const tabs = byDataMt("tab-nav");
+    if (!tabs) throw new Error("no tabs");
+    const nodesLink = tabs.querySelector<HTMLElement>('a[href="/nodes"]');
+    const messagesLink = tabs.querySelector<HTMLElement>('a[href="/messages"]');
+    expectDataMt(messagesLink, "nav-item", { state: "active", variant: "tab" });
+    expectDataMt(nodesLink, "nav-item", { state: "inactive", variant: "tab" });
+    expect(
+      within(tabs)
+        .getAllByRole("link")
+        .map((a) => a.textContent),
+    ).toEqual(["Dashboard", "Messages", "Map", "Nodes", "Settings"]);
 
     if (!nodesLink) throw new Error("no nodes link");
     await userEvent.click(nodesLink);

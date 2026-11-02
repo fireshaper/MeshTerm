@@ -114,15 +114,20 @@ describe("<MessageList />", () => {
         60,
       );
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const url = new URL(String(fetchMock.mock.calls[0]?.[0 as never]), "http://x");
+    // Only message pages count: the shell loads its own data (themes, config) too.
+    const pages = () =>
+      fetchMock.mock.calls
+        .map((c) => String((c as unknown[])[0]))
+        .filter((u) => u.includes("/messages"));
+    expect(pages()).toHaveLength(1);
+    const url = new URL(pages()[0] ?? "", "http://x");
     expect(url.pathname).toBe("/api/connections/1/messages");
     expect(url.searchParams.get("channel")).toBe("0");
     expect(url.searchParams.get("before")).toBe(cursor);
 
     // Nothing older now: further scrolling fetches nothing.
     fireEvent.scroll(list);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(pages()).toHaveLength(1);
     expect(screen.getByText("Start of conversation")).toBeInTheDocument();
   });
 

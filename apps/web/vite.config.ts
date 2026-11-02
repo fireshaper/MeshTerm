@@ -20,6 +20,15 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "dist",
       sourcemap: true,
+      rollupOptions: {
+        output: {
+          // zod and zod-config.ts share a chunk, so the JIT is off before any other chunk
+          // builds or parses a schema (the CSP has no 'unsafe-eval'). In the entry chunk,
+          // zod-config would run after the shared chunks it imports. Vite ids use `/`.
+          manualChunks: (id: string) =>
+            /\/node_modules\/zod\/|\/src\/zod-config\.ts$/.test(id) ? "zod" : undefined,
+        },
+      },
     },
   };
 });

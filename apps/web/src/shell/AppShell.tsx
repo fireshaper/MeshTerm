@@ -1,33 +1,20 @@
-import * as Dialog from "@radix-ui/react-dialog";
 import { nodeIdFromNum } from "@meshterm/shared";
 import { Outlet, useNavigate } from "@tanstack/react-router";
-import { Menu, PanelLeftClose, PanelLeftOpen, RadioTower, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { RadioTower } from "lucide-react";
+import { useEffect } from "react";
 import { UserMenu } from "../auth/UserMenu.js";
 import { NodeDrawer } from "../node-drawer/NodeDrawer.js";
-import { ConnectionIndicator, useDeviceInfo } from "./ConnectionIndicator.js";
 import { useUnreadTotals } from "../messages/unread.js";
 import { useNotificationRuntime } from "../notifications/runtime.js";
 import { registerOpener } from "../notifications/center.js";
 import { NotificationBell } from "../notifications/NotificationBell.js";
 import { NotificationToasts } from "../notifications/NotificationToasts.js";
+import { ModeToggle, StationPill } from "./HeaderControls.js";
 import { MainNav } from "./MainNav.js";
+import { StatusBand } from "./StatusBand.js";
 import { Toaster } from "./Toaster.js";
 
 const ICON = { "aria-hidden": true, focusable: false } as const;
-
-/** Desktop sidebar: null follows the width (icons only 768–1023 px), else the user's choice. */
-type SidebarPref = "expanded" | "collapsed" | null;
-const SIDEBAR_KEY = "meshterm.sidebar";
-
-function readSidebarPref(): SidebarPref {
-  try {
-    const value = localStorage.getItem(SIDEBAR_KEY);
-    return value === "expanded" || value === "collapsed" ? value : null;
-  } catch {
-    return null;
-  }
-}
 
 function Brand() {
   return (
@@ -38,21 +25,9 @@ function Brand() {
   );
 }
 
-/** Device name and link at the bottom of the sidebar and drawer. */
-function NavFooter() {
-  const { name, link } = useDeviceInfo();
-  if (name === null && link === null) return null;
-  return (
-    <div data-mt="nav-footer">
-      {name !== null && <span data-mt="nav-footer-device">{name}</span>}
-      {link !== null && <span data-mt="nav-footer-link">{link}</span>}
-    </div>
-  );
-}
-
 /**
- * Header (brand, connection status, and a menu button below 768 px), a collapsible
- * sidebar from 768 px, a navigation drawer below it, and the content area.
+ * Header (brand, tabs, mode, bell, my node, user menu), the radio status band under it,
+ * and the content area (CR-005 §6.1). Below 768 px the tabs get their own row.
  */
 export function AppShell() {
   const unread = useUnreadTotals();
@@ -74,95 +49,20 @@ export function AppShell() {
       registerOpener(null);
     };
   }, [navigate]);
-  const [sidebar, setSidebar] = useState<SidebarPref>(readSidebarPref);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // Toggling from "auto" flips what the width currently shows.
-  const toggleSidebar = () => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- missing in jsdom
-    const wide = window.matchMedia?.("(width >= 1024px)").matches ?? false;
-    const shownExpanded = sidebar === null ? wide : sidebar === "expanded";
-    const next = shownExpanded ? "collapsed" : "expanded";
-    setSidebar(next);
-    try {
-      localStorage.setItem(SIDEBAR_KEY, next);
-    } catch {
-      // Not remembered; still applied.
-    }
-  };
-  const collapsed = sidebar === "collapsed";
 
   return (
-    <div data-mt="app-shell" data-mt-state={sidebar ?? "auto"}>
+    <div data-mt="app-shell">
       <header data-mt="header">
-        <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
-          <Dialog.Trigger asChild>
-            <button
-              type="button"
-              data-mt="menu-button"
-              aria-label={
-                unread.total > 0 ? `Open navigation (${unread.total} unread)` : "Open navigation"
-              }
-            >
-              <Menu data-mt="icon" {...ICON} />
-              {unread.total > 0 && (
-                <span
-                  data-mt="nav-badge"
-                  data-mt-variant="dot"
-                  data-mt-state={unread.dm ? "priority" : undefined}
-                  aria-hidden
-                />
-              )}
-            </button>
-          </Dialog.Trigger>
-          <Dialog.Portal>
-            <Dialog.Overlay data-mt="drawer-overlay" />
-            <Dialog.Content data-mt="nav-drawer" aria-describedby={undefined}>
-              <div data-mt="nav-drawer-header">
-                <Dialog.Title asChild>
-                  <span>
-                    <Brand />
-                  </span>
-                </Dialog.Title>
-                <Dialog.Close asChild>
-                  <button type="button" data-mt="icon-button" aria-label="Close navigation">
-                    <X data-mt="icon" {...ICON} />
-                  </button>
-                </Dialog.Close>
-              </div>
-              <MainNav
-                variant="drawer"
-                onNavigate={() => {
-                  setDrawerOpen(false);
-                }}
-              />
-              <NavFooter />
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
         <Brand />
-        <ConnectionIndicator />
-        <NotificationBell />
-        <UserMenu />
-      </header>
-      <aside data-mt="sidebar" aria-label="Sidebar">
-        <MainNav variant="sidebar" />
-        <div data-mt="sidebar-footer">
-          <button
-            type="button"
-            data-mt="sidebar-toggle"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            onClick={toggleSidebar}
-          >
-            {collapsed ? (
-              <PanelLeftOpen data-mt="icon" {...ICON} />
-            ) : (
-              <PanelLeftClose data-mt="icon" {...ICON} />
-            )}
-          </button>
+        <MainNav />
+        <div data-mt="header-actions">
+          <ModeToggle />
+          <NotificationBell />
+          <StationPill />
+          <UserMenu />
         </div>
-      </aside>
+      </header>
+      <StatusBand />
       <main data-mt="main">
         <Outlet />
       </main>
