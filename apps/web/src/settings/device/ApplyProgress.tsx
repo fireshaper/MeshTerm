@@ -1,11 +1,14 @@
 import type { ApplyPhase, ApplyStatusDTO } from "@meshterm/shared";
+import { Check } from "lucide-react";
 import { formatValue, labelFor } from "./format.js";
 
+const ICON = { "aria-hidden": true, focusable: false } as const;
+
 const STEPS: { phase: ApplyPhase; label: string }[] = [
-  { phase: "applying", label: "Sending" },
-  { phase: "rebooting", label: "Rebooting" },
-  { phase: "reconnecting", label: "Reconnecting" },
-  { phase: "verifying", label: "Verifying" },
+  { phase: "applying", label: "Send settings to the node" },
+  { phase: "rebooting", label: "Node reboots" },
+  { phase: "reconnecting", label: "Reconnect" },
+  { phase: "verifying", label: "Read back and verify" },
 ];
 
 export const TERMINAL: ReadonlySet<ApplyPhase> = new Set([
@@ -53,6 +56,9 @@ export function ApplyProgress({ status, address, onDismiss }: ApplyProgressProps
               data-mt="apply-step"
               data-mt-state={i < at ? "done" : i === at ? "active" : "pending"}
             >
+              <span data-mt="apply-step-marker">
+                {i < at ? <Check data-mt="icon" {...ICON} /> : i + 1}
+              </span>
               {step.label}
             </li>
           ))}

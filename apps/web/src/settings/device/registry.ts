@@ -5,6 +5,7 @@
  * with a humanized name, under "Advanced".
  */
 
+import { LORA_REGIONS } from "@meshterm/shared";
 import { MODULE_FIELDS, MODULE_TITLES, NETWORK_FIELDS, SECURITY_FIELDS } from "./registry-more.js";
 
 /** The value of another field (pending edit if any, else the node's). */
@@ -64,6 +65,10 @@ export interface SectionMeta {
   danger?: string;
   /** Groups in display order. */
   groups: string[];
+  /** A line beside a group's title. */
+  notes?: Record<string, string>;
+  /** Fields shown first, in this order (the rest follow in protobuf order). */
+  lead?: string[];
 }
 
 /** Sections in this phase (D2); Channels, Network, Security, Modules, Backup and Maintenance follow. */
@@ -95,7 +100,9 @@ export const SECTIONS: SectionMeta[] = [
     title: "LoRa",
     summary: "Region, preset, hop limit, TX power…",
     reboots: true,
-    groups: ["Region", "Modem", "Transmit", "Filtering"],
+    groups: ["Radio", "Transmit", "Filtering"],
+    notes: { Radio: "All nodes on a mesh need the same region and preset" },
+    lead: ["config.lora.region", "config.lora.usePreset", "config.lora.modemPreset"],
   },
   {
     id: "channels",
@@ -346,7 +353,7 @@ export const FIELDS: Record<string, FieldMeta> = {
   "config.lora.region": {
     label: "Region",
     help: "Sets the legal frequencies and power. Must match where the node is used.",
-    group: "Region",
+    group: "Radio",
     requiresReboot: true,
     danger: "warn",
     warning: (v) =>
@@ -358,11 +365,11 @@ export const FIELDS: Record<string, FieldMeta> = {
   "config.lora.usePreset": {
     label: "Use a modem preset",
     help: "Presets keep you compatible with other nodes. Custom settings are for experts.",
-    group: "Modem",
+    group: "Radio",
   },
   "config.lora.modemPreset": {
     label: "Preset",
-    group: "Modem",
+    group: "Radio",
     visibleIf: (get) => get("config.lora.usePreset") !== false,
     enumLabels: {
       LONG_FAST: "Long range, fast (default)",
@@ -381,20 +388,20 @@ export const FIELDS: Record<string, FieldMeta> = {
   },
   "config.lora.bandwidth": {
     label: "Bandwidth",
-    group: "Modem",
+    group: "Radio",
     unit: "kHz",
     visibleIf: (get) => get("config.lora.usePreset") === false,
   },
   "config.lora.spreadFactor": {
     label: "Spreading factor",
-    group: "Modem",
+    group: "Radio",
     min: 7,
     max: 12,
     visibleIf: (get) => get("config.lora.usePreset") === false,
   },
   "config.lora.codingRate": {
     label: "Coding rate (4/x)",
-    group: "Modem",
+    group: "Radio",
     min: 5,
     max: 8,
     visibleIf: (get) => get("config.lora.usePreset") === false,
@@ -402,20 +409,20 @@ export const FIELDS: Record<string, FieldMeta> = {
   "config.lora.channelNum": {
     label: "Frequency slot",
     help: "0 picks the slot from the primary channel's name.",
-    group: "Modem",
+    group: "Radio",
     min: 0,
     advanced: true,
   },
   "config.lora.frequencyOffset": {
     label: "Frequency offset",
-    group: "Modem",
+    group: "Radio",
     unit: "MHz",
     advanced: true,
   },
   "config.lora.overrideFrequency": {
     label: "Override frequency",
     help: "0: use the region and slot.",
-    group: "Modem",
+    group: "Radio",
     unit: "MHz",
     advanced: true,
   },
@@ -442,6 +449,13 @@ export const FIELDS: Record<string, FieldMeta> = {
     unit: "dBm",
     min: 0,
     max: 30,
+    validate: (v, get) => {
+      const region = get("config.lora.region");
+      const limit = typeof region === "string" ? LORA_REGIONS[region]?.powerLimit : undefined;
+      return typeof v === "number" && limit !== undefined && v > limit
+        ? `The ${region as string} limit is ${String(limit)} dBm.`
+        : null;
+    },
     danger: "warn",
     warning: (v) =>
       typeof v === "number" && v > 0

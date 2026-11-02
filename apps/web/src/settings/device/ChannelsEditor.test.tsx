@@ -106,7 +106,7 @@ describe("channels editor", () => {
       "channels.2.settings.psk": { value: "bmV3LWtleS1uZXcta2V5IQ==" },
     });
     // The review shows keys only as changed.
-    await user.click(screen.getByRole("button", { name: "Review & apply" }));
+    await user.click(screen.getByRole("button", { name: "Review and apply" }));
     const dialog = await screen.findByRole("dialog", { name: "Review changes" });
     expect(within(dialog).getByRole("row", { name: /#1 Hikers · Key/ })).toHaveTextContent(
       "(changed)",

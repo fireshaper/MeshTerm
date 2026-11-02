@@ -119,6 +119,7 @@ export function ConfigField(props: ConfigFieldProps) {
     input = (
       <input
         type="checkbox"
+        data-mt="switch"
         {...common}
         checked={value === true}
         onChange={(e) => {
@@ -200,10 +201,11 @@ export function ConfigField(props: ConfigFieldProps) {
       data-path={path}
     >
       <div data-mt="config-field-head">
-        <label htmlFor={id} data-mt="config-label">
+        <label htmlFor={id} id={`${id}-label`} data-mt="config-label">
           {meta.label}
           {meta.unit && <span data-mt="config-unit"> ({meta.unit})</span>}
         </label>
+        {changed && <span data-mt="changed-tag">changed</span>}
         {(meta.requiresReboot ?? props.reboots) && !readOnly && (
           <span data-mt="reboot-tag">reboot</span>
         )}

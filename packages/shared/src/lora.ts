@@ -26,28 +26,31 @@ export const LORA_PRESETS: Readonly<Record<string, PresetInfo>> = {
   LONG_TURBO: { name: "LongTurbo", sf: 11, bwKhz: 500, cr: 8 },
 };
 
-/** Band edges in MHz and channel spacing in MHz, from the firmware's region table. */
+/**
+ * Band edges and channel spacing in MHz and the legal TX power limit in dBm, from the
+ * firmware's region table (`RDEF` in RadioInterface.cpp).
+ */
 export const LORA_REGIONS: Readonly<
-  Record<string, { start: number; end: number; spacing: number }>
+  Record<string, { start: number; end: number; spacing: number; powerLimit: number }>
 > = {
-  US: { start: 902, end: 928, spacing: 0 },
-  EU_433: { start: 433, end: 434, spacing: 0 },
-  EU_868: { start: 869.4, end: 869.65, spacing: 0 },
-  CN: { start: 470, end: 510, spacing: 0 },
-  JP: { start: 920.5, end: 923.5, spacing: 0 },
-  ANZ: { start: 915, end: 928, spacing: 0 },
-  KR: { start: 920, end: 923, spacing: 0 },
-  TW: { start: 920, end: 925, spacing: 0 },
-  RU: { start: 868.7, end: 869.2, spacing: 0 },
-  IN: { start: 865, end: 867, spacing: 0 },
-  NZ_865: { start: 864, end: 868, spacing: 0 },
-  TH: { start: 920, end: 925, spacing: 0 },
-  UA_433: { start: 433, end: 434.7, spacing: 0 },
-  UA_868: { start: 868, end: 868.6, spacing: 0 },
-  MY_433: { start: 433, end: 435, spacing: 0 },
-  MY_919: { start: 919, end: 924, spacing: 0 },
-  SG_923: { start: 917, end: 925, spacing: 0 },
-  LORA_24: { start: 2400, end: 2483.5, spacing: 0 },
+  US: { start: 902, end: 928, spacing: 0, powerLimit: 30 },
+  EU_433: { start: 433, end: 434, spacing: 0, powerLimit: 12 },
+  EU_868: { start: 869.4, end: 869.65, spacing: 0, powerLimit: 27 },
+  CN: { start: 470, end: 510, spacing: 0, powerLimit: 19 },
+  JP: { start: 920.5, end: 923.5, spacing: 0, powerLimit: 13 },
+  ANZ: { start: 915, end: 928, spacing: 0, powerLimit: 30 },
+  KR: { start: 920, end: 923, spacing: 0, powerLimit: 23 },
+  TW: { start: 920, end: 925, spacing: 0, powerLimit: 27 },
+  RU: { start: 868.7, end: 869.2, spacing: 0, powerLimit: 20 },
+  IN: { start: 865, end: 867, spacing: 0, powerLimit: 30 },
+  NZ_865: { start: 864, end: 868, spacing: 0, powerLimit: 36 },
+  TH: { start: 920, end: 925, spacing: 0, powerLimit: 16 },
+  UA_433: { start: 433, end: 434.7, spacing: 0, powerLimit: 10 },
+  UA_868: { start: 868, end: 868.6, spacing: 0, powerLimit: 14 },
+  MY_433: { start: 433, end: 435, spacing: 0, powerLimit: 20 },
+  MY_919: { start: 919, end: 924, spacing: 0, powerLimit: 27 },
+  SG_923: { start: 917, end: 925, spacing: 0, powerLimit: 20 },
+  LORA_24: { start: 2400, end: 2483.5, spacing: 0, powerLimit: 10 },
 };
 
 /** The firmware's channel-name hash (djb2 over the UTF-8 bytes, 32-bit). */
@@ -132,3 +135,21 @@ export function loraSummary(lora: LoraSettings | null, primaryChannelName = ""):
 }
 
 const round = (mhz: number) => Math.round(mhz * 10_000) / 10_000;
+
+/** Raw LoRa bit rate in bits per second: SF × BW / 2^SF × 4/CR. */
+export function loraDataRate({ sf, bwKhz, cr }: Pick<PresetInfo, "sf" | "bwKhz" | "cr">): number {
+  return (sf * bwKhz * 1000 * 4) / (2 ** sf * cr);
+}
+
+/** "21.9 kbps", "1.1 kbps", "0.34 kbps". */
+export function formatDataRate(bps: number): string {
+  const kbps = bps / 1000;
+  return `${kbps >= 1 ? kbps.toFixed(1) : kbps.toFixed(2)} kbps`;
+}
+
+/** A preset's id as words: `LONG_MODERATE` → "Long Moderate". */
+export const presetTitle = (id: string): string =>
+  id
+    .split("_")
+    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .join(" ");

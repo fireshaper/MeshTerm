@@ -359,7 +359,8 @@ test("effects come from the theme, follow the toggle and the device, and never b
   const box = await toggle.boundingBox();
   const hit = await page.evaluate(
     ([x, y]) => document.elementFromPoint(x ?? 0, y ?? 0)?.getAttribute("type"),
-    [(box?.x ?? 0) + 2, (box?.y ?? 0) + 2],
+    // The middle: the toggle is a rounded switch, so its corners aren't hit.
+    [(box?.x ?? 0) + (box?.width ?? 0) / 2, (box?.y ?? 0) + (box?.height ?? 0) / 2],
   );
   expect(hit).toBe("checkbox");
   expect(

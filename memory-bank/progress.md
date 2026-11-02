@@ -772,6 +772,15 @@ State: `typecheck`, `lint`, `format`, `docs:tokens --check`, `test`, `test:e2e` 
 - **Raw:** highlighted JSON (keys, strings, numbers, booleans, null).
 - **Tests:** chips (each filter, counts, migration of old prefs), table cells, `batteryForecast`, `detailNotes`, `highlightJson`, the `?from=` route, drawer header / stats / notes / messages, e2e keyboard (Enter opens, arrows and End move between tabs, Escape returns focus); visual baselines re-recorded.
 
+### CR-005 Phase K6: Settings (done 2026-11-02)
+
+- **Layout:** "Settings" with the node and who is signed in; the section list (Device, Notifications, Appearance, then Account, Users, Audit log) with icons beside the page from 1024 px, a scrolling chip row on phones.
+- **Device:** a header card (callsign, name, `!id · role`, hardware, firmware, region, config read, link), section tiles with an icon and a live line ("US · Long Fast · 3 hops", "2 of 8 slots in use"; one Modules tile with a chip row of modules), fieldsets as cards, a "changed" tag on edited fields, Advanced folded.
+- **LoRa:** region, "use a modem preset", the frequency readout ("906.875 MHz · slot 20 · picked from the preset name “LongFast”"), preset cards (SF · bandwidth, data rate, faster ↔ farther), TX power slider bounded by the region's limit, hop limit stepper.
+- **Apply bar:** sticky, "N unsaved changes · Saving LoRa settings reboots the node", Discard, Review and apply. The review warns when a region or preset change would cut the node off; the apply progress shows four numbered steps.
+- **Notifications and Appearance:** cards and switches; Appearance keeps the accent picker.
+- **Tests:** preset cards → edit, frequency per region and preset, TX limit and stepper, apply bar count and Discard, review warning, tile summaries; e2e preset change → review warning → apply → verified against FakeNode; a new `device-lora` visual shot; baselines re-recorded.
+
 ## Open items
 
 - The user will confirm their node's firmware version and whether LAN smoke tests are possible.

@@ -20,7 +20,7 @@ async function open(page: Page, section: string) {
 }
 
 const nav = (page: Page, title: string) =>
-  page.locator("[data-mt=config-nav-item]").filter({ hasText: title });
+  page.locator("[data-mt=device-section-tile]").filter({ hasText: title });
 
 /** A value different from the current one, so runs (desktop, then mobile) each change something. */
 async function next(page: Page, label: string, a: string, b: string) {
@@ -47,14 +47,15 @@ test("edit LoRa, Device and Display, review, apply: the node reboots and verifie
   await nav(page, "Display").click();
   const screen = await next(page, "Screen timeout (s)", "120", "300");
 
-  const tray = page.getByRole("region", { name: "Pending changes" });
-  await expect(tray).toContainText("3 pending changes in 3 sections · node will reboot");
-  await expect(nav(page, "LoRa").locator("[data-mt=config-nav-badge]")).toHaveText("•1");
+  const tray = page.getByRole("region", { name: "Unsaved changes" });
+  await expect(tray).toContainText("3 unsaved changes");
+  await expect(tray).toContainText("Saving Device and LoRa settings reboots the node");
+  await expect(nav(page, "LoRa").locator("[data-mt=device-section-tile-badge]")).toHaveText("1");
 
   // Nothing is sent before the apply.
   expect((await node.adminLog()).log.slice(before).filter((c) => c.startsWith("set"))).toEqual([]);
 
-  await tray.getByRole("button", { name: "Review & apply" }).click();
+  await tray.getByRole("button", { name: "Review and apply" }).click();
   const dialog = page.getByRole("dialog", { name: "Review changes" });
   await expect(dialog.locator("[data-mt=diff-row]")).toHaveCount(3);
   await expect(dialog.getByRole("row", { name: /Hop limit/ })).toContainText(hops);
@@ -87,11 +88,37 @@ test("edit LoRa, Device and Display, review, apply: the node reboots and verifie
   expect((await node.inbound()).counts.transmit).toBe(0);
 });
 
+test("a preset card changes the frequency, warns in the review and verifies", async ({ page }) => {
+  await open(page, "lora");
+  const current = await page.getByRole("radio", { checked: true }).getAttribute("value");
+  const target = current === "MEDIUM_FAST" ? "LONG_FAST" : "MEDIUM_FAST";
+  const name = target === "MEDIUM_FAST" ? "Medium Fast" : "Long Fast";
+  const frequency = page.locator("[data-mt=lora-frequency-value]");
+  const before = await frequency.textContent();
+  await page.locator("[data-mt=preset-card]").filter({ hasText: name }).click();
+  await expect(frequency).not.toHaveText(before ?? "");
+  await expect(
+    page.locator("[data-mt=config-field][data-path='config.lora.modemPreset']"),
+  ).toHaveAttribute("data-mt-state", "changed");
+
+  await page.getByRole("button", { name: "Review and apply" }).click();
+  const dialog = page.getByRole("dialog", { name: "Review changes" });
+  await expect(dialog.locator("[data-mt=review-warning]")).toContainText(
+    "Nodes on a different preset can't hear each other.",
+  );
+  await dialog.getByRole("button", { name: "Apply 1 change" }).click();
+  const progress = page.locator("[data-mt=apply-progress]");
+  await expect(progress).toHaveAttribute("data-mt-state", "verified", { timeout: 30_000 });
+  await expect(page.getByRole("radio", { name: new RegExp(`^${name}`) })).toBeChecked();
+  // Admin messages to our own node never reach the mesh.
+  expect((await node.inbound()).counts.transmit).toBe(0);
+});
+
 test("a value the firmware clamps shows as a difference", async ({ page }) => {
   await node.adminOptions({ clampTxPowerTo: 20 });
   await open(page, "lora");
   await next(page, "TX power (dBm)", "27", "26");
-  await page.getByRole("button", { name: "Review & apply" }).click();
+  await page.getByRole("button", { name: "Review and apply" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Apply 1 change" }).click();
   const progress = page.locator("[data-mt=apply-progress]");
   await expect(progress).toHaveAttribute("data-mt-state", "mismatched", { timeout: 30_000 });
@@ -103,7 +130,7 @@ test("a lockout-class change needs the node's short name typed", async ({ page }
   await open(page, "device");
   await page.getByLabel("Managed mode", { exact: true }).check();
   await expect(page.getByText(/MeshTerm won't be able to edit it any more/)).toBeVisible();
-  await page.getByRole("button", { name: "Review & apply" }).click();
+  await page.getByRole("button", { name: "Review and apply" }).click();
   const dialog = page.getByRole("dialog");
   const apply = dialog.getByRole("button", { name: "Apply 1 change" });
   await expect(apply).toBeDisabled();
@@ -111,7 +138,7 @@ test("a lockout-class change needs the node's short name typed", async ({ page }
   await expect(apply).toBeEnabled();
   // Not applied: MeshTerm would lose access on a real node.
   await dialog.getByRole("button", { name: "Cancel" }).click();
-  await page.getByRole("button", { name: "Discard all" }).click();
+  await page.getByRole("button", { name: "Discard" }).click();
   await expect(page.getByLabel("Managed mode", { exact: true })).not.toBeChecked();
 });
 
@@ -124,7 +151,7 @@ test("another browser's apply locks the editor and marks conflicting edits", asy
   await open(b, "lora");
   await next(a, "Hop limit", "6", "7");
   const theirs = await next(b, "Hop limit", "2", "1");
-  await b.getByRole("button", { name: "Review & apply" }).click();
+  await b.getByRole("button", { name: "Review and apply" }).click();
   await b.getByRole("dialog").getByRole("button", { name: "Apply 1 change" }).click();
 
   await expect(a.locator("[data-mt=config-lock]")).toContainText("Apply in progress");
@@ -138,7 +165,7 @@ test("another browser's apply locks the editor and marks conflicting edits", asy
   await expect(field).toContainText(`Changed on device: now ${theirs}.`);
   await field.getByRole("button", { name: "Use node's value" }).click();
   await expect(a.getByLabel("Hop limit", { exact: true })).toHaveValue(theirs);
-  await expect(a.getByRole("region", { name: "Pending changes" })).toBeHidden();
+  await expect(a.getByRole("region", { name: "Unsaved changes" })).toBeHidden();
   await a.context().close();
   await b.context().close();
 });
@@ -155,7 +182,7 @@ test("rename a channel and make a new key: setChannel, verified", async ({ page 
   const name = await next(page, "Name", "Hikers", "Friends");
   await page.getByLabel("Key type").selectOption("random256");
   await expect(page.getByLabel("Key type")).toHaveValue("custom");
-  await page.getByRole("button", { name: "Review & apply" }).click();
+  await page.getByRole("button", { name: "Review and apply" }).click();
   const dialog = page.getByRole("dialog", { name: "Review changes" });
   await expect(dialog.getByRole("row", { name: /Key/ })).toContainText("(changed)");
   await dialog.getByRole("button", { name: "Apply 2 changes" }).click();
@@ -195,7 +222,7 @@ test("import a link: Add stages a new slot, Replace the whole set; nothing is se
   await expect(dialog.getByRole("row", { name: /#2 · Name/ })).toContainText("Ops");
   await dialog.getByRole("button", { name: /^Stage \d+ changes$/ }).click();
   await expect(page.locator("[data-mt=channel-slot]").nth(2)).toContainText("Ops");
-  await page.getByRole("button", { name: "Discard all" }).click();
+  await page.getByRole("button", { name: "Discard" }).click();
 
   await page.getByRole("button", { name: "Import link…" }).click();
   dialog = page.getByRole("dialog", { name: "Import a channel link" });
@@ -204,10 +231,10 @@ test("import a link: Add stages a new slot, Replace the whole set; nothing is se
   await expect(dialog.getByLabel(/^Replace:/)).toBeChecked();
   await dialog.getByRole("button", { name: /^Stage \d+ changes$/ }).click();
   await expect(page.locator("[data-mt=channel-slot]").nth(1)).toContainText("Ops");
-  await page.getByRole("button", { name: "Review & apply" }).click();
+  await page.getByRole("button", { name: "Review and apply" }).click();
   await expect(page.getByRole("dialog", { name: "Review changes" })).toContainText("#1 Ops · Name");
   await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
-  await page.getByRole("button", { name: "Discard all" }).click();
+  await page.getByRole("button", { name: "Discard" }).click();
   expect((await node.adminLog()).log.slice(before).filter((c) => c.startsWith("set"))).toEqual([]);
 });
 
@@ -227,7 +254,7 @@ test("fixed position picked on the map: setFixedPosition, then removed again", a
   await expect(page.getByLabel("Latitude", { exact: true })).not.toHaveValue("");
 
   const applyAll = async () => {
-    await page.getByRole("button", { name: "Review & apply" }).click();
+    await page.getByRole("button", { name: "Review and apply" }).click();
     await page
       .getByRole("dialog", { name: "Review changes" })
       .getByRole("button", { name: /^Apply \d+ changes?$/ })
@@ -251,7 +278,7 @@ test("fixed position picked on the map: setFixedPosition, then removed again", a
 // ------------------------------------------------------------------ Phase D4
 
 async function applyAll(page: Page, typed?: string) {
-  await page.getByRole("button", { name: "Review & apply" }).click();
+  await page.getByRole("button", { name: "Review and apply" }).click();
   const dialog = page.getByRole("dialog", { name: "Review changes" });
   if (typed) await dialog.locator("[data-mt=typed-confirm-input]").fill(typed);
   await dialog.getByRole("button", { name: /^Apply \d+ changes?$/ }).click();
@@ -280,7 +307,7 @@ test("network: a static address needs the short name and shows where MeshTerm wi
   await open(page, "network");
   await page.getByLabel("Address", { exact: true }).selectOption("STATIC");
   await page.getByLabel("IP address", { exact: true }).fill("10.9.8.7");
-  await page.getByRole("button", { name: "Review & apply" }).click();
+  await page.getByRole("button", { name: "Review and apply" }).click();
   const dialog = page.getByRole("dialog", { name: "Review changes" });
   await expect(dialog.getByRole("note")).toContainText("10.9.8.7");
   await expect(dialog.getByRole("button", { name: /^Apply/ })).toBeDisabled();
@@ -288,7 +315,7 @@ test("network: a static address needs the short name and shows where MeshTerm wi
   await expect(dialog.getByRole("button", { name: /^Apply/ })).toBeEnabled();
   // Not applied: the FakeNode can't move to 10.9.8.7.
   await dialog.getByRole("button", { name: "Cancel" }).click();
-  await page.getByRole("button", { name: "Discard all" }).click();
+  await page.getByRole("button", { name: "Discard" }).click();
 });
 
 test("backup: download YAML, import it back, restore a snapshot; nothing is sent", async ({
@@ -313,8 +340,8 @@ test("backup: download YAML, import it back, restore a snapshot; nothing is sent
   let dialog = page.getByRole("dialog", { name: "Import base.yaml" });
   await expect(dialog.getByRole("row", { name: /Long name/ })).toContainText("Restored Base");
   await dialog.getByRole("button", { name: /^Stage \d+ changes?$/ }).click();
-  await expect(page.getByRole("region", { name: "Pending changes" })).toBeVisible();
-  await page.getByRole("button", { name: "Discard all" }).click();
+  await expect(page.getByRole("region", { name: "Unsaved changes" })).toBeVisible();
+  await page.getByRole("button", { name: "Discard" }).click();
 
   // Earlier tests applied changes, so there are snapshots.
   await page.getByRole("button", { name: "Restore…" }).first().click();

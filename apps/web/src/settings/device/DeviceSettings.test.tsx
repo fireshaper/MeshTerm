@@ -122,11 +122,17 @@ const field = (path: string) => {
 describe("device settings", () => {
   it("/settings leads to the device settings, one section at a time", async () => {
     await renderApp("/settings", seed());
-    expect(await screen.findByRole("heading", { name: "Device settings" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Device" })).toBeInTheDocument();
     expect(screen.getByLabelText("Long name")).toHaveValue("Base station");
     // Identity fields are shown, never editable.
     expect(screen.getByLabelText("Node ID")).toBeDisabled();
-    expect(byDataMt("config-connection")).toHaveTextContent("Base station (BASE) · fw 2.6.11");
+    const header = byDataMt("device-header");
+    expect(header).toHaveTextContent("BASE");
+    expect(header).toHaveTextContent("Base station");
+    expect(header).toHaveTextContent("Firmware2.6.11");
+    // Each section tile says what is set.
+    const lora = screen.getByRole("link", { name: /^LoRa/ });
+    expect(lora).toHaveTextContent("US · Long Fast · 3 hops");
   });
 
   it("stages an edit, reviews it and applies it; the result clears the edits", async () => {
@@ -140,11 +146,13 @@ describe("device settings", () => {
     expect(el).toHaveAttribute("data-mt-state", "changed");
     expect(within(el).getByText("was: 3")).toBeInTheDocument();
     expect(within(el).getByText("More than 3 hops costs everyone airtime.")).toBeInTheDocument();
-    const tray = screen.getByRole("region", { name: "Pending changes" });
-    expect(tray).toHaveTextContent("1 pending change in 1 section · node will reboot");
+    expect(within(el).getByText("changed")).toBeInTheDocument();
+    const tray = screen.getByRole("region", { name: "Unsaved changes" });
+    expect(tray).toHaveTextContent("1 unsaved change");
+    expect(tray).toHaveTextContent("Saving LoRa settings reboots the node");
     expect(screen.getByLabelText("1 unsaved")).toBeInTheDocument();
 
-    await user.click(within(tray).getByRole("button", { name: "Review & apply" }));
+    await user.click(within(tray).getByRole("button", { name: "Review and apply" }));
     const dialog = await screen.findByRole("dialog", { name: "Review changes" });
     const row = within(dialog).getByRole("row", { name: /Hop limit/ });
     expect(row).toHaveTextContent("3→5");
@@ -164,7 +172,7 @@ describe("device settings", () => {
       await screen.findByRole("heading", { name: "Applied and verified" }),
     ).toBeInTheDocument();
     expect(useEditsStore.getState().edits).toEqual({});
-    expect(screen.queryByRole("region", { name: "Pending changes" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Unsaved changes" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Hop limit")).toHaveValue(5);
   });
 
@@ -173,11 +181,12 @@ describe("device settings", () => {
     await renderApp("/settings/device?section=lora", seed());
     await screen.findByLabelText("Hop limit");
     expect(screen.queryByLabelText(/Bandwidth/)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Some new field")).not.toBeInTheDocument();
+    // Unknown fields sit in the folded Advanced part.
+    expect(screen.getByLabelText("Some new field")).not.toBeVisible();
     await user.click(screen.getByLabelText("Use a modem preset"));
     expect(screen.getByLabelText(/Bandwidth/)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Show advanced/ }));
-    expect(screen.getByLabelText("Some new field")).toBeInTheDocument();
+    await user.click(screen.getByText(/^Advanced \(\d+\)$/));
+    expect(screen.getByLabelText("Some new field")).toBeVisible();
     expect(screen.getByRole("group", { name: "Other" })).toBeInTheDocument();
   });
 
@@ -193,7 +202,7 @@ describe("device settings", () => {
     const el = field("config.lora.hopLimit");
     expect(await within(el).findByText("Changed on device: now 2.")).toBeInTheDocument();
     expect(el).toHaveAttribute("data-mt-state", "changed conflict");
-    await user.click(screen.getByRole("button", { name: "Review & apply" }));
+    await user.click(screen.getByRole("button", { name: "Review and apply" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByRole("button", { name: "Apply 1 change" })).toBeDisabled();
     await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
@@ -206,7 +215,7 @@ describe("device settings", () => {
     const user = userEvent.setup();
     await renderApp("/settings/device?section=device", seed());
     await user.click(await screen.findByLabelText("Managed mode"));
-    await user.click(screen.getByRole("button", { name: "Review & apply" }));
+    await user.click(screen.getByRole("button", { name: "Review and apply" }));
     const dialog = await screen.findByRole("dialog");
     const apply = within(dialog).getByRole("button", { name: "Apply 1 change" });
     expect(apply).toBeDisabled();
@@ -235,5 +244,67 @@ describe("device settings", () => {
     await renderApp("/settings/device?section=lora", { ...seed(), me: TEST_VIEWER });
     expect(await screen.findByLabelText("Hop limit")).toBeDisabled();
     expect(screen.getByText(/You're a viewer/)).toBeInTheDocument();
+  });
+});
+
+describe("LoRa controls (CR-005 K6)", () => {
+  it("preset cards stage the preset; the frequency follows region and preset", async () => {
+    const user = userEvent.setup();
+    await renderApp("/settings/device?section=lora", seed());
+    const longFast = await screen.findByRole("radio", { name: /Long Fast/ });
+    expect(longFast).toBeChecked();
+    expect(screen.getByRole("radio", { name: /Medium Fast/ })).toHaveAccessibleName(
+      "Medium Fast SF9 · 250 kHz 3.5 kbps",
+    );
+    const frequency = byDataMt("lora-frequency");
+    expect(frequency).toHaveTextContent("906.875 MHz");
+    expect(frequency).toHaveTextContent("slot 20 · picked from the preset name “LongFast”");
+
+    await user.click(screen.getByRole("radio", { name: /Medium Fast/ }));
+    expect(field("config.lora.modemPreset")).toHaveAttribute("data-mt-state", "changed");
+    expect(frequency).toHaveTextContent("“MediumFast”");
+
+    await user.selectOptions(screen.getByLabelText("Region"), "EU_868");
+    await user.click(screen.getByRole("radio", { name: /Long Fast/ }));
+    expect(frequency).toHaveTextContent("869.525 MHz");
+    expect(byDataMt("tx-power-limit")).toHaveTextContent("limit 27 dBm");
+  });
+
+  it("TX power is bounded by the region; the hop stepper counts", async () => {
+    const user = userEvent.setup();
+    await renderApp("/settings/device?section=lora", seed());
+    await user.selectOptions(await screen.findByLabelText("Region"), "EU_868");
+    const power = screen.getByLabelText("TX power (dBm)");
+    await user.clear(power);
+    await user.type(power, "30");
+    expect(
+      within(field("config.lora.txPower")).getByText("The EU_868 limit is 27 dBm."),
+    ).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "More hops" }));
+    expect(screen.getByLabelText("Hop limit")).toHaveValue(4);
+    await user.click(screen.getByRole("button", { name: "Fewer hops" }));
+    await user.click(screen.getByRole("button", { name: "Fewer hops" }));
+    expect(screen.getByLabelText("Hop limit")).toHaveValue(2);
+  });
+
+  it("the apply bar counts changes, Discard drops them, and the review warns about the mesh", async () => {
+    const user = userEvent.setup();
+    await renderApp("/settings/device?section=lora", seed());
+    await user.click(await screen.findByRole("button", { name: "More hops" }));
+    await user.click(screen.getByRole("radio", { name: /Medium Fast/ }));
+    const bar = screen.getByRole("region", { name: "Unsaved changes" });
+    expect(bar).toHaveTextContent("2 unsaved changes");
+
+    await user.click(within(bar).getByRole("button", { name: "Review and apply" }));
+    const dialog = await screen.findByRole("dialog", { name: "Review changes" });
+    expect(dialog).toHaveTextContent(
+      "Nodes on a different preset can't hear each other. Change every node on your mesh, or this one goes quiet.",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    await user.click(within(bar).getByRole("button", { name: "Discard" }));
+    expect(screen.queryByRole("region", { name: "Unsaved changes" })).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Long Fast/ })).toBeChecked();
   });
 });

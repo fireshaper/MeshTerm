@@ -76,7 +76,7 @@ describe("fixed position", () => {
     expect(screen.getByRole("button", { name: "Pick on map…" })).toBeInTheDocument();
     const alt = screen.getByLabelText("Altitude (m)");
     await user.type(alt, "120");
-    await user.click(screen.getByRole("button", { name: "Review & apply" }));
+    await user.click(screen.getByRole("button", { name: "Review and apply" }));
     const dialog = await screen.findByRole("dialog");
     await user.click(within(dialog).getByRole("button", { name: "Apply 2 changes" }));
     expect(posted).toEqual([

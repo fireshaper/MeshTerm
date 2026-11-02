@@ -21,6 +21,31 @@ interface ReviewDialogProps {
   addresses?: { current: string; next: string } | null;
 }
 
+/** LoRa fields that must match on every node of a mesh. */
+const MESH_FIELDS = [
+  "config.lora.region",
+  "config.lora.usePreset",
+  "config.lora.modemPreset",
+  "config.lora.bandwidth",
+  "config.lora.spreadFactor",
+  "config.lora.codingRate",
+  "config.lora.channelNum",
+  "config.lora.overrideFrequency",
+  "config.lora.frequencyOffset",
+];
+
+/** The warning for changes that cut a node off from the rest of its mesh, or null. */
+export function meshSplitWarning(paths: string[]): string | null {
+  const changed = MESH_FIELDS.filter((p) => paths.includes(p));
+  if (changed.length === 0) return null;
+  const what = changed.includes("config.lora.region")
+    ? "region"
+    : changed.some((p) => p === "config.lora.modemPreset" || p === "config.lora.usePreset")
+      ? "preset"
+      : "frequency settings";
+  return `Nodes on a different ${what} can't hear each other. Change every node on your mesh, or this one goes quiet.`;
+}
+
 /** Every pending change by section, warnings, and the apply button (CR-002 §5.3, §7). */
 export function ReviewDialog(props: ReviewDialogProps) {
   const { edits, summary, get, shortName } = props;
@@ -29,6 +54,7 @@ export function ReviewDialog(props: ReviewDialogProps) {
   const confirmed = !needsTyped || typed.trim() === shortName;
   const blocked = summary.invalid.length > 0 || summary.conflicts.length > 0;
   const n = summary.count;
+  const meshSplit = meshSplitWarning(Object.keys(edits));
 
   return (
     <Dialog.Root
@@ -50,6 +76,12 @@ export function ReviewDialog(props: ReviewDialogProps) {
             </Dialog.Close>
           </header>
           <div data-mt="review-body">
+            {meshSplit && (
+              <p data-mt="review-warning" data-mt-variant="mesh-split" role="note">
+                <TriangleAlert data-mt="icon" {...ICON} />
+                <span>{meshSplit}</span>
+              </p>
+            )}
             {SECTIONS.filter((s) => summary.bySection[s.id]).map((section) => (
               <section key={section.id} data-mt="review-section" aria-label={section.title}>
                 <h3 data-mt="review-section-title">{section.title}</h3>

@@ -59,6 +59,7 @@ function Check({
     <label data-mt="check-row" data-mt-variant="setting">
       <input
         type="checkbox"
+        data-mt="switch"
         checked={checked}
         disabled={disabled}
         onChange={(e) => {

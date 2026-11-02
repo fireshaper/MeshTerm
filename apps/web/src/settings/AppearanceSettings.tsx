@@ -168,6 +168,7 @@ function EffectsToggle({ theme }: { theme: ThemeDTO | null }) {
       <label data-mt="check-row" data-mt-variant="setting">
         <input
           type="checkbox"
+          data-mt="switch"
           checked={enabled}
           onChange={(e) => {
             setEnabled(e.target.checked);

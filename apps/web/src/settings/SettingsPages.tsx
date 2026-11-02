@@ -1,52 +1,78 @@
 import type { AuditEntryDTO, Role, UserDTO } from "@meshterm/shared";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
-import { useState, type SyntheticEvent } from "react";
+import { Bell, Cpu, KeyRound, Palette, ScrollText, Users } from "lucide-react";
+import { Fragment, useState, type SyntheticEvent } from "react";
 import { useIsAdmin, useMe } from "../auth/me.js";
 import { PageHeader } from "../components/PageHeader.js";
 import { formatAbsolute } from "../dashboard/format.js";
 import { ApiError, api } from "../data/api.js";
 import { queryKeys } from "../data/keys.js";
+import { useNodes } from "../data/queries.js";
+import { useLiveStore } from "../data/store.js";
 import { useUiStore } from "../data/ui-store.js";
 
 const errorText = (err: unknown) =>
   err instanceof ApiError ? err.message : "Couldn't reach MeshTerm. Try again.";
 
-/** Settings layout: section links (Device, Notifications, Appearance, Account; Users and Audit log for admins). */
+const ICON = { "aria-hidden": true, focusable: false } as const;
+
+/** "MeshTerm Base · !a1b2c3d4 · signed in as admin": the node these settings are for, and who. */
+function useContextLine(): string | undefined {
+  const me = useMe();
+  const connectionId = useLiveStore((s) => s.connectionId);
+  const myNodeNum = useLiveStore((s) => s.myNodeNum);
+  const { data: nodes } = useNodes(connectionId);
+  const node = nodes?.find((n) => n.num === myNodeNum);
+  const parts = [
+    node && (node.longName || node.shortName),
+    node?.id,
+    me?.user && `signed in as ${me.user.username}`,
+  ].filter((p): p is string => typeof p === "string" && p !== "");
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+/** Settings layout (CR-005 §6.7): section list beside the page, a chip row on phones. */
 export function SettingsPage() {
   const me = useMe();
   const admin = useIsAdmin();
   const { pathname } = useLocation();
   const local = me?.mode === "local";
+  const context = useContextLine();
   const items = [
-    { to: "/settings/device" as const, label: "Device" },
-    { to: "/settings/notifications" as const, label: "Notifications" },
-    { to: "/settings/appearance" as const, label: "Appearance" },
-    ...(local ? [{ to: "/settings/account" as const, label: "Account" }] : []),
-    ...(admin ? [{ to: "/settings/users" as const, label: "Users" }] : []),
-    ...(admin ? [{ to: "/settings/audit" as const, label: "Audit log" }] : []),
+    { to: "/settings/device" as const, label: "Device", Icon: Cpu },
+    { to: "/settings/notifications" as const, label: "Notifications", Icon: Bell },
+    { to: "/settings/appearance" as const, label: "Appearance", Icon: Palette },
+    ...(local ? [{ to: "/settings/account" as const, label: "Account", Icon: KeyRound }] : []),
+    ...(admin ? [{ to: "/settings/users" as const, label: "Users", Icon: Users }] : []),
+    ...(admin ? [{ to: "/settings/audit" as const, label: "Audit log", Icon: ScrollText }] : []),
   ];
   return (
     <section data-mt="settings-view">
-      <PageHeader title="Settings" />
-      <nav data-mt="settings-nav" aria-label="Settings">
-        {items.map((item) => {
-          const active = pathname.startsWith(item.to);
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              data-mt="settings-nav-item"
-              data-mt-state={active ? "active" : "inactive"}
-              aria-current={active ? "page" : undefined}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-      <div data-mt="settings-body">
-        <Outlet />
+      <PageHeader title="Settings" {...(context !== undefined && { subtitle: context })} />
+      <div data-mt="settings-layout">
+        <nav data-mt="settings-nav" aria-label="Settings">
+          {items.map(({ to, label, Icon }, i) => {
+            const active = pathname.startsWith(to);
+            return (
+              <Fragment key={to}>
+                {i === 3 && <span data-mt="settings-nav-separator" aria-hidden="true" />}
+                <Link
+                  to={to}
+                  data-mt="settings-nav-item"
+                  data-mt-state={active ? "active" : "inactive"}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <Icon data-mt="icon" {...ICON} />
+                  {label}
+                </Link>
+              </Fragment>
+            );
+          })}
+        </nav>
+        <div data-mt="settings-body">
+          <Outlet />
+        </div>
       </div>
     </section>
   );

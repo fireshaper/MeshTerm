@@ -122,7 +122,7 @@ describe("network", () => {
     expect(screen.getByText(/Not an IPv4 address/)).toBeInTheDocument();
     await user.type(screen.getByLabelText("IP address"), "20");
     expect(useEditsStore.getState().edits["config.network.ipv4Config.ip"]?.value).toBe(0x1401a8c0);
-    await user.click(screen.getByRole("button", { name: "Review & apply" }));
+    await user.click(screen.getByRole("button", { name: "Review and apply" }));
     const dialog = await screen.findByRole("dialog", { name: "Review changes" });
     expect(within(dialog).getByRole("note")).toHaveTextContent(
       "MeshTerm tries 192.0.2.1 and then the new address 192.168.1.20",
@@ -148,7 +148,7 @@ describe("security", () => {
         "config.security.publicKey": { value: "bmV3LXB1Yg==" },
       });
     });
-    await user.click(screen.getByRole("button", { name: "Review & apply" }));
+    await user.click(screen.getByRole("button", { name: "Review and apply" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByRole("row", { name: /Private key/ })).toHaveTextContent("(changed)");
     expect(dialog).not.toHaveTextContent("bmV3LXByaXY=");
@@ -161,7 +161,7 @@ describe("modules", () => {
     const user = userEvent.setup();
     await renderApp("/settings/device?section=module-serial", seed);
     expect(await screen.findByText("Modules")).toBeInTheDocument();
-    const nav = screen.getByRole("navigation", { name: "Device settings sections" });
+    const nav = screen.getByRole("navigation", { name: "Modules" });
     expect(within(nav).getByRole("link", { name: /^MQTT/ })).toBeInTheDocument();
     expect(within(nav).queryByRole("link", { name: /Paxcounter/ })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Baud")).toHaveValue("BAUD_DEFAULT");

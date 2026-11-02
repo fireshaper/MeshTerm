@@ -130,6 +130,8 @@ const VOLATILE = [
   "[data-mt=thread-details]",
   // The day pill names the real date the scenario messages were sent.
   "[data-mt=day-separator]",
+  // When the device config was read.
+  "[data-mt=device-header-read]",
   // Node drawer (outside [data-mt=main]: it's a portal).
   "[data-mt=node-drawer-seen]",
   // Notifications (CR-003).
@@ -339,16 +341,28 @@ test("map", async ({ page }) => {
 
 test("device settings", async ({ page }) => {
   await ready(page, "/settings/device?section=lora");
-  // A staged edit (never applied): the changed field, "was:", the nav badge and the tray.
+  // A staged edit (never applied): the changed field, "was:", the tile badge and the apply bar.
   const hops = page.getByLabel("Hop limit", { exact: true });
   await expect(hops).toBeEditable();
   await hops.fill("4");
-  await expect(page.getByRole("region", { name: "Pending changes" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Unsaved changes" })).toBeVisible();
   await page.locator("[data-mt=config-field][data-path='config.lora.hopLimit']").evaluate((el) => {
     el.scrollIntoView({ block: "center" });
   });
   await freeze(page);
   await shot(page, "device-settings.png", { mask: MASKS(page) });
+});
+
+test("device lora", async ({ page }) => {
+  await ready(page, "/settings/device?section=lora");
+  // The top of the page: my node, the section tiles, the frequency and a staged preset.
+  await page.locator("[data-mt=preset-card]").filter({ hasText: "Medium Fast" }).click();
+  await expect(page.getByRole("region", { name: "Unsaved changes" })).toBeVisible();
+  await page.locator("[data-mt=page-header]").evaluate((el) => {
+    el.scrollIntoView({ block: "start" });
+  });
+  await freeze(page);
+  await shot(page, "device-lora.png", { mask: MASKS(page) });
 });
 
 test("device channels", async ({ page }) => {

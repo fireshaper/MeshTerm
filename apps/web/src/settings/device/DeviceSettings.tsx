@@ -1,6 +1,7 @@
 import { ipv4FromUint32, type ApplyStatusDTO, type FieldSchema } from "@meshterm/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearch } from "@tanstack/react-router";
+import { ChevronRight } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useIsAdmin } from "../../auth/me.js";
 import { ApiError, api } from "../../data/api.js";
@@ -12,7 +13,8 @@ import { ApplyProgress, TERMINAL } from "./ApplyProgress.js";
 import { BackupRestore } from "./BackupRestore.js";
 import { ChannelsEditor } from "./ChannelsEditor.js";
 import { Maintenance } from "./Maintenance.js";
-import { ConfigField } from "./ConfigField.js";
+import { ConfigField, type InputCommon } from "./ConfigField.js";
+import { DeviceHeader } from "./DeviceHeader.js";
 import {
   buildChanges,
   getterFor,
@@ -23,7 +25,11 @@ import {
 } from "./edits.js";
 import { fieldProps, scalar, stage, type FieldContext } from "./field-props.js";
 import { allSections, metaFor, sectionById, type SectionMeta } from "./registry.js";
+import { afterField, CUSTOM_INPUTS } from "./lora-controls.js";
 import { ReviewDialog } from "./ReviewDialog.js";
+import { sectionIcon, sectionSummary } from "./summaries.js";
+
+const ICON = { "aria-hidden": true, focusable: false } as const;
 
 const NO_EDITS: Record<string, Edit> = {};
 /** MapLibre loads only when the picker opens. */
@@ -77,6 +83,18 @@ function errorText(err: unknown): string {
     return "The node's settings changed meanwhile. Check the fields marked and apply again.";
   return err.message;
 }
+
+/** Fields the section lists first come first; the rest keep their order (a stable sort). */
+const leadRank = (section: SectionMeta, path: string) => {
+  const i = section.lead?.indexOf(path) ?? -1;
+  return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+};
+
+/** "LoRa", "LoRa and Display", "LoRa, Device and Display". */
+const listText = (items: string[]) =>
+  items.length < 2
+    ? (items[0] ?? "")
+    : `${items.slice(0, -1).join(", ")} and ${items.at(-1) ?? ""}`;
 
 /** `/settings/device`: the node's settings by section, staged edits, review and apply (CR-002 §5). */
 export function DeviceSettingsPage() {
@@ -189,36 +207,99 @@ export function DeviceSettingsPage() {
   const visible = [
     ...flatten(fields, pathOf(section, "").slice(0, -1)),
     ...(section.id === "position" ? FIXED_FIELDS : []),
-  ].filter(({ path }) => {
-    const meta = metaFor(path);
-    return !meta.hidden && (meta.visibleIf?.(get) ?? true);
-  });
-  const advancedCount = visible.filter(({ path }) => metaFor(path).advanced).length;
-  const shown = visible.filter(({ path }) => advanced || !metaFor(path).advanced || path in edits);
-  const groups = [...section.groups, "Other"]
-    .map((g) => ({
-      name: g,
-      items: shown.filter(({ path }) => (metaFor(path).group ?? "Other") === g),
-    }))
-    .filter((g) => g.items.length > 0);
+  ]
+    .filter(({ path }) => {
+      const meta = metaFor(path);
+      return !meta.hidden && (meta.visibleIf?.(get) ?? true);
+    })
+    .sort((a, b) => leadRank(section, a.path) - leadRank(section, b.path));
+  const isAdvanced = (path: string) => metaFor(path).advanced === true;
+  const advancedItems = visible.filter(({ path }) => isAdvanced(path));
+  const byGroup = (items: typeof visible) =>
+    [...section.groups, "Other"]
+      .map((g) => ({
+        name: g,
+        items: items.filter(({ path }) => (metaFor(path).group ?? "Other") === g),
+      }))
+      .filter((g) => g.items.length > 0);
+  const groups = byGroup(visible.filter(({ path }) => !isAdvanced(path)));
+  const advancedGroups = byGroup(advancedItems);
+  const advancedOpen = advanced || advancedItems.some(({ path }) => path in edits);
 
   const ctx: FieldContext | null = cfg
     ? { connectionId, cfg, edits, get, disabled: readOnly }
     : null;
+  const rebootTitles = sections
+    .filter((s) => s.reboots && (summary.bySection[s.id] ?? 0) > 0)
+    .map((s) => s.title);
+  const sectionCount = Object.keys(summary.bySection).length;
+  const modules = sections.filter((s) => s.kind === "module");
+  const moduleEdits = modules.reduce((n, s) => n + (summary.bySection[s.id] ?? 0), 0);
   const ownerShort = typeof cfg?.owner?.shortName === "string" ? cfg.owner.shortName : "";
-  const ownerLong = typeof cfg?.owner?.longName === "string" ? cfg.owner.longName : "";
+
+  const renderField = ({ field, path }: { field: FieldSchema; path: string }) => {
+    if (!ctx) return null;
+    const props = fieldProps(ctx, path, field, section.reboots);
+    const Custom = CUSTOM_INPUTS[path];
+    return (
+      <div key={path} data-mt="config-row">
+        <ConfigField
+          {...props}
+          {...(Custom && {
+            renderInput: (common: InputCommon) => (
+              <Custom
+                common={common}
+                field={field}
+                value={props.value}
+                onChange={props.onChange}
+                get={get}
+              />
+            ),
+          })}
+        />
+        {afterField(path, get)}
+      </div>
+    );
+  };
+
+  const tile = (s: SectionMeta, current: boolean, n: number, summaryText: string) => {
+    const Icon = sectionIcon(s);
+    return (
+      <Link
+        key={s.id}
+        to="/settings/device"
+        search={{ section: s.id }}
+        data-mt="device-section-tile"
+        data-mt-state={
+          [current && "current", n > 0 && "dirty"].filter(Boolean).join(" ") || undefined
+        }
+        data-mt-variant={s.danger ? "danger" : undefined}
+        aria-current={current ? "page" : undefined}
+      >
+        <span data-mt="device-section-tile-title">
+          <Icon data-mt="icon" {...ICON} />
+          {s.title}
+          {n > 0 && (
+            <span data-mt="device-section-tile-badge" aria-label={`${n} unsaved`}>
+              {n}
+            </span>
+          )}
+        </span>
+        <span data-mt="device-section-tile-summary">{summaryText}</span>
+      </Link>
+    );
+  };
 
   return (
     <section data-mt="config-view" data-mt-state={readOnly ? "read-only" : "editable"}>
       <header data-mt="config-header">
-        <h2 data-mt="settings-title">Device settings</h2>
-        <p data-mt="config-connection" data-mt-state={nodeState ?? "unknown"}>
-          {ownerLong && <strong>{ownerLong}</strong>}
-          {ownerShort && <span> ({ownerShort})</span>}
-          {cfg?.firmware && <span> · fw {cfg.firmware}</span>}
-          <span data-mt="config-connection-state"> · {nodeState ?? "…"}</span>
+        <h2 data-mt="settings-title">Device</h2>
+        <p data-mt="config-lead">
+          Settings stored on the radio itself. Changes are sent over the admin channel, then read
+          back to check they stuck.
         </p>
       </header>
+      {cfg && <DeviceHeader cfg={cfg} nodeState={nodeState} />}
 
       {!admin && (
         <p data-mt="detail-note">
@@ -245,133 +326,165 @@ export function DeviceSettingsPage() {
         />
       )}
 
-      <div data-mt="config-layout">
-        <nav data-mt="config-nav" aria-label="Device settings sections">
-          {sections.map((s, i) => {
-            const n = summary.bySection[s.id] ?? 0;
-            const active = s.id === section.id;
-            const firstModule = s.kind === "module" && sections[i - 1]?.kind !== "module";
-            return [
-              firstModule && (
-                <span key="modules" data-mt="config-nav-heading">
-                  Modules
-                </span>
-              ),
+      <nav data-mt="config-nav" aria-label="Device settings sections">
+        {sections
+          .filter((s) => s.kind !== "module")
+          .map((s) =>
+            tile(s, s.id === section.id, summary.bySection[s.id] ?? 0, sectionSummary(s, get)),
+          )}
+        {modules[0] &&
+          tile(
+            { ...modules[0], title: "Modules" },
+            section.kind === "module",
+            moduleEdits,
+            modules
+              .slice(0, 3)
+              .map((m) => m.title)
+              .join(", ") + (modules.length > 3 ? "…" : ""),
+          )}
+      </nav>
+      {section.kind === "module" && (
+        <nav data-mt="device-module-nav" aria-label="Modules">
+          {modules.map((m) => {
+            const current = m.id === section.id;
+            const n = summary.bySection[m.id] ?? 0;
+            return (
               <Link
-                key={s.id}
+                key={m.id}
                 to="/settings/device"
-                search={{ section: s.id }}
-                data-mt="config-nav-item"
+                search={{ section: m.id }}
+                data-mt="device-module-link"
                 data-mt-state={
-                  [active && "active", n > 0 && "dirty"].filter(Boolean).join(" ") || undefined
+                  [current && "current", n > 0 && "dirty"].filter(Boolean).join(" ") || undefined
                 }
-                data-mt-variant={s.danger ? "danger" : undefined}
-                aria-current={active ? "page" : undefined}
+                aria-current={current ? "page" : undefined}
               >
-                <span data-mt="config-nav-title">{s.title}</span>
-                <span data-mt="config-nav-summary">{s.summary}</span>
+                {m.title}
                 {n > 0 && (
-                  <span data-mt="config-nav-badge" aria-label={`${n} unsaved`}>
-                    •{n}
+                  <span data-mt="device-section-tile-badge" aria-label={`${n} unsaved`}>
+                    {n}
                   </span>
                 )}
-              </Link>,
-            ];
+              </Link>
+            );
           })}
         </nav>
+      )}
 
-        <div data-mt="config-section" data-section={section.id} aria-label={section.title}>
-          <h3 data-mt="settings-subtitle">{section.title}</h3>
-          {schema.isError || config.isError ? (
-            <p role="alert">
-              {config.error instanceof ApiError && config.error.status === 404
-                ? "The node hasn't reported its settings yet."
-                : "Settings couldn't be loaded."}
-            </p>
-          ) : !ctx || !schema.data ? (
-            <div data-mt="skeleton" aria-hidden />
-          ) : section.kind === "channels" ? (
-            <ChannelsEditor ctx={ctx} admin={admin} />
-          ) : section.kind === "backup" || section.kind === "maintenance" ? (
-            !admin ? (
-              <p data-mt="detail-note">Only admins can back up, restore or maintain the node.</p>
-            ) : section.kind === "backup" ? (
-              <BackupRestore ctx={ctx} moduleKeys={moduleKeys} />
-            ) : (
-              <Maintenance connectionId={connectionId} shortName={ownerShort} disabled={readOnly} />
-            )
+      <div data-mt="config-section" data-section={section.id} aria-label={section.title}>
+        <h3 data-mt="settings-subtitle">{section.title}</h3>
+        {schema.isError || config.isError ? (
+          <p role="alert">
+            {config.error instanceof ApiError && config.error.status === 404
+              ? "The node hasn't reported its settings yet."
+              : "Settings couldn't be loaded."}
+          </p>
+        ) : !ctx || !schema.data ? (
+          <div data-mt="skeleton" aria-hidden />
+        ) : section.kind === "channels" ? (
+          <ChannelsEditor ctx={ctx} admin={admin} />
+        ) : section.kind === "backup" || section.kind === "maintenance" ? (
+          !admin ? (
+            <p data-mt="detail-note">Only admins can back up, restore or maintain the node.</p>
+          ) : section.kind === "backup" ? (
+            <BackupRestore ctx={ctx} moduleKeys={moduleKeys} />
           ) : (
-            <>
-              {groups.map((g) => (
-                <fieldset key={g.name} data-mt="config-group">
-                  {(groups.length > 1 || g.name !== section.title) && (
+            <Maintenance connectionId={connectionId} shortName={ownerShort} disabled={readOnly} />
+          )
+        ) : (
+          <>
+            {groups.map((g) => (
+              <fieldset key={g.name} data-mt="config-group">
+                {(groups.length > 1 || g.name !== section.title) && (
+                  <legend data-mt="config-group-title">
+                    {g.name}
+                    {section.notes?.[g.name] && (
+                      <small data-mt="config-group-note">{section.notes[g.name]}</small>
+                    )}
+                  </legend>
+                )}
+                {g.items.map(renderField)}
+                {g.name === "Keys" && section.id === "security" && admin && (
+                  <button
+                    type="button"
+                    data-mt="button"
+                    disabled={readOnly}
+                    onClick={() => {
+                      void api.keyPair().then(
+                        ({ privateKey, publicKey }) => {
+                          stage(ctx, "config.security.privateKey", privateKey);
+                          stage(ctx, "config.security.publicKey", publicKey);
+                        },
+                        () => {
+                          toast("Couldn't make a key pair. Try again.", "error");
+                        },
+                      );
+                    }}
+                  >
+                    New key pair…
+                  </button>
+                )}
+                {g.name === "Fixed position" && get("config.position.fixedPosition") === true && (
+                  <button
+                    type="button"
+                    data-mt="button"
+                    disabled={readOnly}
+                    onClick={() => {
+                      setPicking(true);
+                    }}
+                  >
+                    Pick on map…
+                  </button>
+                )}
+              </fieldset>
+            ))}
+            {advancedItems.length > 0 && (
+              <details
+                data-mt="config-advanced"
+                open={advancedOpen}
+                onToggle={(e) => {
+                  setAdvanced(e.currentTarget.open);
+                }}
+              >
+                <summary data-mt="config-advanced-summary">
+                  <ChevronRight data-mt="icon" {...ICON} />
+                  Advanced ({advancedItems.length})
+                </summary>
+                {advancedGroups.map((g) => (
+                  <fieldset key={g.name} data-mt="config-group" data-mt-variant="advanced">
                     <legend data-mt="config-group-title">{g.name}</legend>
-                  )}
-                  {g.items.map(({ field, path }) => (
-                    <ConfigField key={path} {...fieldProps(ctx, path, field, section.reboots)} />
-                  ))}
-                  {g.name === "Keys" && section.id === "security" && admin && (
-                    <button
-                      type="button"
-                      data-mt="button"
-                      disabled={readOnly}
-                      onClick={() => {
-                        void api.keyPair().then(
-                          ({ privateKey, publicKey }) => {
-                            stage(ctx, "config.security.privateKey", privateKey);
-                            stage(ctx, "config.security.publicKey", publicKey);
-                          },
-                          () => {
-                            toast("Couldn't make a key pair. Try again.", "error");
-                          },
-                        );
-                      }}
-                    >
-                      New key pair…
-                    </button>
-                  )}
-                  {g.name === "Fixed position" && get("config.position.fixedPosition") === true && (
-                    <button
-                      type="button"
-                      data-mt="button"
-                      disabled={readOnly}
-                      onClick={() => {
-                        setPicking(true);
-                      }}
-                    >
-                      Pick on map…
-                    </button>
-                  )}
-                </fieldset>
-              ))}
-              {advancedCount > 0 && (
-                <button
-                  type="button"
-                  data-mt="button"
-                  aria-expanded={advanced}
-                  onClick={() => {
-                    setAdvanced((a) => !a);
-                  }}
-                >
-                  {advanced ? "Hide advanced" : `Show advanced (${advancedCount})`}
-                </button>
-              )}
-            </>
-          )}
-        </div>
+                    {g.items.map(renderField)}
+                  </fieldset>
+                ))}
+              </details>
+            )}
+          </>
+        )}
       </div>
 
       {admin && summary.count > 0 && (
-        <div data-mt="pending-tray" role="region" aria-label="Pending changes">
-          <p data-mt="pending-summary">
-            {summary.count} pending {summary.count === 1 ? "change" : "changes"} in{" "}
-            {Object.keys(summary.bySection).length}{" "}
-            {Object.keys(summary.bySection).length === 1 ? "section" : "sections"}
-            {summary.reboot && " · node will reboot"}
+        <div data-mt="apply-bar" role="region" aria-label="Unsaved changes">
+          <p data-mt="apply-bar-text">
+            <strong data-mt="apply-bar-count">
+              {summary.count} unsaved {summary.count === 1 ? "change" : "changes"}
+            </strong>
+            <span data-mt="apply-bar-note">
+              {summary.reboot
+                ? rebootTitles.length > 0
+                  ? `Saving ${listText(rebootTitles)} settings reboots the node`
+                  : "Saving reboots the node"
+                : `In ${sectionCount} ${sectionCount === 1 ? "section" : "sections"} · no reboot`}
+            </span>
           </p>
-          <div data-mt="pending-actions">
-            <button type="button" data-mt="button" disabled={running} onClick={clear}>
-              Discard all
+          <div data-mt="apply-bar-actions">
+            <button
+              type="button"
+              data-mt="button"
+              data-mt-variant="ghost"
+              disabled={running}
+              onClick={clear}
+            >
+              Discard
             </button>
             <button
               type="button"
@@ -382,7 +495,7 @@ export function DeviceSettingsPage() {
                 setReviewing(true);
               }}
             >
-              Review &amp; apply
+              Review and apply
             </button>
           </div>
         </div>

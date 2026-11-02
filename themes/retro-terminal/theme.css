@@ -571,14 +571,14 @@
   [data-mt="nav-item"][data-mt-state="active"],
   [data-mt="settings-nav-item"][data-mt-state="active"],
   [data-mt="node-drawer-tab"][data-mt-state="active"],
-  [data-mt="config-nav-item"][data-mt-state="active"] {
+  [data-mt="device-section-tile"][data-mt-state~="current"] {
     background: var(--rt-text);
     color: var(--rt-bg);
   }
 
   [data-mt="nav-item"][data-mt-state="active"] [data-mt="icon"],
   [data-mt="conversation-row"][data-mt-state="active"] *,
-  [data-mt="config-nav-item"][data-mt-state="active"] * {
+  [data-mt="device-section-tile"][data-mt-state~="current"] * {
     color: inherit;
   }
 

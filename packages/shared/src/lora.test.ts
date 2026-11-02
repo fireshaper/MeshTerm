@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { channelNameHash, loraSummary } from "./lora.js";
+import {
+  channelNameHash,
+  formatDataRate,
+  LORA_PRESETS,
+  LORA_REGIONS,
+  loraDataRate,
+  loraSummary,
+  presetTitle,
+} from "./lora.js";
 
 describe("loraSummary (CR-005 K1)", () => {
   // Frequencies as the official apps show them for the default channel names.
@@ -57,5 +65,24 @@ describe("loraSummary (CR-005 K1)", () => {
       preset: "LongFast",
       frequencyMhz: null,
     });
+  });
+});
+
+describe("preset data rates and region limits", () => {
+  it("matches the rates the apps show", () => {
+    const rate = (id: string) => {
+      const p = LORA_PRESETS[id];
+      return p ? formatDataRate(loraDataRate(p)) : null;
+    };
+    expect(rate("SHORT_TURBO")).toBe("21.9 kbps");
+    expect(rate("LONG_FAST")).toBe("1.1 kbps");
+    expect(rate("LONG_MODERATE")).toBe("0.34 kbps");
+    expect(rate("LONG_SLOW")).toBe("0.18 kbps");
+  });
+
+  it("names presets and knows each region's power limit", () => {
+    expect(presetTitle("VERY_LONG_SLOW")).toBe("Very Long Slow");
+    expect(LORA_REGIONS.US?.powerLimit).toBe(30);
+    expect(LORA_REGIONS.EU_868?.powerLimit).toBe(27);
   });
 });
