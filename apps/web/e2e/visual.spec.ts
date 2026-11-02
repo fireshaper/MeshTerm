@@ -142,6 +142,8 @@ const VOLATILE = [
   "[data-mt=thread-details]",
   // The day pill names the real date the scenario messages were sent.
   "[data-mt=day-separator]",
+  // The drawer's "last heard" stat ("43 s ago" or "1 min ago", which wraps on phones).
+  "[data-mt=detail-stat][data-mt-variant=last-heard] dd",
   // When the device config was read.
   "[data-mt=device-header-read]",
   // Node drawer (outside [data-mt=main]: it's a portal).
